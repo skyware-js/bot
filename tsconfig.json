@@ -1,0 +1,27 @@
+{
+	"compilerOptions": {
+		"lib": ["esnext"],
+		"module": "esnext",
+		"target": "esnext",
+		"moduleResolution": "bundler",
+		"moduleDetection": "force",
+
+		"declaration": true,
+
+		"skipLibCheck": true,
+		"composite": true,
+		"newLine": "lf",
+
+		"forceConsistentCasingInFileNames": true,
+		"useDefineForClassFields": true,
+
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"noImplicitOverride": true,
+		"exactOptionalPropertyTypes": true,
+		"strict": true,
+
+		"outDir": "dist",
+		"rootDir": "src"
+	}
+}

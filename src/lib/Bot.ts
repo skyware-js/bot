@@ -10,10 +10,12 @@ import {
 	RichText,
 } from "@atproto/api";
 import { RateLimiter } from "limiter";
+import QuickLRU from "quick-lru";
 import { Post } from "./struct/post/Post";
 import { PostPayload, type PostPayloadData } from "./struct/post/PostPayload";
 import { Profile } from "./struct/Profile";
 import { typedEntries, typedKeys } from "./util";
+import { CacheOptions, makeCache } from "./util/cache";
 
 const NO_SESSION_ERROR = "Active session not found. Make sure to call the login method first.";
 
@@ -21,59 +23,49 @@ const NO_SESSION_ERROR = "Active session not found. Make sure to call the login 
  * Options for the Bot constructor
  */
 interface BotOptions extends Partial<AtpAgentOpts> {
-	/**
-	 * The default list of languages to attach to posts
-	 */
+	/** The default list of languages to attach to posts */
 	langs?: Array<string>;
 
-	/**
-	 * The maximum number of requests that can be made to the Bluesky API in a given interval.
-	 * Don't set this unless you know what you're doing.
-	 * @default 3000
-	 * @see https://www.docs.bsky.app/docs/advanced-guides/rate-limits
-	 */
-	rateLimit?: number;
+	/** Options for the built-in rate limiter */
+	rateLimitOptions?: RateLimitOptions;
 
-	/**
-	 * The interval after which the rate limit will reset, in seconds
-	 * @default 300
-	 * @see https://www.docs.bsky.app/docs/advanced-guides/rate-limits
-	 */
-	rateLimitInterval?: number;
+	/** Options for the request cache */
+	cacheOptions?: CacheOptions;
 }
 
 /**
  * A bot that can interact with the Bluesky API
  */
 export class Bot {
-	/**
-	 * The agent used to communicate with the Bluesky API
-	 */
+	/** The agent used to communicate with the Bluesky API */
 	agent: BskyAgent;
 
+	/** A limiter to rate limit API requests */
 	limiter: RateLimiter;
 
+	/** A cache to store API responses */
+	cache: BotCache;
+
+	/** The Bluesky API client, with rate-limited methods */
 	api: AtpServiceClient;
 
-	/**
-	 * The default list of languages to attach to posts
-	 */
+	/** The default list of languages to attach to posts */
 	langs: Array<string> = [];
 
-	/**
-	 * The bot account's Bluesky profile
-	 */
+	/** The bot account's Bluesky profile */
 	profile!: Profile;
 
-	constructor({ langs, rateLimit = 3000, rateLimitInterval = 300, ...options }: BotOptions = {}) {
+	constructor({ langs, rateLimitOptions, cacheOptions, ...options }: BotOptions = {}) {
 		this.agent = new BskyAgent({ service: "https://bsky.social", ...options });
 
 		if (langs) this.langs = langs;
 
 		this.limiter = new RateLimiter({
-			tokensPerInterval: rateLimit,
-			interval: rateLimitInterval * 1000,
+			tokensPerInterval: rateLimitOptions?.rateLimit ?? 3000,
+			interval: (rateLimitOptions?.rateLimitInterval ?? 300) * 1000,
 		});
+
+		this.cache = { profiles: makeCache(cacheOptions), posts: makeCache(cacheOptions) };
 
 		this.api = this.agent.api;
 
@@ -164,14 +156,17 @@ export class Bot {
 		await this.limiter.removeTokens(1);
 
 		const { host: repo, rkey } = new AtUri(uri);
-		const post = await this.agent.getPost({ repo, rkey });
-		return new Post({
-			...post.value,
-			createdAt: new Date(post.value.createdAt),
-			uri: post.uri,
-			cid: post.cid,
+		const postRecord = await this.agent.getPost({ repo, rkey });
+		const post = new Post({
+			...postRecord.value,
+			createdAt: new Date(postRecord.value.createdAt),
+			uri: postRecord.uri,
+			cid: postRecord.cid,
 			author: await this.getProfile(repo),
 		});
+
+		this.cache.posts.set(uri, post);
+		return post;
 	}
 
 	/**
@@ -183,11 +178,14 @@ export class Bot {
 
 		await this.limiter.removeTokens(1);
 
-		const profile = await this.agent.getProfile({ actor: did });
-		if (!profile.success) {
-			throw new Error(`Failed to fetch profile ${did}\n` + JSON.stringify(profile.data));
+		const profileView = await this.agent.getProfile({ actor: did });
+		if (!profileView.success) {
+			throw new Error(`Failed to fetch profile ${did}\n` + JSON.stringify(profileView.data));
 		}
-		return new Profile(profile.data);
+
+		const profile = new Profile(profileView.data);
+		this.cache.profiles.set(did, profile);
+		return profile;
 	}
 
 	/**
@@ -223,8 +221,36 @@ export class Bot {
 			throw new Error("Failed to create post\n" + JSON.stringify(res.data));
 		}
 
-		return new Post({ ...data, ...res.data, author: this.profile });
+		const createdPost = new Post({ ...data, ...res.data, author: this.profile });
+		this.cache.posts.set(createdPost.uri, createdPost);
+		return createdPost;
 	}
+}
+
+/**
+ * Options for the built-in rate limiter
+ */
+interface RateLimitOptions {
+	/**
+	 * The maximum number of requests that can be made to the Bluesky API in a given interval.
+	 * Don't set this unless you know what you're doing.
+	 * @default 3000
+	 * @see https://www.docs.bsky.app/docs/advanced-guides/rate-limits
+	 */
+	rateLimit?: number;
+
+	/**
+	 * The interval after which the rate limit will reset, in seconds
+	 * @default 300
+	 * @see https://www.docs.bsky.app/docs/advanced-guides/rate-limits
+	 */
+	rateLimitInterval?: number;
+}
+
+/** The bot's cache */
+interface BotCache {
+	profiles: QuickLRU<string, Profile>;
+	posts: QuickLRU<string, Post>;
 }
 
 /**

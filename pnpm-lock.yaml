@@ -11,6 +11,9 @@ dependencies:
   limiter:
     specifier: ^2.1.0
     version: 2.1.0
+  quick-lru:
+    specifier: ^7.0.0
+    version: 7.0.0
 
 devDependencies:
   '@typescript-eslint/eslint-plugin':
@@ -932,6 +935,11 @@ packages:
   /queue-microtask@1.2.3:
     resolution: {integrity: sha512-NuaNSa6flKT5JaSYQzJok04JzTL1CA6aGhv5rfLW3PgqA+M2ChpZQnAC8h8i4ZFkBS8X5RqkDBHA7r4hej3K9A==}
     dev: true
+
+  /quick-lru@7.0.0:
+    resolution: {integrity: sha512-MX8gB7cVYTrYcFfAnfLlhRd0+Toyl8yX8uBx1MrX7K0jegiz9TumwOK27ldXrgDlHRdVi+MqU9Ssw6dr4BNreg==}
+    engines: {node: '>=18'}
+    dev: false
 
   /resolve-from@4.0.0:
     resolution: {integrity: sha512-pb/MYmXstAkysRFx8piNI1tGFNQIFA3vkE3Gq4EuA1dF6gHp/+vgZqsCGJapvy8N3Q+4o7FwvquPJcnZ7RYy4g==}

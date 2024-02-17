@@ -6,7 +6,8 @@
 	"types": "dist/index.d.ts",
 	"dependencies": {
 		"@atproto/api": "^0.6.20",
-		"limiter": "^2.1.0"
+		"limiter": "^2.1.0",
+		"quick-lru": "^7.0.0"
 	},
 	"devDependencies": {
 		"@typescript-eslint/eslint-plugin": "^6.7.4",

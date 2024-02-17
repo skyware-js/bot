@@ -19,6 +19,8 @@ import { CacheOptions, makeCache } from "./cache";
 
 const NO_SESSION_ERROR = "Active session not found. Make sure to call the login method first.";
 
+const NOT_LIMITED_METHODS = ["createSession", "getSession"];
+
 /**
  * Options for the Bot constructor
  */
@@ -70,7 +72,7 @@ export class Bot {
 		this.api = this.agent.api;
 
 		// Rate limit API methods by wrapping each method with a function that will remove a token from the limiter
-		/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return */
+		/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-argument */
 		for (const namespace of [this.api.com.atproto, this.api.app.bsky]) {
 			for (const collection of typedKeys(namespace)) {
 				if (collection === "_service") continue;
@@ -79,6 +81,8 @@ export class Bot {
 					if (methodName === "_service") continue;
 					// @ts-expect-error — Hacky way to rate limit API methods
 					namespace[collection][methodName] = async (input: unknown) => {
+						if (NOT_LIMITED_METHODS.includes(methodName)) return method(input);
+
 						// If there are 0 tokens remaining, this call will block until the interval resets
 						await this.limiter.removeTokens(1);
 						return method(input);
@@ -155,8 +159,6 @@ export class Bot {
 
 		if (this.cache.posts.has(uri)) return this.cache.posts.get(uri)!;
 
-		await this.limiter.removeTokens(1);
-
 		const { host: repo, rkey } = new AtUri(uri);
 		const postRecord = await this.agent.getPost({ repo, rkey });
 		const post = new Post({
@@ -180,9 +182,7 @@ export class Bot {
 
 		if (this.cache.profiles.has(did)) return this.cache.profiles.get(did)!;
 
-		await this.limiter.removeTokens(1);
-
-		const profileView = await this.agent.getProfile({ actor: did });
+		const profileView = await this.api.app.bsky.actor.getProfile({ actor: did });
 		if (!profileView.success) {
 			throw new Error(`Failed to fetch profile ${did}\n` + JSON.stringify(profileView.data));
 		}

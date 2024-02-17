@@ -9,7 +9,7 @@ import {
 } from "@atproto/api";
 
 /**
- * Data that can be used to construct a Post class
+ * Data that can be used to construct a PostPayload class
  */
 export type PostPayloadData =
 	& Pick<
@@ -71,10 +71,7 @@ export class PostPayload {
 	 */
 	createdAt: Date;
 
-	constructor(
-		{ text, facets, reply, langs, embed, labels, tags, createdAt = new Date() }:
-			PostPayloadData,
-	) {
+	constructor({ text, facets, reply, langs, embed, labels, tags, createdAt }: PostPayloadData) {
 		this.text = text;
 
 		if (facets) this.facets = facets;
@@ -99,7 +96,7 @@ export class PostPayload {
 
 		if (tags) this.tags = tags;
 
-		this.createdAt = createdAt;
+		this.createdAt = createdAt ?? new Date();
 	}
 }
 

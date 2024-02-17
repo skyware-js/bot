@@ -11,18 +11,18 @@ import {
 } from "@atproto/api";
 import { RateLimiter } from "limiter";
 import QuickLRU from "quick-lru";
-import { Post } from "./struct/post/Post";
-import { PostPayload, type PostPayloadData } from "./struct/post/PostPayload";
-import { Profile } from "./struct/Profile";
-import { typedEntries, typedKeys } from "./util";
-import { CacheOptions, makeCache } from "./util/cache";
+import { Post } from "../struct/post/Post";
+import { PostPayload, type PostPayloadData } from "../struct/post/PostPayload";
+import { Profile } from "../struct/Profile";
+import { CacheOptions, makeCache } from "./cache";
+import { typedEntries, typedKeys } from "../util";
 
 const NO_SESSION_ERROR = "Active session not found. Make sure to call the login method first.";
 
 /**
  * Options for the Bot constructor
  */
-interface BotOptions extends Partial<AtpAgentOpts> {
+export interface BotOptions extends Partial<AtpAgentOpts> {
 	/** The default list of languages to attach to posts */
 	langs?: Array<string>;
 
@@ -227,10 +227,16 @@ export class Bot {
 	}
 }
 
+/** The bot's cache */
+interface BotCache {
+	profiles: QuickLRU<string, Profile>;
+	posts: QuickLRU<string, Post>;
+}
+
 /**
  * Options for the built-in rate limiter
  */
-interface RateLimitOptions {
+export interface RateLimitOptions {
 	/**
 	 * The maximum number of requests that can be made to the Bluesky API in a given interval.
 	 * Don't set this unless you know what you're doing.
@@ -247,16 +253,10 @@ interface RateLimitOptions {
 	rateLimitInterval?: number;
 }
 
-/** The bot's cache */
-interface BotCache {
-	profiles: QuickLRU<string, Profile>;
-	posts: QuickLRU<string, Post>;
-}
-
 /**
  * Options for the Bot#post method
  */
-interface BotPostOptions {
+export interface BotPostOptions {
 	/**
 	 * Whether to automatically resolve facets in the post's text.
 	 * This will be ignored if the provided post data already has facets attached

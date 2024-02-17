@@ -4,7 +4,11 @@ import { PostPayload, type PostPayloadData } from "./PostPayload";
 /**
  * Data that can be used to construct a Post class
  */
-export type PostData = PostPayloadData & { uri: string; cid: string; author: Profile };
+export interface PostData extends PostPayloadData {
+	uri: string;
+	cid: string;
+	author: Profile;
+}
 
 /**
  * Represents a post on Bluesky

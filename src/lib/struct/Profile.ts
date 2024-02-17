@@ -1,5 +1,4 @@
-import { ComAtprotoLabelDefs } from "@atproto/api";
-import { Bot } from "../Bot";
+import type { ComAtprotoLabelDefs } from "@atproto/api";
 
 export interface ProfileData {
 	did: string;
@@ -47,10 +46,7 @@ export class Profile {
 	 */
 	labels: Array<ComAtprotoLabelDefs.Label>;
 
-	constructor(
-		{ did, handle, displayName, description, avatar, banner, labels }: ProfileData,
-		public bot?: Bot,
-	) {
+	constructor({ did, handle, displayName, description, avatar, banner, labels }: ProfileData) {
 		this.did = did;
 		this.handle = handle;
 		if (displayName) this.displayName = displayName;
@@ -58,18 +54,5 @@ export class Profile {
 		if (avatar) this.avatar = avatar;
 		if (banner) this.banner = banner;
 		this.labels = labels ?? [];
-	}
-
-	/**
-	 * Fetches a user's profile from their DID
-	 * @param did The user's DID
-	 * @param bot The Bot instance to use for the request
-	 */
-	static async fromDid(did: string, bot: Bot): Promise<Profile> {
-		const profile = await bot.agent.getProfile({ actor: did });
-		if (!profile.success) {
-			throw new Error(`Failed to fetch profile ${did}\n` + JSON.stringify(profile.data));
-		}
-		return new Profile(profile.data, bot);
 	}
 }

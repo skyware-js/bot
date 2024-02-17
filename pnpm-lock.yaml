@@ -8,6 +8,9 @@ dependencies:
   '@atproto/api':
     specifier: ^0.6.20
     version: 0.6.20
+  limiter:
+    specifier: ^2.1.0
+    version: 2.1.0
 
 devDependencies:
   '@typescript-eslint/eslint-plugin':
@@ -779,6 +782,10 @@ packages:
     resolution: {integrity: sha512-Bdboy+l7tA3OGW6FjyFHWkP5LuByj1Tk33Ljyq0axyzdk9//JSi2u3fP1QSmd1KNwq6VOKYGlAu87CisVir6Pw==}
     dev: true
 
+  /just-performance@4.3.0:
+    resolution: {integrity: sha512-L7RjvtJsL0QO8xFs5wEoDDzzJwoiowRw6Rn/GnvldlchS2JQr9wFYPiwZcDfrbbujEKqKN0tvENdbjXdYhDp5Q==}
+    dev: false
+
   /keyv@4.5.4:
     resolution: {integrity: sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw==}
     dependencies:
@@ -792,6 +799,12 @@ packages:
       prelude-ls: 1.2.1
       type-check: 0.4.0
     dev: true
+
+  /limiter@2.1.0:
+    resolution: {integrity: sha512-361TYz6iay6n+9KvUUImqdLuFigK+K79qrUtBsXhJTLdH4rIt/r1y8r1iozwh8KbZNpujbFTSh74mJ7bwbAMOw==}
+    dependencies:
+      just-performance: 4.3.0
+    dev: false
 
   /locate-path@6.0.0:
     resolution: {integrity: sha512-iPZK6eYjbxRu3uB4/WZ3EsEIMJFMqAoopl3R+zuq0UjcAm/MO6KCweDgPfP3elTztoKP3KtnVHxTn2NHBSDVUw==}

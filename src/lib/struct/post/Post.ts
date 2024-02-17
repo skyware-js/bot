@@ -1,7 +1,5 @@
-import { AtUri } from "@atproto/api";
-import { Bot } from "../../Bot";
-import { Profile } from "../Profile";
-import { PostPayload, PostPayloadData } from "./PostPayload";
+import type { Profile } from "../Profile";
+import { PostPayload, type PostPayloadData } from "./PostPayload";
 
 /**
  * Data that can be used to construct a Post class
@@ -27,22 +25,10 @@ export class Post extends PostPayload {
 	 */
 	author: Profile;
 
-	constructor({ uri, cid, author, ...data }: PostData, public bot?: Bot) {
+	constructor({ uri, cid, author, ...data }: PostData) {
 		super(data);
 		this.uri = uri;
 		this.cid = cid;
 		this.author = author;
-	}
-
-	static async fromUri(uri: string, bot: Bot): Promise<Post> {
-		const { host: repo, rkey } = new AtUri(uri);
-		const post = await bot.agent.getPost({ repo, rkey });
-		return new Post({
-			...post.value,
-			createdAt: new Date(post.value.createdAt),
-			uri: post.uri,
-			cid: post.cid,
-			author: await Profile.fromDid(repo, bot),
-		}, bot);
 	}
 }

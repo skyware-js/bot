@@ -14,8 +14,8 @@ import QuickLRU from "quick-lru";
 import { Post } from "../struct/post/Post";
 import { PostPayload, type PostPayloadData } from "../struct/post/PostPayload";
 import { Profile } from "../struct/Profile";
-import { CacheOptions, makeCache } from "./cache";
 import { typedEntries, typedKeys } from "../util";
+import { CacheOptions, makeCache } from "./cache";
 
 const NO_SESSION_ERROR = "Active session not found. Make sure to call the login method first.";
 
@@ -153,6 +153,8 @@ export class Bot {
 	async getPost(uri: string): Promise<Post> {
 		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
 
+		if (this.cache.posts.has(uri)) return this.cache.posts.get(uri)!;
+
 		await this.limiter.removeTokens(1);
 
 		const { host: repo, rkey } = new AtUri(uri);
@@ -175,6 +177,8 @@ export class Bot {
 	 */
 	async getProfile(did: string): Promise<Profile> {
 		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
+
+		if (this.cache.profiles.has(did)) return this.cache.profiles.get(did)!;
 
 		await this.limiter.removeTokens(1);
 

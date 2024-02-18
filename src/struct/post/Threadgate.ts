@@ -8,7 +8,7 @@ export interface ThreadgateData {
 	createdAt: Date;
 	post: Post;
 	allowsFollowing?: boolean | undefined;
-	allowsMentions?: boolean | undefined;
+	allowsMentioned?: boolean | undefined;
 	allowedLists?: Array<List> | undefined;
 }
 
@@ -32,7 +32,7 @@ export class Threadgate {
 	allowsFollowing: boolean;
 
 	/** Whether users mentioned in the post are allowed to reply */
-	allowsMentions: boolean;
+	allowsMentioned: boolean;
 
 	/** Lists whose members are allowed to reply */
 	allowedLists: Array<List>;
@@ -44,7 +44,7 @@ export class Threadgate {
 			createdAt,
 			post,
 			allowsFollowing = false,
-			allowsMentions = false,
+			allowsMentioned = false,
 			allowedLists = [],
 		}: ThreadgateData,
 	) {
@@ -53,7 +53,7 @@ export class Threadgate {
 		this.createdAt = createdAt;
 		this.post = post;
 		this.allowsFollowing = allowsFollowing;
-		this.allowsMentions = allowsMentions;
+		this.allowsMentioned = allowsMentioned;
 		this.allowedLists = allowedLists;
 	}
 
@@ -70,12 +70,12 @@ export class Threadgate {
 			throw new Error("Invalid threadgate view");
 		}
 
-		let allowsFollowing = false, allowsMentions = false;
+		let allowsFollowing = false, allowsMentioned = false;
 		for (const rule of view.record.allow ?? []) {
 			if (AppBskyFeedThreadgate.isFollowingRule(rule)) {
 				allowsFollowing = true;
 			} else if (AppBskyFeedThreadgate.isMentionRule(rule)) {
-				allowsMentions = true;
+				allowsMentioned = true;
 			}
 		}
 
@@ -85,7 +85,7 @@ export class Threadgate {
 			createdAt: new Date(view.record.createdAt),
 			post,
 			allowsFollowing,
-			allowsMentions,
+			allowsMentioned,
 			allowedLists: view.lists?.map((list) => List.fromView(list)) ?? [],
 		});
 	}

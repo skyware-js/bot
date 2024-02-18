@@ -167,8 +167,6 @@ export class Bot {
 	async getPost(uri: string, options: BotGetPostOptions = {}): Promise<Post> {
 		options = { parentHeight: 1, depth: 1, ...options };
 
-		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
-
 		if (!options.skipCache && this.cache.posts.has(uri)) return this.cache.posts.get(uri)!;
 
 		const postThread = await this.agent.getPostThread({
@@ -196,8 +194,6 @@ export class Bot {
 	 * @param options Optional configuration
 	 */
 	async getPosts(uris: Array<string>, options: BotGetPostsOptions = {}): Promise<Array<Post>> {
-		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
-
 		if (!uris.length) return [];
 		if (uris.length > 25) throw new Error("You can only fetch up to 25 posts at a time");
 
@@ -227,8 +223,6 @@ export class Bot {
 	 * @param options Optional configuration
 	 */
 	async getProfile(did: string, options: BotGetProfileOptions = {}): Promise<Profile> {
-		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
-
 		if (!options.skipCache && this.cache.profiles.has(did)) {
 			return this.cache.profiles.get(did)!;
 		}
@@ -248,8 +242,6 @@ export class Bot {
 	 * @param uri The list's AT URI
 	 */
 	async getList(uri: string): Promise<List> {
-		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
-
 		const listResponse = await this.api.app.bsky.graph.getList({ list: uri });
 		if (!listResponse.success) {
 			throw new Error("Failed to fetch list\n" + JSON.stringify(listResponse.data));

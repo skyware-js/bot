@@ -28,6 +28,9 @@ devDependencies:
   eslint:
     specifier: ^8.50.0
     version: 8.50.0
+  multiformats:
+    specifier: ^13.1.0
+    version: 13.1.0
   typescript:
     specifier: ^5.2.2
     version: 5.2.2
@@ -848,6 +851,10 @@ packages:
 
   /ms@2.1.2:
     resolution: {integrity: sha512-sGkPx+VjMtmA6MX27oA4FBFELFCZZ4S4XqeGOXCv68tT+jb3vk/RyaKWP0PTKyWtmLSM0b+adUTEvbs1PEaH2w==}
+    dev: true
+
+  /multiformats@13.1.0:
+    resolution: {integrity: sha512-HzdtdBwxsIkzpeXzhQ5mAhhuxcHbjEHH+JQoxt7hG/2HGFjjwyolLo7hbaexcnhoEuV4e0TNJ8kkpMjiEYY4VQ==}
     dev: true
 
   /multiformats@9.9.0:

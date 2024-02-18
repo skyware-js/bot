@@ -155,13 +155,20 @@ export class Bot {
 	/**
 	 * Fetch a post by its AT URI
 	 * @param uri The post's AT URI
+	 * @param options Optional configuration
 	 */
-	async getPost(uri: string): Promise<Post> {
+	async getPost(uri: string, options: BotGetPostOptions = {}): Promise<Post> {
+		options = { parentHeight: 1, depth: 1, ...options };
+
 		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
 
-		if (this.cache.posts.has(uri)) return this.cache.posts.get(uri)!;
+		if (!options.skipCache && this.cache.posts.has(uri)) return this.cache.posts.get(uri)!;
 
-		const postThread = await this.agent.getPostThread({ uri });
+		const postThread = await this.agent.getPostThread({
+			uri,
+			parentHeight: options.parentHeight!,
+			depth: options.depth!,
+		});
 		if (!postThread.success) {
 			throw new Error("Failed to fetch post\n" + JSON.stringify(postThread.data));
 		}
@@ -179,14 +186,15 @@ export class Bot {
 	/**
 	 * Fetch up to 25 posts by their AT URIs
 	 * @param uris The URIs of the posts to fetch
+	 * @param options Optional configuration
 	 */
-	async getPosts(uris: Array<string>): Promise<Array<Post>> {
+	async getPosts(uris: Array<string>, options: BotGetPostsOptions = {}): Promise<Array<Post>> {
 		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
 
 		if (!uris.length) return [];
 		if (uris.length > 25) throw new Error("You can only fetch up to 25 posts at a time");
 
-		if (uris.every((uri) => this.cache.posts.has(uri))) {
+		if (!options.skipCache && uris.every((uri) => this.cache.posts.has(uri))) {
 			return uris.map((uri) => this.cache.posts.get(uri)!);
 		}
 
@@ -209,11 +217,14 @@ export class Bot {
 	/**
 	 * Fetch a profile by its DID
 	 * @param did The user's DID
+	 * @param options Optional configuration
 	 */
-	async getProfile(did: string): Promise<Profile> {
+	async getProfile(did: string, options: BotGetProfileOptions = {}): Promise<Profile> {
 		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
 
-		if (this.cache.profiles.has(did)) return this.cache.profiles.get(did)!;
+		if (!options.skipCache && this.cache.profiles.has(did)) {
+			return this.cache.profiles.get(did)!;
+		}
 
 		const profileView = await this.api.app.bsky.actor.getProfile({ actor: did });
 		if (!profileView.success) {
@@ -230,10 +241,9 @@ export class Bot {
 	 * @param data The post to create
 	 * @param options Optional configuration
 	 */
-	async post(
-		data: PostPayloadData,
-		options: BotPostOptions = { resolveFacets: true },
-	): Promise<Post> {
+	async post(data: PostPayloadData, options: BotPostOptions = {}): Promise<Post> {
+		options = { resolveFacets: true, ...options };
+
 		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
 
 		const post = new PostPayload(data);
@@ -287,8 +297,10 @@ export class Bot {
 	}
 }
 
-/** The bot's cache */
-interface BotCache {
+/**
+ * The bot's cache
+ */
+export interface BotCache {
 	profiles: QuickLRU<string, Profile>;
 	posts: QuickLRU<string, Post>;
 }
@@ -314,9 +326,47 @@ export interface RateLimitOptions {
 }
 
 /**
+ * Base options for any Bot method that fetches data
+ */
+interface BaseBotGetMethodOptions {
+	/**
+	 * Whether to skip checking the cache
+	 * @default false
+	 */
+	skipCache?: boolean;
+}
+
+/**
+ * Options for the Bot#getPost method
+ */
+interface BotGetPostOptions extends BaseBotGetMethodOptions {
+	/**
+	 * How many levels of parent posts to fetch
+	 * @default 1
+	 */
+	parentHeight?: number;
+
+	/**
+	 * How many levels of child posts to fetch
+	 * @default 1
+	 */
+	depth?: number;
+}
+
+/**
+ * Options for the Bot#getPosts method
+ */
+interface BotGetPostsOptions extends BaseBotGetMethodOptions {}
+
+/**
+ * Options for the Bot#getProfile method
+ */
+interface BotGetProfileOptions extends BaseBotGetMethodOptions {}
+
+/**
  * Options for the Bot#post method
  */
-export interface BotPostOptions {
+interface BotPostOptions {
 	/**
 	 * Whether to automatically resolve facets in the post's text.
 	 * This will be ignored if the provided post data already has facets attached

@@ -412,6 +412,93 @@ export class Bot {
 	}
 
 	/**
+	 * Delete a post
+	 * @param uri The post's AT URI
+	 */
+	async deletePost(uri: string): Promise<void> {
+		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
+		await this.agent.deletePost(uri);
+		this.cache.posts.delete(uri);
+	}
+
+	/**
+	 * Like a post or feed generator
+	 * @param uri The post's AT URI
+	 * @param cid The post's CID
+	 */
+	async like({ uri, cid }: { uri: string; cid: string }): Promise<void> {
+		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
+		await this.agent.like(uri, cid);
+	}
+
+	/**
+	 * Delete a like
+	 * @param uri The like's AT URI
+	 */
+	async deleteLike(uri: string): Promise<void> {
+		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
+		await this.agent.deleteLike(uri);
+	}
+	unlike = this.deleteLike.bind(this);
+
+	/**
+	 * Repost a post
+	 * @param uri The post's AT URI
+	 * @param cid The post's CID
+	 */
+	async repost({ uri, cid }: { uri: string; cid: string }): Promise<void> {
+		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
+		await this.agent.repost(uri, cid);
+	}
+
+	/**
+	 * Delete a repost
+	 * @param uri The repost's AT URI
+	 */
+	async deleteRepost(uri: string): Promise<void> {
+		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
+		await this.agent.deleteRepost(uri);
+	}
+
+	/**
+	 * Follow a user
+	 * @param did The user's DID
+	 */
+	async follow(did: string): Promise<void> {
+		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
+		await this.agent.follow(did);
+	}
+
+	/**
+	 * Delete a follow
+	 * @param did The user's DID
+	 */
+	async deleteFollow(did: string): Promise<void> {
+		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
+		await this.agent.deleteFollow(did);
+	}
+	unfollow = this.deleteFollow.bind(this);
+
+	/**
+	 * Mute a user
+	 * @param did The user's DID
+	 */
+	async mute(did: string): Promise<void> {
+		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
+		await this.agent.mute(did);
+	}
+
+	/**
+	 * Delete a mute
+	 * @param did The user's DID
+	 */
+	async deleteMute(did: string): Promise<void> {
+		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
+		await this.agent.unmute(did);
+	}
+	unmute = this.deleteMute.bind(this);
+
+	/**
 	 * Resolve a handle to a DID
 	 * @param handle The handle to resolve
 	 */
@@ -421,6 +508,16 @@ export class Bot {
 			throw new Error("Failed to resolve handle\n" + JSON.stringify(response.data));
 		}
 		return response.data.did;
+	}
+
+	/**
+	 * Update the bot's handle
+	 * @param handle The new handle
+	 */
+	async updateHandle(handle: string): Promise<void> {
+		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
+		await this.api.com.atproto.identity.updateHandle({ handle });
+		this.profile.handle = handle;
 	}
 }
 

@@ -1,6 +1,13 @@
-import type { Post } from "../Post";
-import type { ExternalEmbed } from "./ExternalEmbed";
-import type { ImagesEmbed } from "./ImagesEmbed";
+import {
+	AppBskyEmbedExternal,
+	AppBskyEmbedImages,
+	AppBskyEmbedRecord,
+	AppBskyEmbedRecordWithMedia,
+	AppBskyFeedPost,
+} from "@atproto/api";
+import { Post } from "../Post";
+import { ExternalEmbed } from "./ExternalEmbed";
+import { ImagesEmbed } from "./ImagesEmbed";
 import { PostEmbed } from "./PostEmbed";
 
 /**
@@ -8,8 +15,8 @@ import { PostEmbed } from "./PostEmbed";
  */
 export class RecordWithMediaEmbed extends PostEmbed {
 	constructor(
-		/** The embedded record */
-		public record: Post, // TODO: implement List and FeedGenerator
+		/** The embedded post record */
+		public record: Post,
 		/** The media within this embed */
 		public media: ImagesEmbed | ExternalEmbed,
 	) {
@@ -18,5 +25,42 @@ export class RecordWithMediaEmbed extends PostEmbed {
 
 	override isRecordWithMedia(): this is RecordWithMediaEmbed {
 		return true;
+	}
+
+	/**
+	 * Constructs a RecordWithMediaEmbed from an embed view and a record
+	 * @param view The view of the embed
+	 * @param record The embed record
+	 */
+	static fromView(
+		view: AppBskyEmbedRecordWithMedia.View,
+		record: AppBskyEmbedRecordWithMedia.Main,
+	): RecordWithMediaEmbed {
+		let embeddedMedia: ImagesEmbed | ExternalEmbed;
+
+		// Determine the type of media in the embed — either images or external content
+		if (AppBskyEmbedImages.isView(view.media) && AppBskyEmbedImages.isMain(record.media)) {
+			embeddedMedia = ImagesEmbed.fromView(view.media, record.media);
+		} else if (
+			AppBskyEmbedExternal.isView(view.media) && AppBskyEmbedExternal.isMain(record.media)
+		) {
+			embeddedMedia = ExternalEmbed.fromView(view.media);
+		} else {
+			throw new Error("Invalid embed media record");
+		}
+
+		// It doesn't appear to be possible to have an EmbedRecordWithMedia that isn't quote post + media;
+		// this may be incorrect though
+		if (
+			AppBskyEmbedRecord.isViewRecord(view.record.record)
+			&& AppBskyFeedPost.isRecord(view.record.record.value)
+		) {
+			return new RecordWithMediaEmbed(
+				Post.fromView({ ...view.record.record, record: view.record.record.value }),
+				embeddedMedia,
+			);
+		} else {
+			throw new Error("Invalid post view record");
+		}
 	}
 }

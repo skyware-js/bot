@@ -1,4 +1,12 @@
-import type { Post } from "../Post";
+import {
+	AppBskyEmbedRecord,
+	AppBskyFeedDefs,
+	AppBskyFeedPost,
+	AppBskyGraphDefs,
+} from "@atproto/api";
+import { FeedGenerator } from "../../FeedGenerator";
+import { List } from "../../List";
+import { Post } from "../Post";
 import { PostEmbed } from "./PostEmbed";
 
 /**
@@ -7,12 +15,34 @@ import { PostEmbed } from "./PostEmbed";
 export class RecordEmbed extends PostEmbed {
 	constructor(
 		/** The embedded record */
-		public record: Post, // TODO: implement List and FeedGenerator
+		public record: Post | List | FeedGenerator,
 	) {
 		super();
 	}
 
 	override isRecord(): this is RecordEmbed {
 		return true;
+	}
+
+	/**
+	 * Constructs a RecordEmbed from an embed record view
+	 * @param recordView The view of the embed record
+	 */
+	static fromView(recordView: AppBskyEmbedRecord.View): RecordEmbed {
+		if (AppBskyEmbedRecord.isViewRecord(recordView.record)) {
+			// ViewRecord should only be a post
+			if (!AppBskyFeedPost.isRecord(recordView.record.value)) {
+				throw new Error("Invalid post view record");
+			}
+			return new RecordEmbed(
+				Post.fromView({ ...recordView.record, record: recordView.record.value }),
+			);
+		} else if (AppBskyFeedDefs.isGeneratorView(recordView.record)) {
+			return new RecordEmbed(FeedGenerator.fromView(recordView.record));
+		} else if (AppBskyGraphDefs.isListView(recordView.record)) {
+			return new RecordEmbed(List.fromView(recordView.record));
+		} else {
+			throw new Error("Invalid embed record");
+		}
 	}
 }

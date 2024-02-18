@@ -1,4 +1,5 @@
 import {
+	AppBskyFeedPost,
 	type AtpAgentLoginOpts,
 	type AtpAgentOpts,
 	AtpServiceClient,
@@ -160,17 +161,50 @@ export class Bot {
 		if (this.cache.posts.has(uri)) return this.cache.posts.get(uri)!;
 
 		const { host: repo, rkey } = new AtUri(uri);
-		const postRecord = await this.agent.getPost({ repo, rkey });
+		const { cid, value: postRecord } = await this.agent.getPost({ repo, rkey });
+
+		const { embed, labels, ...postData } = postRecord;
+
 		const post = new Post({
-			...postRecord.value,
-			createdAt: new Date(postRecord.value.createdAt),
-			uri: postRecord.uri,
-			cid: postRecord.cid,
+			...postData,
+			createdAt: new Date(postRecord.createdAt),
+			uri,
+			cid,
 			author: await this.getProfile(repo),
 		});
 
 		this.cache.posts.set(uri, post);
 		return post;
+	}
+
+	/**
+	 * Fetch up to 25 posts by their AT URIs
+	 * @param uris The URIs of the posts to fetch
+	 */
+	async getPosts(uris: Array<string>): Promise<Array<Post>> {
+		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
+
+		if (!uris.length) return [];
+		if (uris.length > 25) throw new Error("You can only fetch up to 25 posts at a time");
+
+		if (uris.every((uri) => this.cache.posts.has(uri))) {
+			return uris.map((uri) => this.cache.posts.get(uri)!);
+		}
+
+		const postViews = await this.api.app.bsky.feed.getPosts({ uris });
+		if (!postViews.success) {
+			throw new Error("Failed to fetch posts\n" + JSON.stringify(postViews.data));
+		}
+
+		const posts: Array<Post> = [];
+		for (const postView of postViews.data.posts) {
+			if (!AppBskyFeedPost.isRecord(postView.record)) continue;
+			const post = Post.fromView(postView);
+			this.cache.posts.set(post.uri, post);
+			posts.push(post);
+		}
+
+		return posts;
 	}
 
 	/**
@@ -187,7 +221,7 @@ export class Bot {
 			throw new Error(`Failed to fetch profile ${did}\n` + JSON.stringify(profileView.data));
 		}
 
-		const profile = new Profile(profileView.data);
+		const profile = Profile.fromView(profileView.data);
 		this.cache.profiles.set(did, profile);
 		return profile;
 	}
@@ -225,7 +259,18 @@ export class Bot {
 			throw new Error("Failed to create post\n" + JSON.stringify(res.data));
 		}
 
-		const createdPost = new Post({ ...data, ...res.data, author: this.profile });
+		const createdPost = new Post({
+			...data,
+			...res.data,
+			author: this.profile,
+			labels: data.labels?.values.map((label) => ({
+				cid: res.data.cid,
+				cts: post.createdAt.toISOString(),
+				src: this.profile.did,
+				uri: res.data.uri,
+				val: label.val,
+			})),
+		});
 		this.cache.posts.set(createdPost.uri, createdPost);
 		return createdPost;
 	}

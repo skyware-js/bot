@@ -1,29 +1,19 @@
-import {
-	AppBskyEmbedExternal,
-	AppBskyEmbedImages,
-	AppBskyEmbedRecord,
-	AppBskyEmbedRecordWithMedia,
-	type AppBskyFeedPost,
-	type AppBskyRichtextFacet,
-	ComAtprotoLabelDefs,
-} from "@atproto/api";
+import { type AppBskyFeedPost, type AppBskyRichtextFacet, ComAtprotoLabelDefs } from "@atproto/api";
+import type { PostEmbed } from "./embed/PostEmbed";
 
 /**
  * Data that can be used to construct a PostPayload class
  */
-export type PostPayloadData =
-	& Pick<
-		AppBskyFeedPost.Record,
-		"text" | "facets" | "reply" | "langs" | "embed" | "labels" | "tags"
-	>
-	& { createdAt?: Date };
-
-type ImagesEmbed = AppBskyEmbedImages.Main;
-type ExternalEmbed = AppBskyEmbedExternal.Main;
-type RecordEmbed = AppBskyEmbedRecord.Main;
-type RecordWithMediaEmbed = AppBskyEmbedRecordWithMedia.Main;
-
-export type PostEmbed = ImagesEmbed | ExternalEmbed | RecordEmbed | RecordWithMediaEmbed;
+export interface PostPayloadData {
+	text: string;
+	facets?: Array<AppBskyRichtextFacet.Main> | undefined;
+	replyRef?: AppBskyFeedPost.ReplyRef | undefined;
+	langs?: Array<string> | undefined;
+	embed?: PostEmbed | undefined;
+	labels?: ComAtprotoLabelDefs.SelfLabels | undefined;
+	tags?: Array<string> | undefined;
+	createdAt?: Date | undefined;
+}
 
 /**
  * The base class for a post on Bluesky
@@ -71,21 +61,18 @@ export class PostPayload {
 	 */
 	createdAt: Date;
 
-	constructor({ text, facets, reply, langs, embed, labels, tags, createdAt }: PostPayloadData) {
+	constructor(
+		{ text, facets, replyRef, langs, embed, labels, tags, createdAt }: PostPayloadData,
+	) {
 		this.text = text;
 
 		if (facets) this.facets = facets;
 
-		if (reply) this.replyRef = reply;
+		if (replyRef) this.replyRef = replyRef;
 
 		if (langs) this.langs = langs;
 
-		if (embed) {
-			if (!isValidEmbed(embed)) {
-				throw new Error("Invalid post embed: " + JSON.stringify(embed));
-			}
-			this.embed = embed;
-		}
+		if (embed) this.embed = embed;
 
 		if (labels) {
 			if (!ComAtprotoLabelDefs.isSelfLabels(labels)) {
@@ -98,11 +85,4 @@ export class PostPayload {
 
 		this.createdAt = createdAt ?? new Date();
 	}
-}
-
-export function isValidEmbed(embed: unknown): embed is PostEmbed {
-	return (AppBskyEmbedImages.isMain(embed)
-		|| AppBskyEmbedExternal.isMain(embed)
-		|| AppBskyEmbedRecord.isMain(embed)
-		|| AppBskyEmbedRecordWithMedia.isMain(embed));
 }

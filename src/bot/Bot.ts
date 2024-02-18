@@ -1,4 +1,5 @@
 import {
+	AppBskyFeedDefs,
 	AppBskyFeedPost,
 	type AtpAgentLoginOpts,
 	type AtpAgentOpts,
@@ -160,18 +161,16 @@ export class Bot {
 
 		if (this.cache.posts.has(uri)) return this.cache.posts.get(uri)!;
 
-		const { host: repo, rkey } = new AtUri(uri);
-		const { cid, value: postRecord } = await this.agent.getPost({ repo, rkey });
+		const postThread = await this.agent.getPostThread({ uri });
+		if (!postThread.success) {
+			throw new Error("Failed to fetch post\n" + JSON.stringify(postThread.data));
+		}
 
-		const { embed, labels, ...postData } = postRecord;
+		if (!AppBskyFeedDefs.isThreadViewPost(postThread.data.thread)) {
+			throw new Error(`Could not find post ${uri}`);
+		}
 
-		const post = new Post({
-			...postData,
-			createdAt: new Date(postRecord.createdAt),
-			uri,
-			cid,
-			author: await this.getProfile(repo),
-		});
+		const post = Post.fromView(postThread.data.thread.post);
 
 		this.cache.posts.set(uri, post);
 		return post;

@@ -7,6 +7,7 @@ import {
 import { Profile } from "../Profile";
 import { PostEmbed } from "./embed/PostEmbed";
 import { isEmbedMainRecord, isEmbedView, postEmbedFromView } from "./embed/util";
+import { Threadgate } from "./Threadgate";
 
 /**
  * Data that can be used to construct a Post class
@@ -22,8 +23,12 @@ export interface PostData {
 	embed?: PostEmbed | undefined;
 	labels?: Array<ComAtprotoLabelDefs.Label> | undefined;
 	tags?: Array<string> | undefined;
+	threadgate?: Threadgate | undefined;
 	createdAt?: Date | undefined;
 	indexedAt?: Date | undefined;
+	parent?: Post | undefined;
+	root?: Post | undefined;
+	children?: Array<Post> | undefined;
 }
 
 /**
@@ -64,11 +69,23 @@ export class Post {
 	/** Additional non-inline tags attached to the post */
 	tags?: Array<string>;
 
+	/** The threadgate attached to the post, if there is any */
+	threadgate?: Threadgate;
+
 	/** The time the post was created */
 	createdAt: Date;
 
 	/** The time the post was indexed by the App View */
 	indexedAt?: Date;
+
+	/** The root post of this post's thread */
+	private _root?: Post;
+
+	/** The post's parent */
+	private _parent?: Post;
+
+	/** The post's children */
+	private _children?: Array<Post>;
 
 	constructor(
 		{
@@ -82,8 +99,12 @@ export class Post {
 			embed,
 			labels,
 			tags,
+			threadgate,
 			createdAt = new Date(),
 			indexedAt,
+			parent,
+			root,
+			children,
 		}: PostData,
 	) {
 		this.text = text;
@@ -96,9 +117,14 @@ export class Post {
 		if (embed) this.embed = embed;
 		if (labels) this.labels = labels;
 		if (tags) this.tags = tags;
+		if (threadgate) this.threadgate = threadgate;
 
 		this.createdAt = createdAt;
 		if (indexedAt) this.indexedAt = indexedAt;
+
+		if (parent) this._parent = parent;
+		if (root) this._root = root;
+		if (children) this._children = children;
 	}
 
 	/**
@@ -106,15 +132,40 @@ export class Post {
 	 */
 	static fromView(view: AppBskyFeedDefs.PostView): Post {
 		if (!AppBskyFeedPost.isRecord(view.record)) throw new Error("Invalid post view record");
-		return new Post({
+		const post = new Post({
 			...view,
 			text: view.record.text,
 			author: Profile.fromView(view.author),
+			threadgate: undefined,
 			createdAt: new Date(view.record.createdAt),
 			indexedAt: view.indexedAt ? new Date(view.indexedAt) : undefined,
 			embed: view.embed && isEmbedView(view.embed) && isEmbedMainRecord(view.record.embed)
 				? postEmbedFromView(view.embed, view.record.embed)
 				: undefined,
 		});
+		if (view.threadgate) {
+			post.threadgate = Threadgate.fromView(view.threadgate, post);
+		}
+		return post;
+	}
+
+	/**
+	 * Constructs an instance from a ThreadViewPost
+	 */
+	static fromThreadView(view: AppBskyFeedDefs.ThreadViewPost): Post {
+		if (!AppBskyFeedPost.isRecord(view.post.record)) {
+			throw new Error("Invalid post view record");
+		}
+
+		const parent = view.parent && AppBskyFeedDefs.isThreadViewPost(view.parent)
+			? Post.fromThreadView(view.parent)
+			: undefined;
+		const children = view.replies?.map((reply) =>
+			reply && AppBskyFeedDefs.isThreadViewPost(reply)
+				? Post.fromThreadView(reply)
+				: undefined
+		)?.filter((reply): reply is Post => reply !== undefined);
+
+		return new Post({ ...Post.fromView(view.post), parent, children });
 	}
 }

@@ -1,5 +1,4 @@
-import { AppBskyRichtextFacet } from "@atproto/api";
-import { ListView } from "@atproto/api/dist/client/types/app/bsky/graph/defs";
+import { AppBskyGraphDefs, AppBskyRichtextFacet } from "@atproto/api";
 import { Profile } from "./Profile";
 
 export const ListPurpose = {
@@ -12,12 +11,12 @@ export interface ListData {
 	name: string;
 	uri: string;
 	cid: string;
-	creator: Profile;
 	purpose: ListPurpose;
-	description?: string;
-	descriptionFacets?: Array<AppBskyRichtextFacet.Main>;
-	avatar?: string;
-	indexedAt: Date;
+	creator?: Profile | undefined;
+	description?: string | undefined;
+	descriptionFacets?: Array<AppBskyRichtextFacet.Main> | undefined;
+	avatar?: string | undefined;
+	indexedAt?: Date | undefined;
 }
 
 export class List {
@@ -30,11 +29,11 @@ export class List {
 	/** The list's CID */
 	cid: string;
 
-	/** The list's creator */
-	creator: Profile;
-
 	/** The list's purpose */
 	purpose: ListPurpose;
+
+	/** The list's creator */
+	creator?: Profile;
 
 	/** The list's description */
 	description?: string;
@@ -46,7 +45,7 @@ export class List {
 	avatar?: string;
 
 	/** The time the list was indexed by the App View */
-	indexedAt: Date;
+	indexedAt?: Date;
 
 	constructor(
 		{ name, uri, cid, creator, purpose, description, descriptionFacets, avatar, indexedAt }:
@@ -55,23 +54,23 @@ export class List {
 		this.name = name;
 		this.uri = uri;
 		this.cid = cid;
-		this.creator = creator;
 		this.purpose = purpose;
+		if (creator) this.creator = creator;
 		if (description) this.description = description;
 		if (descriptionFacets) this.descriptionFacets = descriptionFacets;
 		if (avatar) this.avatar = avatar;
-		this.indexedAt = indexedAt;
+		if (indexedAt) this.indexedAt = indexedAt;
 	}
 
 	/**
 	 * Constructs an instance from a ListView
 	 * @param view The ListView to construct from
 	 */
-	static fromView(view: ListView): List {
+	static fromView(view: AppBskyGraphDefs.ListView | AppBskyGraphDefs.ListViewBasic): List {
 		return new List({
 			...view,
-			creator: Profile.fromView(view.creator),
-			indexedAt: new Date(view.indexedAt),
+			creator: AppBskyGraphDefs.isListView(view) ? Profile.fromView(view.creator) : undefined,
+			indexedAt: view.indexedAt ? new Date(view.indexedAt) : undefined,
 		});
 	}
 }

@@ -5,7 +5,6 @@ import {
 	type AtpAgentOpts,
 	AtpServiceClient,
 	type AtpSessionData,
-	AtUri,
 	BskyAgent,
 	type ComAtprotoServerCreateSession,
 	type ComAtprotoServerGetSession,
@@ -81,6 +80,7 @@ export class Bot {
 				// @ts-expect-error — Hacky way to rate limit API methods
 				for (const [methodName, method] of typedEntries(namespace[collection])) {
 					if (methodName === "_service") continue;
+					if (typeof method !== "function") continue;
 					// @ts-expect-error — Hacky way to rate limit API methods
 					namespace[collection][methodName] = async (input: unknown) => {
 						if (NOT_LIMITED_METHODS.includes(methodName)) return method(input);
@@ -272,6 +272,18 @@ export class Bot {
 		});
 		this.cache.posts.set(createdPost.uri, createdPost);
 		return createdPost;
+	}
+
+	/**
+	 * Resolve a handle to a DID
+	 * @param handle The handle to resolve
+	 */
+	async resolveHandle(handle: string): Promise<string> {
+		const response = await this.api.com.atproto.identity.resolveHandle({ handle });
+		if (!response.success) {
+			throw new Error("Failed to resolve handle\n" + JSON.stringify(response.data));
+		}
+		return response.data.did;
 	}
 }
 

@@ -22,7 +22,7 @@ import { List } from "../struct/List";
 import { Post } from "../struct/post/Post";
 import type { PostPayload } from "../struct/post/PostPayload";
 import { Profile } from "../struct/Profile";
-import { typedEntries, typedKeys } from "../util";
+import { typedEntries } from "../util";
 import { CacheOptions, makeCache } from "./cache";
 
 const NO_SESSION_ERROR = "Active session not found. Make sure to call the login method first.";
@@ -77,29 +77,12 @@ export class Bot {
 
 		this.cache = { profiles: makeCache(cacheOptions), posts: makeCache(cacheOptions) };
 
-		this.api = this.agent.api;
-
-		// Rate limit API methods by wrapping each method with a function that will remove a token from the limiter
-		/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-argument */
-		for (const namespace of [this.api.com.atproto, this.api.app.bsky]) {
-			for (const collection of typedKeys(namespace)) {
-				if (collection === "_service") continue;
-				// @ts-expect-error — Hacky way to rate limit API methods
-				for (const [methodName, method] of typedEntries(namespace[collection])) {
-					if (methodName === "_service") continue;
-					if (typeof method !== "function") continue;
-					// @ts-expect-error — Hacky way to rate limit API methods
-					namespace[collection][methodName] = async (input: unknown) => {
-						if (NOT_LIMITED_METHODS.includes(methodName)) return method(input);
-
-						// If there are 0 tokens remaining, this call will block until the interval resets
-						await this.limiter.removeTokens(1);
-						return method(input);
-					};
-				}
-			}
-		}
-		/* eslint-enable @typescript-eslint/no-unsafe-member-access */
+		this.agent.api = this.api = {
+			// @ts-expect-error — Hacky way to rate limit API methods
+			app: wrapApiWithLimiter(this.agent.api.app, this.limiter),
+			// @ts-expect-error — Hacky way to rate limit API methods
+			com: wrapApiWithLimiter(this.agent.api.com, this.limiter),
+		};
 	}
 
 	/**
@@ -439,6 +422,28 @@ export class Bot {
 		}
 		return response.data.did;
 	}
+}
+
+function wrapApiWithLimiter<
+	T extends Record<string, ((...args: unknown[]) => never) | Record<string, never>>,
+>(api: T, limiter: RateLimiter): T {
+	// Rate limit API methods by wrapping each method with a function that will remove a token from the limiter
+	for (const [key, value] of typedEntries(api)) {
+		if (key === "_service") continue;
+		if (typeof value === "function") {
+			// @ts-expect-error — Hacky way to rate limit API methods
+			api[key] = async (input: unknown) => {
+				if (NOT_LIMITED_METHODS.includes(key)) return value(input);
+
+				// If there are 0 tokens remaining, this call will block until the interval resets
+				await limiter.removeTokens(1);
+				return value(input);
+			};
+		} else if (typeof value === "object") {
+			wrapApiWithLimiter(value, limiter);
+		}
+	}
+	return api;
 }
 
 /**

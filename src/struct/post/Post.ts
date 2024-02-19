@@ -93,13 +93,13 @@ export class Post {
 	indexedAt?: Date;
 
 	/** The root post of this post's thread */
-	private _root?: Post;
+	root?: Post;
 
 	/** The post's parent */
-	private _parent?: Post;
+	parent?: Post;
 
 	/** The post's children */
-	private _children?: Array<Post>;
+	children?: Array<Post>;
 
 	constructor(
 		// dprint-ignore
@@ -125,38 +125,48 @@ export class Post {
 		this.createdAt = createdAt;
 		if (indexedAt) this.indexedAt = indexedAt;
 
-		if (parent) this._parent = parent;
-		if (root) this._root = root;
-		if (children) this._children = children;
+		if (parent) this.parent = parent;
+		if (root) this.root = root;
+		if (children) this.children = children;
 	}
 
 	/**
 	 * Fetch the root post of the thread
+	 * @param force Whether to fetch the root post even if it's already cached
 	 */
-	async fetchRoot(): Promise<Post | null> {
-		if (this._root) return this._root;
+	async getRoot({ force = false }: { force?: boolean } = {}): Promise<Post | null> {
+		if (this.root && !force) return this.root;
 		if (!this.replyRef?.root?.uri) return null;
-		return this._root = await this.bot.getPost(this.replyRef.root.uri);
+		return this.root = await this.bot.getPost(this.replyRef.root.uri, { skipCache: force });
 	}
 
 	/**
 	 * Fetch the parent post
 	 * @param parentHeight How many levels up to fetch
+	 * @param force Whether to fetch the parent post even if it's already cached
 	 */
-	async fetchParent(parentHeight = 1): Promise<Post | null> {
-		if (this._parent) return this._parent;
+	async fetchParent(
+		{ parentHeight = 1, force = false }: { parentHeight?: number; force?: boolean } = {},
+	): Promise<Post | null> {
+		if (this.parent && !force) return this.parent;
 		if (!this.replyRef?.parent?.uri) return null;
-		return this._parent = await this.bot.getPost(this.replyRef.parent.uri, { parentHeight });
+		return this.parent = await this.bot.getPost(this.replyRef.parent.uri, {
+			parentHeight,
+			skipCache: force,
+		});
 	}
 
 	/**
 	 * Fetch the children of the post
 	 * @param depth How many levels of replies to fetch
+	 * @param force Whether to fetch children even if they're already cached
 	 */
-	async fetchChildren(depth = 1): Promise<Array<Post>> {
-		if (this._children) return this._children;
-		const threadView = await this.bot.getPost(this.uri, { depth });
-		return this._children = threadView._children ?? [];
+	async fetchChildren(
+		{ depth = 1, force = false }: { depth?: number; force?: boolean } = {},
+	): Promise<Array<Post>> {
+		if (this.children && !force) return this.children;
+		const threadView = await this.bot.getPost(this.uri, { depth, skipCache: force });
+		return this.children = threadView.children ?? [];
 	}
 
 	private setCounts(view: AppBskyFeedDefs.PostView) {

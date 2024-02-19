@@ -25,6 +25,8 @@ export interface PostData {
 	embed?: PostEmbed | undefined;
 	labels?: Array<ComAtprotoLabelDefs.Label> | undefined;
 	tags?: Array<string> | undefined;
+	likeUri?: string | undefined;
+	repostUri?: string | undefined;
 	likeCount?: number | undefined;
 	repostCount?: number | undefined;
 	replyCount?: number | undefined;
@@ -74,6 +76,12 @@ export class Post {
 	/** Additional non-inline tags attached to the post */
 	tags?: Array<string>;
 
+	/** The post's like URI, if the bot has liked the post */
+	likeUri?: string;
+
+	/** The post's repost URI, if the bot has reposted the post */
+	repostUri?: string;
+
 	/** The post's like count */
 	likeCount?: number;
 
@@ -103,7 +111,7 @@ export class Post {
 
 	constructor(
 		// dprint-ignore
-		{ text, uri, cid, author, facets, replyRef, langs, embed, labels, tags, likeCount, replyCount, repostCount, threadgate, createdAt = new Date(), indexedAt, parent, root, children, }: PostData,
+		{ text, uri, cid, author, facets, replyRef, langs, embed, labels, tags, likeUri, repostUri, likeCount, replyCount, repostCount, threadgate, createdAt = new Date(), indexedAt, parent, root, children, }: PostData,
 		/** The active Bot instance */
 		public bot: Bot,
 	) {
@@ -117,9 +125,14 @@ export class Post {
 		if (embed) this.embed = embed;
 		if (labels) this.labels = labels;
 		if (tags) this.tags = tags;
+
+		if (likeUri) this.likeUri = likeUri;
+		if (repostUri) this.repostUri = repostUri;
+
 		if (likeCount) this.likeCount = likeCount;
 		if (replyCount) this.replyCount = replyCount;
 		if (repostCount) this.repostCount = repostCount;
+
 		if (threadgate) this.threadgate = threadgate;
 
 		this.createdAt = createdAt;
@@ -265,14 +278,14 @@ export class Post {
 	 * @returns The like's AT URI
 	 */
 	async like(): Promise<string> {
-		return this.bot.like(this);
+		return this.likeUri = await this.bot.like(this);
 	}
 
 	/**
 	 * Unlike the post
 	 */
 	async unlike(): Promise<void> {
-		return this.bot.unlike(this.uri);
+		if (this.likeUri) return this.bot.unlike(this.likeUri);
 	}
 
 	/**
@@ -280,14 +293,14 @@ export class Post {
 	 * @returns The repost's AT URI
 	 */
 	async repost(): Promise<string> {
-		return this.bot.repost(this);
+		return this.repostUri = await this.bot.repost(this);
 	}
 
 	/**
 	 * Unrepost the post
 	 */
 	async unrepost(): Promise<void> {
-		return this.bot.deleteRepost(this.uri);
+		if (this.repostUri) return this.bot.deleteRepost(this.uri);
 	}
 
 	/**
@@ -344,15 +357,26 @@ export class Post {
 	static fromView(view: AppBskyFeedDefs.PostView, bot: Bot): Post {
 		if (!AppBskyFeedPost.isRecord(view.record)) throw new Error("Invalid post view record");
 		const post = new Post({
-			...view,
 			text: view.record.text,
+			uri: view.uri,
+			cid: view.cid,
 			author: Profile.fromView(view.author, bot),
-			threadgate: undefined,
-			createdAt: new Date(view.record.createdAt),
-			indexedAt: view.indexedAt ? new Date(view.indexedAt) : undefined,
+			facets: view.record.facets,
+			replyRef: view.record.reply,
+			langs: view.record.langs,
 			embed: view.embed && isEmbedView(view.embed) && isEmbedMainRecord(view.record.embed)
 				? postEmbedFromView({ view: view.embed, record: view.record.embed, bot })
 				: undefined,
+			labels: view.labels,
+			tags: view.record.tags,
+			likeUri: view.viewer?.like,
+			repostUri: view.viewer?.repost,
+			likeCount: view.likeCount,
+			repostCount: view.repostCount,
+			replyCount: view.replyCount,
+			threadgate: undefined,
+			createdAt: new Date(view.record.createdAt),
+			indexedAt: view.indexedAt ? new Date(view.indexedAt) : undefined,
 		}, bot);
 		if (view.threadgate) {
 			post.threadgate = Threadgate.fromView(view.threadgate, post, bot);

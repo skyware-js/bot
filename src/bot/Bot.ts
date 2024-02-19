@@ -165,7 +165,7 @@ export class Bot {
 			throw new Error(`Could not find post ${uri}`);
 		}
 
-		const post = Post.fromThreadView(postThread.data.thread);
+		const post = Post.fromThreadView(postThread.data.thread, this);
 
 		this.cache.posts.set(uri, post);
 		return post;
@@ -192,7 +192,7 @@ export class Bot {
 		const posts: Array<Post> = [];
 		for (const postView of postViews.data.posts) {
 			if (!AppBskyFeedPost.isRecord(postView.record)) continue;
-			const post = Post.fromView(postView);
+			const post = Post.fromView(postView, this);
 			this.cache.posts.set(post.uri, post);
 			posts.push(post);
 		}
@@ -425,10 +425,12 @@ export class Bot {
 	 * Like a post or feed generator
 	 * @param uri The post's AT URI
 	 * @param cid The post's CID
+	 * @returns The like's AT URI
 	 */
-	async like({ uri, cid }: { uri: string; cid: string }): Promise<void> {
+	async like({ uri, cid }: { uri: string; cid: string }): Promise<string> {
 		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
-		await this.agent.like(uri, cid);
+		const like = await this.agent.like(uri, cid);
+		return like.uri;
 	}
 
 	/**
@@ -445,10 +447,12 @@ export class Bot {
 	 * Repost a post
 	 * @param uri The post's AT URI
 	 * @param cid The post's CID
+	 * @returns The repost's AT URI
 	 */
-	async repost({ uri, cid }: { uri: string; cid: string }): Promise<void> {
+	async repost({ uri, cid }: { uri: string; cid: string }): Promise<string> {
 		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
-		await this.agent.repost(uri, cid);
+		const repost = await this.agent.repost(uri, cid);
+		return repost.uri;
 	}
 
 	/**
@@ -463,10 +467,12 @@ export class Bot {
 	/**
 	 * Follow a user
 	 * @param did The user's DID
+	 * @returns The follow's AT URI
 	 */
-	async follow(did: string): Promise<void> {
+	async follow(did: string): Promise<string> {
 		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
-		await this.agent.follow(did);
+		const follow = await this.agent.follow(did);
+		return follow.uri;
 	}
 
 	/**
@@ -516,7 +522,10 @@ export class Bot {
 	 */
 	async updateHandle(handle: string): Promise<void> {
 		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
-		await this.api.com.atproto.identity.updateHandle({ handle });
+		const { success } = await this.api.com.atproto.identity.updateHandle({ handle });
+		if (!success) {
+			throw new Error("Failed to update handle");
+		}
 		this.profile.handle = handle;
 	}
 }
@@ -574,7 +583,7 @@ export interface RateLimitOptions {
 /**
  * Base options for any Bot method that fetches data
  */
-interface BaseBotGetMethodOptions {
+export interface BaseBotGetMethodOptions {
 	/**
 	 * Whether to skip checking the cache
 	 * @default false
@@ -585,7 +594,7 @@ interface BaseBotGetMethodOptions {
 /**
  * Options for the Bot#getPost method
  */
-interface BotGetPostOptions extends BaseBotGetMethodOptions {
+export interface BotGetPostOptions extends BaseBotGetMethodOptions {
 	/**
 	 * How many levels of parent posts to fetch
 	 * @default 1
@@ -602,17 +611,17 @@ interface BotGetPostOptions extends BaseBotGetMethodOptions {
 /**
  * Options for the Bot#getPosts method
  */
-interface BotGetPostsOptions extends BaseBotGetMethodOptions {}
+export interface BotGetPostsOptions extends BaseBotGetMethodOptions {}
 
 /**
  * Options for the Bot#getProfile method
  */
-interface BotGetProfileOptions extends BaseBotGetMethodOptions {}
+export interface BotGetProfileOptions extends BaseBotGetMethodOptions {}
 
 /**
  * Options for the Bot#post method
  */
-interface BotPostOptions {
+export interface BotPostOptions {
 	/**
 	 * Whether to automatically resolve facets in the post's text.
 	 * This will be ignored if the provided post data already has facets attached

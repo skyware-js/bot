@@ -6,12 +6,12 @@ yarn-error.log*
 pids
 _.pid
 _.seed
-\*.pid.lock
+*.pid.lock
 .DS_Store
 
 node_modules/
 
-\*.tsbuildinfo
+*.tsbuildinfo
 .npm
 .eslintcache
 

@@ -24,7 +24,7 @@ import { Post } from "../struct/post/Post";
 import type { PostPayload } from "../struct/post/PostPayload";
 import { Profile } from "../struct/Profile";
 import { typedEntries } from "../util";
-import { CacheOptions, makeCache } from "./cache";
+import { type CacheOptions, makeCache } from "./cache";
 
 const NO_SESSION_ERROR = "Active session not found. Make sure to call the login method first.";
 

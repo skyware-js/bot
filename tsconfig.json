@@ -14,7 +14,7 @@
 
 		"forceConsistentCasingInFileNames": true,
 		"useDefineForClassFields": true,
-		"importsNotUsedAsValues": "error",
+		"verbatimModuleSyntax": true,
 
 		"noUnusedLocals": true,
 		"noUnusedParameters": true,

@@ -1,13 +1,12 @@
-import type { ComAtprotoLabelDefs } from "@atproto/api";
-import { AppBskyActorDefs } from "@atproto/api";
-import {
+import type { AppBskyActorDefs, ComAtprotoLabelDefs } from "@atproto/api";
+import type {
 	Bot,
 	BotGetUserLikesOptions,
 	BotGetUserListsOptions,
 	BotGetUserPostsOptions,
 } from "../bot/Bot";
-import { List } from "./List";
-import { Post } from "./post/Post";
+import type { List } from "./List";
+import type { Post } from "./post/Post";
 
 export interface ProfileData {
 	did: string;

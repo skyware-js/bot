@@ -1,4 +1,4 @@
-import { AppBskyEmbedImages } from "@atproto/api";
+import type { AppBskyEmbedImages } from "@atproto/api";
 
 export interface ImageData {
 	cid: string;
@@ -43,7 +43,7 @@ export class EmbedImage {
 		if (aspectRatio) this.aspectRatio = aspectRatio;
 		if (thumb) this._thumbUrl = thumb;
 		if (fullsize) this._fullsizeUrl = fullsize;
-	};
+	}
 
 	/**
 	 * Get the URL of the image's thumbnail

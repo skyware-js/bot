@@ -1,5 +1,5 @@
-import { AppBskyFeedDefs, AppBskyRichtextFacet } from "@atproto/api";
-import { Bot } from "../bot/Bot";
+import type { AppBskyFeedDefs, AppBskyRichtextFacet } from "@atproto/api";
+import type { Bot } from "../bot/Bot";
 import { Post } from "./post/Post";
 import { Profile } from "./Profile";
 

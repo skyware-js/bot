@@ -1,14 +1,14 @@
 import {
 	AppBskyFeedDefs,
 	AppBskyFeedPost,
-	AppBskyRichtextFacet,
-	ComAtprotoLabelDefs,
+	type AppBskyRichtextFacet,
+	type ComAtprotoLabelDefs,
 } from "@atproto/api";
-import { Bot, BotPostOptions } from "../../bot/Bot";
+import type { Bot, BotPostOptions } from "../../bot/Bot";
 import { Profile } from "../Profile";
-import { PostEmbed } from "./embed/PostEmbed";
+import type { PostEmbed } from "./embed/PostEmbed";
 import { isEmbedMainRecord, isEmbedView, postEmbedFromView } from "./embed/util";
-import { PostPayload } from "./PostPayload";
+import type { PostPayload } from "./PostPayload";
 import { Threadgate } from "./Threadgate";
 
 /**

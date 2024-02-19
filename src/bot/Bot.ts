@@ -1,14 +1,14 @@
 import {
-	AppBskyEmbedExternal,
-	AppBskyEmbedImages,
-	AppBskyEmbedRecord,
-	AppBskyEmbedRecordWithMedia,
+	type AppBskyEmbedExternal,
+	type AppBskyEmbedImages,
+	type AppBskyEmbedRecord,
+	type AppBskyEmbedRecordWithMedia,
 	AppBskyFeedDefs,
 	AppBskyFeedPost,
 	AppBskyFeedThreadgate,
 	type AtpAgentLoginOpts,
 	type AtpAgentOpts,
-	AtpServiceClient,
+	type AtpServiceClient,
 	type AtpSessionData,
 	AtUri,
 	BskyAgent,
@@ -17,7 +17,7 @@ import {
 	RichText,
 } from "@atproto/api";
 import { RateLimiter } from "limiter";
-import QuickLRU from "quick-lru";
+import type QuickLRU from "quick-lru";
 import { FeedGenerator } from "../struct/FeedGenerator";
 import { List } from "../struct/List";
 import { Post } from "../struct/post/Post";

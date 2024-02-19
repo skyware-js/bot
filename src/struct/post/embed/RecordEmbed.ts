@@ -4,7 +4,7 @@ import {
 	AppBskyFeedPost,
 	AppBskyGraphDefs,
 } from "@atproto/api";
-import { Bot } from "../../../bot/Bot";
+import type { Bot } from "../../../bot/Bot";
 import { FeedGenerator } from "../../FeedGenerator";
 import { List } from "../../List";
 import { Post } from "../Post";

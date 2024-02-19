@@ -1,7 +1,7 @@
-import { AppBskyFeedDefs, AppBskyFeedThreadgate } from "@atproto/api";
-import { Bot } from "../../bot/Bot";
+import { type AppBskyFeedDefs, AppBskyFeedThreadgate } from "@atproto/api";
+import type { Bot } from "../../bot/Bot";
 import { List } from "../List";
-import { Post } from "./Post";
+import type { Post } from "./Post";
 
 export interface ThreadgateData {
 	cid: string;

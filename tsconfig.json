@@ -14,6 +14,7 @@
 
 		"forceConsistentCasingInFileNames": true,
 		"useDefineForClassFields": true,
+		"importsNotUsedAsValues": "error",
 
 		"noUnusedLocals": true,
 		"noUnusedParameters": true,

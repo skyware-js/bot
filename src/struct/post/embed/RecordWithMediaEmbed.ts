@@ -2,10 +2,10 @@ import {
 	AppBskyEmbedExternal,
 	AppBskyEmbedImages,
 	AppBskyEmbedRecord,
-	AppBskyEmbedRecordWithMedia,
+	type AppBskyEmbedRecordWithMedia,
 	AppBskyFeedPost,
 } from "@atproto/api";
-import { Bot } from "../../../bot/Bot";
+import type { Bot } from "../../../bot/Bot";
 import { Post } from "../Post";
 import { ExternalEmbed } from "./ExternalEmbed";
 import { ImagesEmbed } from "./ImagesEmbed";

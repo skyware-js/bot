@@ -18,6 +18,7 @@ import {
 } from "@atproto/api";
 import { RateLimiter } from "limiter";
 import QuickLRU from "quick-lru";
+import { FeedGenerator } from "../struct/FeedGenerator";
 import { List } from "../struct/List";
 import { Post } from "../struct/post/Post";
 import type { PostPayload } from "../struct/post/PostPayload";
@@ -79,6 +80,7 @@ export class Bot {
 			profiles: makeCache(cacheOptions),
 			posts: makeCache(cacheOptions),
 			lists: makeCache({ maxEntries: 100, ...cacheOptions }),
+			feeds: makeCache({ maxEntries: 50, ...cacheOptions }),
 		};
 
 		this.agent.api = this.api = {
@@ -291,6 +293,8 @@ export class Bot {
 		}
 
 		const list = List.fromView(listResponse.data.list, this);
+		list.items = listResponse.data.items.map(({ subject }) => Profile.fromView(subject, this));
+
 		if (!options.noCacheResponse) this.cache.lists.set(uri, list);
 		return list;
 	}
@@ -317,6 +321,76 @@ export class Bot {
 		}
 
 		return { cursor: response.data.cursor, lists };
+	}
+
+	/**
+	 * Fetch a feed generator by its AT URI
+	 * @param uri The feed generator's AT URI
+	 * @param options Optional configuration
+	 */
+	async getFeedGenerator(
+		uri: string,
+		options: BotGetFeedGeneratorOptions = {},
+	): Promise<FeedGenerator> {
+		if (!options.skipCache && this.cache.feeds.has(uri)) {
+			return this.cache.feeds.get(uri)!;
+		}
+
+		const feedResponse = await this.api.app.bsky.feed.getFeedGenerator({ feed: uri });
+		if (!feedResponse.success) {
+			throw new Error("Failed to fetch feed generator\n" + JSON.stringify(feedResponse.data));
+		}
+
+		const feed = FeedGenerator.fromView(feedResponse.data.view, this);
+		feed.isOnline = feedResponse.data.isOnline;
+		if (!options.noCacheResponse) this.cache.feeds.set(uri, feed);
+		return feed;
+	}
+
+	/**
+	 * Fetch a list of feed generators by their AT URIs
+	 * @param uris The URIs of the feed generators to fetch
+	 * @param options Optional configuration
+	 */
+	async getFeedGenerators(
+		uris: Array<string>,
+		options: BotGetFeedGeneratorsOptions = {},
+	): Promise<Array<FeedGenerator>> {
+		if (!uris.length) return [];
+
+		const feedViews = await this.api.app.bsky.feed.getFeedGenerators({ feeds: uris });
+		if (!feedViews.success) {
+			throw new Error("Failed to fetch feed generators\n" + JSON.stringify(feedViews.data));
+		}
+
+		const feeds: Array<FeedGenerator> = [];
+		for (const feedView of feedViews.data.feeds) {
+			const feed = FeedGenerator.fromView(feedView, this);
+			if (!options.noCacheResponse) this.cache.feeds.set(feed.uri, feed);
+			feeds.push(feed);
+		}
+
+		return feeds;
+	}
+
+	/**
+	 * Get the bot's home timeline
+	 * @param options Optional configuration
+	 */
+	async getTimeline(options: BotGetTimelineOptions = {}): Promise<Array<Post>> {
+		const response = await this.api.app.bsky.feed.getTimeline(options);
+		if (!response.success) {
+			throw new Error("Failed to fetch timeline\n" + JSON.stringify(response.data));
+		}
+
+		const posts: Array<Post> = [];
+		for (const feedViewPost of response.data.feed) {
+			const post = Post.fromView(feedViewPost.post, this);
+			if (!options.noCacheResponse) this.cache.posts.set(post.uri, post);
+			posts.push(post);
+		}
+
+		return posts;
 	}
 
 	/**
@@ -671,6 +745,7 @@ export interface BotCache {
 	profiles: QuickLRU<string, Profile>;
 	posts: QuickLRU<string, Post>;
 	lists: QuickLRU<string, List>;
+	feeds: QuickLRU<string, FeedGenerator>;
 }
 
 /**
@@ -807,6 +882,32 @@ export interface BotGetUserListsOptions extends Omit<BaseBotGetMethodOptions, "s
 
 	/**
 	 * The offset at which to start fetching lists
+	 */
+	cursor?: string;
+}
+
+/**
+ * Options for the Bot#getFeedGenerator method
+ */
+export interface BotGetFeedGeneratorOptions extends BaseBotGetMethodOptions {}
+
+/**
+ * Options for the Bot#getFeedGenerators method
+ */
+export interface BotGetFeedGeneratorsOptions extends BaseBotGetMethodOptions {}
+
+/**
+ * Options for the Bot#getTimeline method
+ */
+export interface BotGetTimelineOptions extends BaseBotGetMethodOptions {
+	/**
+	 * The maximum number of posts to fetch (up to 100, inclusive)
+	 * @default 50
+	 */
+	limit?: number;
+
+	/**
+	 * The offset at which to start fetching posts
 	 */
 	cursor?: string;
 }

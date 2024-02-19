@@ -304,6 +304,13 @@ export class Post {
 	}
 
 	/**
+	 * Delete the post
+	 */
+	async delete(): Promise<void> {
+		return this.bot.deletePost(this.uri);
+	}
+
+	/**
 	 * Reply to the post
 	 * @param payload The post payload
 	 * @param options Optional configuration (see {@link Bot#post})

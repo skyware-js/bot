@@ -1,5 +1,6 @@
 import { AppBskyGraphDefs, AppBskyRichtextFacet } from "@atproto/api";
 import { Bot } from "../bot/Bot";
+import { Post } from "./post/Post";
 import { Profile } from "./Profile";
 
 export const ListPurpose = {
@@ -17,6 +18,7 @@ export interface ListData {
 	description?: string | undefined;
 	descriptionFacets?: Array<AppBskyRichtextFacet.Main> | undefined;
 	avatar?: string | undefined;
+	items?: Array<Profile>;
 	indexedAt?: Date | undefined;
 }
 
@@ -45,12 +47,37 @@ export class List {
 	/** The list's avatar */
 	avatar?: string;
 
+	/** The list's members */
+	items?: Array<Profile>;
+
 	/** The time the list was indexed by the App View */
 	indexedAt?: Date;
 
+	/** Whether the list is a mod list */
+	get isModList(): boolean {
+		return this.purpose === ListPurpose.ModList;
+	}
+
+	/** Whether the list is a curate list */
+	get isCurateList(): boolean {
+		return this.purpose === ListPurpose.CurateList;
+	}
+
 	constructor(
-		{ name, uri, cid, creator, purpose, description, descriptionFacets, avatar, indexedAt }:
-			ListData,
+		{
+			name,
+			uri,
+			cid,
+			creator,
+			purpose,
+			description,
+			descriptionFacets,
+			avatar,
+			items,
+			indexedAt,
+		}: ListData,
+		/** The active Bot instance */
+		public bot: Bot,
 	) {
 		this.name = name;
 		this.uri = uri;
@@ -60,7 +87,77 @@ export class List {
 		if (description) this.description = description;
 		if (descriptionFacets) this.descriptionFacets = descriptionFacets;
 		if (avatar) this.avatar = avatar;
+		if (items) this.items = items;
 		if (indexedAt) this.indexedAt = indexedAt;
+	}
+
+	/**
+	 * Fetch the list's members
+	 * @param force Whether to fetch items even if they are already cached
+	 */
+	async fetchItems({ force = false } = {}): Promise<Array<Profile>> {
+		if (!force && this.items) return this.items;
+		const { items } = await this.bot.getList(this.uri);
+		if (items) return this.items = items;
+		return [];
+	}
+
+	/**
+	 * Mute all accounts on the list
+	 */
+	async mute(): Promise<void> {
+		const response = await this.bot.api.app.bsky.graph.muteActorList({ list: this.uri });
+		if (!response.success) throw new Error("Failed to mute list " + this.uri);
+	}
+
+	/**
+	 * Unmute all accounts on the list
+	 */
+	async unmute(): Promise<void> {
+		const response = await this.bot.api.app.bsky.graph.unmuteActorList({ list: this.uri });
+		if (!response.success) throw new Error("Failed to unmute list " + this.uri);
+	}
+
+	/**
+	 * Block all accounts on the list
+	 * @returns The AT URI of the listblock record
+	 */
+	async block(): Promise<string> {
+		const { uri } = await this.bot.api.app.bsky.graph.block.create({
+			repo: this.bot.profile.did,
+		}, { subject: this.uri, createdAt: new Date().toISOString() }).catch((e) => {
+			throw new Error("Failed to block list " + this.uri + "\n" + e);
+		});
+		return uri;
+	}
+
+	/**
+	 * Unblock all accounts on the list
+	 */
+	async unblock(): Promise<void> {
+		await this.bot.api.app.bsky.graph.block.delete({ uri: this.uri }).catch((e) => {
+			throw new Error("Failed to unblock list " + this.uri + "\n" + e);
+		});
+	}
+
+	/**
+	 * Get a feed of recent posts from accounts on the list
+	 * @param limit The maximum number of posts to fetch (1-100, default 50)
+	 * @param cursor The cursor for pagination
+	 */
+	async getFeed(
+		{ limit = 50, cursor = "" } = {},
+	): Promise<{ cursor: string | undefined; posts: Array<Post> }> {
+		const response = await this.bot.api.app.bsky.feed.getListFeed({
+			list: this.uri,
+			limit,
+			cursor,
+		});
+		if (!response.success) throw new Error("Failed to get feed for list " + this.uri);
+		return {
+			cursor: response.data.cursor,
+			posts: response.data.feed.map(({ post }) => Post.fromView(post, this.bot)),
+		};
 	}
 
 	/**
@@ -78,6 +175,6 @@ export class List {
 				? Profile.fromView(view.creator, bot)
 				: undefined,
 			indexedAt: view.indexedAt ? new Date(view.indexedAt) : undefined,
-		});
+		}, bot);
 	}
 }

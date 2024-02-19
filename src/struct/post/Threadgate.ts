@@ -1,4 +1,5 @@
 import { AppBskyFeedDefs, AppBskyFeedThreadgate } from "@atproto/api";
+import { Bot } from "../../bot/Bot";
 import { List } from "../List";
 import { Post } from "./Post";
 
@@ -65,7 +66,7 @@ export class Threadgate {
 	/**
 	 * Constructs an instance from a ThreadgateView
 	 */
-	static fromView(view: AppBskyFeedDefs.ThreadgateView, post: Post): Threadgate {
+	static fromView(view: AppBskyFeedDefs.ThreadgateView, post: Post, bot: Bot): Threadgate {
 		if (!AppBskyFeedThreadgate.isRecord(view.record) || !view.cid || !view.uri) {
 			throw new Error("Invalid threadgate view");
 		}
@@ -86,7 +87,7 @@ export class Threadgate {
 			post,
 			allowsFollowing,
 			allowsMentioned,
-			allowedLists: view.lists?.map((list) => List.fromView(list)) ?? [],
+			allowedLists: view.lists?.map((list) => List.fromView(list, bot)) ?? [],
 		});
 	}
 }

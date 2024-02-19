@@ -168,7 +168,7 @@ export class Post {
 	/**
 	 * Fetch the post's current like count
 	 */
-	async fetchLikeCount(): Promise<number | null> {
+	async getLikeCount(): Promise<number | null> {
 		const response = await this.bot.agent.getPostThread({ uri: this.uri });
 		if (!response.success || !AppBskyFeedDefs.isThreadViewPost(response.data.thread)) {
 			throw new Error("Failed to fetch post like count\n" + JSON.stringify(response.data));
@@ -181,7 +181,7 @@ export class Post {
 	/**
 	 * Fetch the post's current repost count
 	 */
-	async fetchRepostCount(): Promise<number | null> {
+	async getRepostCount(): Promise<number | null> {
 		const response = await this.bot.agent.getPostThread({ uri: this.uri });
 		if (!response.success || !AppBskyFeedDefs.isThreadViewPost(response.data.thread)) {
 			throw new Error("Failed to fetch post repost count\n" + JSON.stringify(response.data));
@@ -194,7 +194,7 @@ export class Post {
 	/**
 	 * Fetch the post's current reply count
 	 */
-	async fetchReplyCount(): Promise<number | null> {
+	async getReplyCount(): Promise<number | null> {
 		const response = await this.bot.agent.getPostThread({ uri: this.uri });
 		if (!response.success || !AppBskyFeedDefs.isThreadViewPost(response.data.thread)) {
 			throw new Error("Failed to fetch post reply count\n" + JSON.stringify(response.data));
@@ -209,7 +209,7 @@ export class Post {
 	 * This method returns 100 likes at a time, alongside a cursor to fetch the next 100.
 	 * @param cursor The cursor to begin fetching from
 	 */
-	async fetchLikes(
+	async getLikes(
 		cursor?: string,
 	): Promise<{ cursor: string | undefined; likes: Array<Profile> }> {
 		const response = await this.bot.agent.getLikes({
@@ -223,7 +223,7 @@ export class Post {
 		}
 		return {
 			cursor: response.data.cursor,
-			likes: response.data.likes.map((like) => Profile.fromView(like.actor)),
+			likes: response.data.likes.map((like) => Profile.fromView(like.actor, this.bot)),
 		};
 	}
 
@@ -232,7 +232,7 @@ export class Post {
 	 * This method returns 100 reposts at a time, alongside a cursor to fetch the next 100.
 	 * @param cursor The cursor to begin fetching from
 	 */
-	async fetchReposts(
+	async getReposts(
 		cursor?: string,
 	): Promise<{ cursor: string | undefined; reposts: Array<Profile> }> {
 		const response = await this.bot.agent.getRepostedBy({
@@ -246,7 +246,7 @@ export class Post {
 		}
 		return {
 			cursor: response.data.cursor,
-			reposts: response.data.repostedBy.map((actor) => Profile.fromView(actor)),
+			reposts: response.data.repostedBy.map((actor) => Profile.fromView(actor, this.bot)),
 		};
 	}
 
@@ -336,7 +336,7 @@ export class Post {
 		const post = new Post({
 			...view,
 			text: view.record.text,
-			author: Profile.fromView(view.author),
+			author: Profile.fromView(view.author, bot),
 			threadgate: undefined,
 			createdAt: new Date(view.record.createdAt),
 			indexedAt: view.indexedAt ? new Date(view.indexedAt) : undefined,
@@ -345,7 +345,7 @@ export class Post {
 				: undefined,
 		}, bot);
 		if (view.threadgate) {
-			post.threadgate = Threadgate.fromView(view.threadgate, post);
+			post.threadgate = Threadgate.fromView(view.threadgate, post, bot);
 		}
 		return post;
 	}

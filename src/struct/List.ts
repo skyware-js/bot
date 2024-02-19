@@ -1,4 +1,5 @@
 import { AppBskyGraphDefs, AppBskyRichtextFacet } from "@atproto/api";
+import { Bot } from "../bot/Bot";
 import { Profile } from "./Profile";
 
 export const ListPurpose = {
@@ -65,11 +66,17 @@ export class List {
 	/**
 	 * Constructs an instance from a ListView
 	 * @param view The ListView to construct from
+	 * @param bot The active Bot instance
 	 */
-	static fromView(view: AppBskyGraphDefs.ListView | AppBskyGraphDefs.ListViewBasic): List {
+	static fromView(
+		view: AppBskyGraphDefs.ListView | AppBskyGraphDefs.ListViewBasic,
+		bot: Bot,
+	): List {
 		return new List({
 			...view,
-			creator: AppBskyGraphDefs.isListView(view) ? Profile.fromView(view.creator) : undefined,
+			creator: AppBskyGraphDefs.isListView(view)
+				? Profile.fromView(view.creator, bot)
+				: undefined,
 			indexedAt: view.indexedAt ? new Date(view.indexedAt) : undefined,
 		});
 	}

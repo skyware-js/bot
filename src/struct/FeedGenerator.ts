@@ -1,4 +1,5 @@
 import { AppBskyFeedDefs, AppBskyRichtextFacet } from "@atproto/api";
+import { Bot } from "../bot/Bot";
 import { Profile } from "./Profile";
 
 export interface FeedGeneratorData {
@@ -59,11 +60,12 @@ export class FeedGenerator {
 	/**
 	 * Constructs an instance from a GeneratorView
 	 * @param view The GeneratorView to construct from
+	 * @param bot The active Bot instance
 	 */
-	static fromView(view: AppBskyFeedDefs.GeneratorView): FeedGenerator {
+	static fromView(view: AppBskyFeedDefs.GeneratorView, bot: Bot): FeedGenerator {
 		return new FeedGenerator({
 			...view,
-			creator: Profile.fromView(view.creator),
+			creator: Profile.fromView(view.creator, bot),
 			indexedAt: new Date(view.indexedAt),
 		});
 	}

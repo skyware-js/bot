@@ -75,7 +75,11 @@ export class Bot {
 			interval: (rateLimitOptions?.rateLimitInterval ?? 300) * 1000,
 		});
 
-		this.cache = { profiles: makeCache(cacheOptions), posts: makeCache(cacheOptions) };
+		this.cache = {
+			profiles: makeCache(cacheOptions),
+			posts: makeCache(cacheOptions),
+			lists: makeCache({ maxEntries: 100, ...cacheOptions }),
+		};
 
 		this.agent.api = this.api = {
 			// @ts-expect-error — Hacky way to rate limit API methods
@@ -201,36 +205,118 @@ export class Bot {
 	}
 
 	/**
-	 * Fetch a profile by its DID
+	 * Fetch up to 100 posts by a user's DID
+	 * @param did The user's DID
+	 * @param options Optional configuration
+	 * @returns The user's posts and, if there are more posts to fetch, a cursor
+	 */
+	async getUserPosts(
+		did: string,
+		options: BotGetUserPostsOptions,
+	): Promise<{ cursor: string | undefined; posts: Array<Post> }> {
+		const response = await this.api.app.bsky.feed.getAuthorFeed({ actor: did, ...options });
+		if (!response.success) {
+			throw new Error("Failed to fetch user posts\n" + JSON.stringify(response.data));
+		}
+
+		const posts: Array<Post> = [];
+		for (const feedViewPost of response.data.feed) {
+			const post = Post.fromView(feedViewPost.post, this);
+			this.cache.posts.set(post.uri, post);
+			posts.push(post);
+		}
+
+		return { cursor: response.data.cursor, posts };
+	}
+
+	/**
+	 * Fetch up to 100 posts liked by a user
 	 * @param did The user's DID
 	 * @param options Optional configuration
 	 */
-	async getProfile(did: string, options: BotGetProfileOptions = {}): Promise<Profile> {
-		if (!options.skipCache && this.cache.profiles.has(did)) {
-			return this.cache.profiles.get(did)!;
+	async getUserLikes(
+		did: string,
+		options: BotGetUserLikesOptions,
+	): Promise<{ cursor: string | undefined; posts: Array<Post> }> {
+		const response = await this.api.app.bsky.feed.getActorLikes({ actor: did, ...options });
+		if (!response.success) {
+			throw new Error("Failed to fetch user likes\n" + JSON.stringify(response.data));
 		}
 
-		const profileView = await this.api.app.bsky.actor.getProfile({ actor: did });
+		const posts: Array<Post> = [];
+		for (const feedViewPost of response.data.feed) {
+			const post = Post.fromView(feedViewPost.post, this);
+			this.cache.posts.set(post.uri, post);
+			posts.push(post);
+		}
+
+		return { cursor: response.data.cursor, posts };
+	}
+
+	/**
+	 * Fetch a profile by DID or handle
+	 * @param didOrHandle The user's DID or handle
+	 * @param options Optional configuration
+	 */
+	async getProfile(didOrHandle: string, options: BotGetProfileOptions = {}): Promise<Profile> {
+		if (!options.skipCache && this.cache.profiles.has(didOrHandle)) {
+			return this.cache.profiles.get(didOrHandle)!;
+		}
+
+		const profileView = await this.api.app.bsky.actor.getProfile({ actor: didOrHandle });
 		if (!profileView.success) {
-			throw new Error(`Failed to fetch profile ${did}\n` + JSON.stringify(profileView.data));
+			throw new Error(
+				`Failed to fetch profile ${didOrHandle}\n` + JSON.stringify(profileView.data),
+			);
 		}
 
-		const profile = Profile.fromView(profileView.data);
-		this.cache.profiles.set(did, profile);
+		const profile = Profile.fromView(profileView.data, this);
+		this.cache.profiles.set(didOrHandle, profile);
 		return profile;
 	}
 
 	/**
 	 * Fetch a list by its AT URI
 	 * @param uri The list's AT URI
+	 * @param options Optional configuration
 	 */
-	async getList(uri: string): Promise<List> {
+	async getList(uri: string, options?: BotGetListOptions): Promise<List> {
+		if (!options?.skipCache && this.cache.lists.has(uri)) {
+			return this.cache.lists.get(uri)!;
+		}
+
 		const listResponse = await this.api.app.bsky.graph.getList({ list: uri });
 		if (!listResponse.success) {
 			throw new Error("Failed to fetch list\n" + JSON.stringify(listResponse.data));
 		}
 
-		return List.fromView(listResponse.data.list);
+		const list = List.fromView(listResponse.data.list, this);
+		this.cache.lists.set(uri, list);
+		return list;
+	}
+
+	/**
+	 * Fetch all (up to 100) lists created by a user
+	 * @param did The user's DID
+	 * @param options Optional configuration
+	 */
+	async getUserLists(
+		did: string,
+		options: BotGetUserListsOptions,
+	): Promise<{ cursor: string | undefined; lists: Array<List> }> {
+		const response = await this.api.app.bsky.graph.getLists({ actor: did, ...options });
+		if (!response.success) {
+			throw new Error("Failed to fetch user lists\n" + JSON.stringify(response.data));
+		}
+
+		const lists: Array<List> = [];
+		for (const listView of response.data.lists) {
+			const list = List.fromView(listView, this);
+			this.cache.lists.set(list.uri, list);
+			lists.push(list);
+		}
+
+		return { cursor: response.data.cursor, lists };
 	}
 
 	/**
@@ -441,6 +527,7 @@ export class Bot {
 		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
 		await this.agent.deleteLike(uri);
 	}
+	/** @see Bot#deleteLike */
 	unlike = this.deleteLike.bind(this);
 
 	/**
@@ -483,6 +570,7 @@ export class Bot {
 		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
 		await this.agent.deleteFollow(did);
 	}
+	/** @see Bot#deleteFollow */
 	unfollow = this.deleteFollow.bind(this);
 
 	/**
@@ -502,7 +590,31 @@ export class Bot {
 		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
 		await this.agent.unmute(did);
 	}
+	/** @see Bot#deleteMute */
 	unmute = this.deleteMute.bind(this);
+
+	/**
+	 * Block a user
+	 * @param did The user's DID
+	 */
+	async block(did: string): Promise<string> {
+		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
+		const block = await this.agent.api.app.bsky.graph.block.create({ repo: did }, {
+			$type: "app.bsky.graph.block",
+			subject: did,
+			createdAt: new Date().toISOString(),
+		});
+		return block.uri;
+	}
+
+	/**
+	 * Delete a block
+	 * @param uri The block's AT URI
+	 */
+	async deleteBlock(uri: string): Promise<void> {
+		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
+		await this.agent.api.app.bsky.graph.block.delete({ uri });
+	}
 
 	/**
 	 * Resolve a handle to a DID
@@ -558,6 +670,7 @@ function wrapApiWithLimiter<
 export interface BotCache {
 	profiles: QuickLRU<string, Profile>;
 	posts: QuickLRU<string, Post>;
+	lists: QuickLRU<string, List>;
 }
 
 /**
@@ -614,9 +727,83 @@ export interface BotGetPostOptions extends BaseBotGetMethodOptions {
 export interface BotGetPostsOptions extends BaseBotGetMethodOptions {}
 
 /**
+ * Post types to include in the response to Bot#getUserPosts
+ */
+export const GetUserPostsFilter = {
+	/** All posts */
+	PostsWithReplies: "posts_with_replies",
+	/** Top-level posts only */
+	PostsNoReplies: "posts_no_replies",
+	/** Posts with media */
+	PostsWithMedia: "posts_with_media",
+	/** Top-level posts and threads where the only author is the user */
+	PostsAndAuthorThreads: "posts_and_author_threads",
+};
+export type GetUserPostsFilter = typeof GetUserPostsFilter[keyof typeof GetUserPostsFilter];
+
+/**
+ * Options for the Bot#getUserPosts method
+ */
+export interface BotGetUserPostsOptions {
+	/**
+	 * The maximum number of posts to fetch (up to 100, inclusive)
+	 * @default 50
+	 */
+	limit?: number;
+
+	/**
+	 * The offset at which to start fetching posts
+	 */
+	cursor?: string;
+
+	/**
+	 * Post type to include in the response
+	 * @default GetUserPostsFilter.PostsWithReplies
+	 */
+	filter?: GetUserPostsFilter;
+}
+
+/**
+ * Options for the Bot#getUserLikes method
+ */
+export interface BotGetUserLikesOptions {
+	/**
+	 * The maximum number of posts to fetch (up to 100, inclusive)
+	 * @default 50
+	 */
+	limit?: number;
+
+	/**
+	 * The offset at which to start fetching posts
+	 */
+	cursor?: string;
+}
+
+/**
  * Options for the Bot#getProfile method
  */
 export interface BotGetProfileOptions extends BaseBotGetMethodOptions {}
+
+/**
+ * Options for the Bot#getList method
+ */
+export interface BotGetListOptions extends BaseBotGetMethodOptions {}
+
+/**
+ * Options for the Bot#getUserLists method
+ */
+export interface BotGetUserListsOptions {
+	/**
+	 * The maximum number of lists to fetch (up to 100, inclusive)
+	 * @default 50
+	 */
+	limit?: number;
+
+	/**
+	 * The offset at which to start fetching lists
+	 */
+	cursor?: string;
+}
 
 /**
  * Options for the Bot#post method

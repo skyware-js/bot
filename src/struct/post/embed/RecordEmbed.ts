@@ -40,9 +40,9 @@ export class RecordEmbed extends PostEmbed {
 				Post.fromView({ ...recordView.record, record: recordView.record.value }, bot),
 			);
 		} else if (AppBskyFeedDefs.isGeneratorView(recordView.record)) {
-			return new RecordEmbed(FeedGenerator.fromView(recordView.record));
+			return new RecordEmbed(FeedGenerator.fromView(recordView.record, bot));
 		} else if (AppBskyGraphDefs.isListView(recordView.record)) {
-			return new RecordEmbed(List.fromView(recordView.record));
+			return new RecordEmbed(List.fromView(recordView.record, bot));
 		} else {
 			throw new Error("Invalid embed record");
 		}

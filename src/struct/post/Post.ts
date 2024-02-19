@@ -341,7 +341,7 @@ export class Post {
 			createdAt: new Date(view.record.createdAt),
 			indexedAt: view.indexedAt ? new Date(view.indexedAt) : undefined,
 			embed: view.embed && isEmbedView(view.embed) && isEmbedMainRecord(view.record.embed)
-				? postEmbedFromView(view.embed, view.record.embed)
+				? postEmbedFromView({ view: view.embed, record: view.record.embed, bot })
 				: undefined,
 		}, bot);
 		if (view.threadgate) {

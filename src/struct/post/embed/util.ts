@@ -4,27 +4,33 @@ import {
 	AppBskyEmbedRecord,
 	AppBskyEmbedRecordWithMedia,
 } from "@atproto/api";
+import { Bot } from "../../../bot/Bot";
 import { ExternalEmbed } from "./ExternalEmbed";
 import { ImagesEmbed } from "./ImagesEmbed";
 import { PostEmbed } from "./PostEmbed";
 import { RecordEmbed } from "./RecordEmbed";
+import { RecordWithMediaEmbed } from "./RecordWithMediaEmbed";
 
 /**
  * Constructs the appropriate embed type from an embed view and record
  * @param view
  * @param record
+ * @param bot
  */
 export function postEmbedFromView(
-	view:
-		| AppBskyEmbedImages.View
-		| AppBskyEmbedExternal.View
-		| AppBskyEmbedRecord.View
-		| AppBskyEmbedRecordWithMedia.View,
-	record?:
-		| AppBskyEmbedImages.Main
-		| AppBskyEmbedExternal.Main
-		| AppBskyEmbedRecord.Main
-		| AppBskyEmbedRecordWithMedia.Main,
+	{ view, record, bot }: {
+		view:
+			| AppBskyEmbedImages.View
+			| AppBskyEmbedExternal.View
+			| AppBskyEmbedRecord.View
+			| AppBskyEmbedRecordWithMedia.View;
+		record?:
+			| AppBskyEmbedImages.Main
+			| AppBskyEmbedExternal.Main
+			| AppBskyEmbedRecord.Main
+			| AppBskyEmbedRecordWithMedia.Main;
+		bot?: Bot;
+	},
 ): PostEmbed {
 	if (AppBskyEmbedImages.isView(view)) {
 		if (!record || !AppBskyEmbedImages.isMain(record)) {
@@ -34,7 +40,16 @@ export function postEmbedFromView(
 	} else if (AppBskyEmbedExternal.isView(view)) {
 		return ExternalEmbed.fromView(view);
 	} else if (AppBskyEmbedRecord.isView(view)) {
-		return RecordEmbed.fromView(view);
+		if (!bot) throw new Error("Cannot construct RecordEmbed without bot instance");
+		return RecordEmbed.fromView(view, bot);
+	} else if (AppBskyEmbedRecordWithMedia.isView(view)) {
+		if (!record || !AppBskyEmbedRecordWithMedia.isMain(record)) {
+			throw new Error(
+				"Cannot construct RecordWithMediaEmbed from view without valid embed record",
+			);
+		}
+		if (!bot) throw new Error("Cannot construct RecordWithMediaEmbed without bot instance");
+		return RecordWithMediaEmbed.fromView(view, record, bot);
 	} else {
 		throw new Error("Invalid post embed view: " + JSON.stringify(view));
 	}

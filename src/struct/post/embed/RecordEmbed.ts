@@ -4,6 +4,7 @@ import {
 	AppBskyFeedPost,
 	AppBskyGraphDefs,
 } from "@atproto/api";
+import { Bot } from "../../../bot/Bot";
 import { FeedGenerator } from "../../FeedGenerator";
 import { List } from "../../List";
 import { Post } from "../Post";
@@ -27,15 +28,16 @@ export class RecordEmbed extends PostEmbed {
 	/**
 	 * Constructs a RecordEmbed from an embed record view
 	 * @param recordView The view of the embed record
+	 * @param bot The active Bot instance
 	 */
-	static fromView(recordView: AppBskyEmbedRecord.View): RecordEmbed {
+	static fromView(recordView: AppBskyEmbedRecord.View, bot: Bot): RecordEmbed {
 		if (AppBskyEmbedRecord.isViewRecord(recordView.record)) {
 			// ViewRecord should only be a post
 			if (!AppBskyFeedPost.isRecord(recordView.record.value)) {
 				throw new Error("Invalid post view record");
 			}
 			return new RecordEmbed(
-				Post.fromView({ ...recordView.record, record: recordView.record.value }),
+				Post.fromView({ ...recordView.record, record: recordView.record.value }, bot),
 			);
 		} else if (AppBskyFeedDefs.isGeneratorView(recordView.record)) {
 			return new RecordEmbed(FeedGenerator.fromView(recordView.record));

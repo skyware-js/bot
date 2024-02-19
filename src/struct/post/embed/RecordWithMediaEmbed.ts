@@ -5,6 +5,7 @@ import {
 	AppBskyEmbedRecordWithMedia,
 	AppBskyFeedPost,
 } from "@atproto/api";
+import { Bot } from "../../../bot/Bot";
 import { Post } from "../Post";
 import { ExternalEmbed } from "./ExternalEmbed";
 import { ImagesEmbed } from "./ImagesEmbed";
@@ -31,10 +32,12 @@ export class RecordWithMediaEmbed extends PostEmbed {
 	 * Constructs a RecordWithMediaEmbed from an embed view and a record
 	 * @param view The view of the embed
 	 * @param record The embed record
+	 * @param bot The active Bot instance
 	 */
 	static fromView(
 		view: AppBskyEmbedRecordWithMedia.View,
 		record: AppBskyEmbedRecordWithMedia.Main,
+		bot: Bot,
 	): RecordWithMediaEmbed {
 		let embeddedMedia: ImagesEmbed | ExternalEmbed;
 
@@ -56,7 +59,7 @@ export class RecordWithMediaEmbed extends PostEmbed {
 			&& AppBskyFeedPost.isRecord(view.record.record.value)
 		) {
 			return new RecordWithMediaEmbed(
-				Post.fromView({ ...view.record.record, record: view.record.record.value }),
+				Post.fromView({ ...view.record.record, record: view.record.record.value }, bot),
 				embeddedMedia,
 			);
 		} else {

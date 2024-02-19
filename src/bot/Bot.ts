@@ -171,7 +171,7 @@ export class Bot {
 
 		const post = Post.fromThreadView(postThread.data.thread, this);
 
-		this.cache.posts.set(uri, post);
+		if (!options.noCacheResponse) this.cache.posts.set(uri, post);
 		return post;
 	}
 
@@ -197,7 +197,7 @@ export class Bot {
 		for (const postView of postViews.data.posts) {
 			if (!AppBskyFeedPost.isRecord(postView.record)) continue;
 			const post = Post.fromView(postView, this);
-			this.cache.posts.set(post.uri, post);
+			if (!options.noCacheResponse) this.cache.posts.set(post.uri, post);
 			posts.push(post);
 		}
 
@@ -212,7 +212,7 @@ export class Bot {
 	 */
 	async getUserPosts(
 		did: string,
-		options: BotGetUserPostsOptions,
+		options: BotGetUserPostsOptions = {},
 	): Promise<{ cursor: string | undefined; posts: Array<Post> }> {
 		const response = await this.api.app.bsky.feed.getAuthorFeed({ actor: did, ...options });
 		if (!response.success) {
@@ -222,7 +222,7 @@ export class Bot {
 		const posts: Array<Post> = [];
 		for (const feedViewPost of response.data.feed) {
 			const post = Post.fromView(feedViewPost.post, this);
-			this.cache.posts.set(post.uri, post);
+			if (!options.noCacheResponse) this.cache.posts.set(post.uri, post);
 			posts.push(post);
 		}
 
@@ -236,7 +236,7 @@ export class Bot {
 	 */
 	async getUserLikes(
 		did: string,
-		options: BotGetUserLikesOptions,
+		options: BotGetUserLikesOptions = {},
 	): Promise<{ cursor: string | undefined; posts: Array<Post> }> {
 		const response = await this.api.app.bsky.feed.getActorLikes({ actor: did, ...options });
 		if (!response.success) {
@@ -246,7 +246,7 @@ export class Bot {
 		const posts: Array<Post> = [];
 		for (const feedViewPost of response.data.feed) {
 			const post = Post.fromView(feedViewPost.post, this);
-			this.cache.posts.set(post.uri, post);
+			if (!options.noCacheResponse) this.cache.posts.set(post.uri, post);
 			posts.push(post);
 		}
 
@@ -271,7 +271,7 @@ export class Bot {
 		}
 
 		const profile = Profile.fromView(profileView.data, this);
-		this.cache.profiles.set(didOrHandle, profile);
+		if (!options.noCacheResponse) this.cache.profiles.set(didOrHandle, profile);
 		return profile;
 	}
 
@@ -280,8 +280,8 @@ export class Bot {
 	 * @param uri The list's AT URI
 	 * @param options Optional configuration
 	 */
-	async getList(uri: string, options?: BotGetListOptions): Promise<List> {
-		if (!options?.skipCache && this.cache.lists.has(uri)) {
+	async getList(uri: string, options: BotGetListOptions = {}): Promise<List> {
+		if (!options.skipCache && this.cache.lists.has(uri)) {
 			return this.cache.lists.get(uri)!;
 		}
 
@@ -291,7 +291,7 @@ export class Bot {
 		}
 
 		const list = List.fromView(listResponse.data.list, this);
-		this.cache.lists.set(uri, list);
+		if (!options.noCacheResponse) this.cache.lists.set(uri, list);
 		return list;
 	}
 
@@ -493,7 +493,7 @@ export class Bot {
 		}
 
 		const createdPost = await this.getPost(postResponse.data.uri);
-		this.cache.posts.set(createdPost.uri, createdPost);
+		if (!options.noCacheResponse) this.cache.posts.set(createdPost.uri, createdPost);
 		return createdPost;
 	}
 
@@ -702,6 +702,12 @@ export interface BaseBotGetMethodOptions {
 	 * @default false
 	 */
 	skipCache?: boolean;
+
+	/**
+	 * Whether to skip caching the response
+	 * @default false
+	 */
+	noCacheResponse?: boolean;
 }
 
 /**
@@ -744,7 +750,7 @@ export type GetUserPostsFilter = typeof GetUserPostsFilter[keyof typeof GetUserP
 /**
  * Options for the Bot#getUserPosts method
  */
-export interface BotGetUserPostsOptions {
+export interface BotGetUserPostsOptions extends Omit<BaseBotGetMethodOptions, "skipCache"> {
 	/**
 	 * The maximum number of posts to fetch (up to 100, inclusive)
 	 * @default 50
@@ -766,7 +772,7 @@ export interface BotGetUserPostsOptions {
 /**
  * Options for the Bot#getUserLikes method
  */
-export interface BotGetUserLikesOptions {
+export interface BotGetUserLikesOptions extends Omit<BaseBotGetMethodOptions, "skipCache"> {
 	/**
 	 * The maximum number of posts to fetch (up to 100, inclusive)
 	 * @default 50
@@ -792,7 +798,7 @@ export interface BotGetListOptions extends BaseBotGetMethodOptions {}
 /**
  * Options for the Bot#getUserLists method
  */
-export interface BotGetUserListsOptions {
+export interface BotGetUserListsOptions extends Omit<BaseBotGetMethodOptions, "skipCache"> {
 	/**
 	 * The maximum number of lists to fetch (up to 100, inclusive)
 	 * @default 50
@@ -822,4 +828,10 @@ export interface BotPostOptions {
 	 * @default false
 	 */
 	fetchAfterCreate?: boolean;
+
+	/**
+	 * Whether to skip caching the response
+	 * @default false
+	 */
+	noCacheResponse?: boolean;
 }

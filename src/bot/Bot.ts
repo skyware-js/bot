@@ -49,16 +49,16 @@ export interface BotOptions extends Partial<AtpAgentOpts> {
  */
 export class Bot {
 	/** The agent used to communicate with the Bluesky API */
-	agent: BskyAgent;
+	readonly agent: BskyAgent;
 
 	/** A limiter to rate limit API requests */
-	limiter: RateLimiter;
+	private readonly limiter: RateLimiter;
 
 	/** A cache to store API responses */
-	cache: BotCache;
+	readonly cache: BotCache;
 
 	/** The Bluesky API client, with rate-limited methods */
-	api: AtpServiceClient;
+	readonly api: AtpServiceClient;
 
 	/** The default list of languages to attach to posts */
 	langs: Array<string> = [];

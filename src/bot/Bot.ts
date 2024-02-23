@@ -7,7 +7,6 @@ import {
 	AppBskyFeedPost,
 	AppBskyFeedThreadgate,
 	type AtpAgentLoginOpts,
-	type AtpAgentOpts,
 	type AtpServiceClient,
 	type AtpSessionData,
 	AtUri,
@@ -33,7 +32,13 @@ const NOT_LIMITED_METHODS = ["createSession", "getSession"];
 /**
  * Options for the Bot constructor
  */
-export interface BotOptions extends Partial<AtpAgentOpts> {
+export interface BotOptions {
+	/**
+	 * The PDS to connect to
+	 * @default "https://bsky.social"
+	 */
+	service?: string;
+
 	/** The default list of languages to attach to posts */
 	langs?: Array<string>;
 

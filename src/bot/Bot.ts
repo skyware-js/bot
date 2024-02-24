@@ -770,6 +770,36 @@ export class Bot extends EventEmitter {
 		}
 		this.profile.handle = handle;
 	}
+
+	// this.eventEmitter.on("open", () => this.emit("open"));
+	// 			this.eventEmitter.on("error", (error) => this.emit("error", error));
+	// 			this.eventEmitter.on("close", () => this.emit("close"));
+	// 			this.eventEmitter.on("reply", (event) => this.emit("reply", event));
+	// 			this.eventEmitter.on("quote", (event) => this.emit("quote", event));
+	// 			this.eventEmitter.on("mention", (event) => this.emit("mention", event));
+	// 			this.eventEmitter.on("repost", (event) => this.emit("repost", event));
+	// 			this.eventEmitter.on("like", (event) => this.emit("like", event));
+	// 			this.eventEmitter.on("follow", (event) => this.emit("follow", event));
+
+	override on(event: "open", listener: () => void): this;
+	override on(event: "error", listener: (error: unknown) => void): this;
+	override on(event: "close", listener: () => void): this;
+	override on(event: "reply", listener: (post: Post) => void): this;
+	override on(event: "quote", listener: (post: Post) => void): this;
+	override on(event: "mention", listener: (post: Post) => void): this;
+	override on(
+		event: "repost",
+		listener: (event: { post: Post; user: Profile; uri: string }) => void,
+	): this;
+	override on(
+		event: "like",
+		listener: (event: { post: Post; user: Profile; uri: string }) => void,
+	): this;
+	override on(event: "follow", listener: (event: { user: Profile; uri: string }) => void): this;
+	override on(event: string | symbol, listener: (...args: any[]) => void): this {
+		super.on(event, listener);
+		return this;
+	}
 }
 
 function wrapApiWithLimiter<

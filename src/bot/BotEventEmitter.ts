@@ -136,7 +136,7 @@ export class BotEventEmitter extends BaseEventEmitter {
 							) {
 								const post = await this.bot.getPost(op.record.subject.uri);
 								const user = await this.bot.getProfile(message.repo);
-								this.emit("repost", { post, user });
+								this.emit("repost", { post, user, uri });
 							}
 						} else if (AppBskyFeedLike.isRecord(op.record)) {
 							if (
@@ -145,7 +145,7 @@ export class BotEventEmitter extends BaseEventEmitter {
 							) {
 								const post = await this.bot.getPost(op.record.subject.uri);
 								const user = await this.bot.getProfile(message.repo);
-								this.emit("like", { post, user });
+								this.emit("like", { post, user, uri });
 							}
 						} else if (AppBskyGraphFollow.isRecord(op.record)) {
 							if (
@@ -153,7 +153,7 @@ export class BotEventEmitter extends BaseEventEmitter {
 								&& this.listenerCount("follow") >= 1
 							) {
 								const user = await this.bot.getProfile(message.repo);
-								this.emit("follow", user);
+								this.emit("follow", { user, uri });
 							}
 						}
 					}

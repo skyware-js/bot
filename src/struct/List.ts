@@ -19,6 +19,8 @@ export interface ListData {
 	descriptionFacets?: Array<AppBskyRichtextFacet.Main> | undefined;
 	avatar?: string | undefined;
 	items?: Array<Profile>;
+	blockUri?: string | undefined;
+	muted?: boolean | undefined;
 	indexedAt?: Date | undefined;
 }
 
@@ -49,6 +51,12 @@ export class List {
 
 	/** The list's members */
 	items?: Array<Profile>;
+
+	/** The AT URI of the list block record, if the bot has the list blocked */
+	blockUri?: string;
+
+	/** Whether the bot has the list muted */
+	muted?: boolean;
 
 	/** The time the list was indexed by the App View */
 	indexedAt?: Date;
@@ -120,7 +128,7 @@ export class List {
 
 	/**
 	 * Block all accounts on the list
-	 * @returns The AT URI of the listblock record
+	 * @returns The AT URI of the list block record
 	 */
 	async block(): Promise<string> {
 		const { uri } = await this.bot.api.app.bsky.graph.block.create({
@@ -128,6 +136,7 @@ export class List {
 		}, { subject: this.uri, createdAt: new Date().toISOString() }).catch((e) => {
 			throw new Error("Failed to block list " + this.uri + "\n" + e);
 		});
+		this.blockUri = uri;
 		return uri;
 	}
 
@@ -135,9 +144,11 @@ export class List {
 	 * Unblock all accounts on the list
 	 */
 	async unblock(): Promise<void> {
-		await this.bot.api.app.bsky.graph.block.delete({ uri: this.uri }).catch((e) => {
-			throw new Error("Failed to unblock list " + this.uri + "\n" + e);
-		});
+		if (this.blockUri) {
+			await this.bot.api.app.bsky.graph.block.delete({ uri: this.blockUri }).catch((e) => {
+				throw new Error("Failed to unblock list " + this.uri + "\n" + e);
+			});
+		}
 	}
 
 	/**
@@ -174,6 +185,8 @@ export class List {
 			creator: AppBskyGraphDefs.isListView(view)
 				? Profile.fromView(view.creator, bot)
 				: undefined,
+			blockUri: view.viewer?.blocked,
+			muted: view.viewer?.muted,
 			indexedAt: view.indexedAt ? new Date(view.indexedAt) : undefined,
 		}, bot);
 	}

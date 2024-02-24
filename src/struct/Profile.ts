@@ -83,7 +83,7 @@ export class Profile {
 	blockUri?: string;
 
 	/** Whether the bot is blocked by the user */
-	isBlockedBy?: boolean;
+	blockedBy?: boolean;
 
 	/** Whether the bot is following the user */
 	get isFollowing() {
@@ -91,7 +91,7 @@ export class Profile {
 	}
 
 	/** Whether the user is following the bot */
-	get isFollowedBy() {
+	get followedBy() {
 		return this.followedByUri != undefined;
 	}
 
@@ -102,7 +102,7 @@ export class Profile {
 
 	/** Whether the user is being followed and is following the bot */
 	get isMutual() {
-		return this.isFollowing && this.isFollowedBy;
+		return this.isFollowing && this.followedBy;
 	}
 
 	constructor(
@@ -126,7 +126,7 @@ export class Profile {
 		if (followedByUri != undefined) this.followedByUri = followedByUri;
 		if (isMuted != undefined) this.isMuted = isMuted;
 		if (blockUri != undefined) this.blockUri = blockUri;
-		if (isBlockedBy != undefined) this.isBlockedBy = isBlockedBy;
+		if (isBlockedBy != undefined) this.blockedBy = isBlockedBy;
 	}
 
 	/**

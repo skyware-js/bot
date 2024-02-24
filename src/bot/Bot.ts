@@ -16,6 +16,7 @@ import {
 	RichText,
 } from "@atproto/api";
 import { RateLimiter } from "limiter";
+import { EventEmitter } from "node:events";
 import type QuickLRU from "quick-lru";
 import { FeedGenerator } from "../struct/FeedGenerator";
 import { List } from "../struct/List";
@@ -23,6 +24,7 @@ import { Post } from "../struct/post/Post";
 import type { PostPayload } from "../struct/post/PostPayload";
 import { Profile } from "../struct/Profile";
 import { typedEntries } from "../util";
+import { BotEventEmitter, type BotEventEmitterOptions, EventStrategy } from "./BotEventEmitter";
 import { type CacheOptions, makeCache } from "./cache";
 
 const NO_SESSION_ERROR = "Active session not found. Make sure to call the login method first.";
@@ -42,17 +44,26 @@ export interface BotOptions {
 	/** The default list of languages to attach to posts */
 	langs?: Array<string>;
 
+	/**
+	 * Whether to emit events
+	 * @default true
+	 */
+	emitEvents?: boolean;
+
 	/** Options for the built-in rate limiter */
 	rateLimitOptions?: RateLimitOptions;
 
 	/** Options for the request cache */
 	cacheOptions?: CacheOptions;
+
+	/** Options for the event emitter */
+	eventEmitterOptions?: BotEventEmitterOptions;
 }
 
 /**
  * A bot that can interact with the Bluesky API
  */
-export class Bot {
+export class Bot extends EventEmitter {
 	/** The agent used to communicate with the Bluesky API */
 	readonly agent: BskyAgent;
 
@@ -61,6 +72,9 @@ export class Bot {
 
 	/** A cache to store API responses */
 	readonly cache: BotCache;
+
+	/** Receives and emits events */
+	private readonly eventEmitter?: BotEventEmitter;
 
 	/** The Bluesky API client, with rate-limited methods */
 	readonly api: AtpServiceClient;
@@ -71,7 +85,18 @@ export class Bot {
 	/** The bot account's Bluesky profile */
 	profile!: Profile;
 
-	constructor({ langs, rateLimitOptions, cacheOptions, ...options }: BotOptions = {}) {
+	constructor(
+		{
+			langs,
+			emitEvents = true,
+			rateLimitOptions,
+			cacheOptions,
+			eventEmitterOptions = { strategy: EventStrategy.Polling },
+			...options
+		}: BotOptions = {},
+	) {
+		super();
+
 		this.agent = new BskyAgent({ service: "https://bsky.social", ...options });
 
 		if (langs) this.langs = langs;
@@ -87,6 +112,19 @@ export class Bot {
 			lists: makeCache({ maxEntries: 100, ...cacheOptions }),
 			feeds: makeCache({ maxEntries: 50, ...cacheOptions }),
 		};
+
+		if (emitEvents) {
+			this.eventEmitter = new BotEventEmitter(eventEmitterOptions, this);
+			this.eventEmitter.on("open", () => this.emit("open"));
+			this.eventEmitter.on("error", (error) => this.emit("error", error));
+			this.eventEmitter.on("close", () => this.emit("close"));
+			this.eventEmitter.on("reply", (event) => this.emit("reply", event));
+			this.eventEmitter.on("quote", (event) => this.emit("quote", event));
+			this.eventEmitter.on("mention", (event) => this.emit("mention", event));
+			this.eventEmitter.on("repost", (event) => this.emit("repost", event));
+			this.eventEmitter.on("like", (event) => this.emit("like", event));
+			this.eventEmitter.on("follow", (event) => this.emit("follow", event));
+		}
 
 		this.agent.api = this.api = {
 			// @ts-expect-error — Hacky way to rate limit API methods

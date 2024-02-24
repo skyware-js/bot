@@ -4,17 +4,22 @@
 	"version": "0.0.1",
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
+	"license": "MPL-2.0",
 	"dependencies": {
 		"@atproto/api": "^0.6.20",
 		"limiter": "^2.1.0",
 		"quick-lru": "^7.0.0"
 	},
 	"devDependencies": {
+		"@types/node": "^20.11.20",
 		"@typescript-eslint/eslint-plugin": "^6.7.4",
 		"@typescript-eslint/parser": "^6.7.4",
 		"dprint": "^0.41.0",
 		"eslint": "^8.50.0",
 		"multiformats": "^13.1.0",
 		"typescript": "^5.2.2"
+	},
+	"optionalDependencies": {
+		"@skyware/firehose": "^0.1.2"
 	}
 }

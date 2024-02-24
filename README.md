@@ -1,7 +1,10 @@
-<p align="center">
-	<img src="https://github.com/skyware-js/.github/blob/main/assets/logo-dark.png?raw=true" height="72">
-</p>
-<h1 align="center">@skyware/bot</h1>
+<div align="center">
+
+<img src="https://raw.githubusercontent.com/skyware-js/.github/main/assets/logo-dark.png" height="72px" alt="Skyware" />
+
+# @skyware/bot
+
+</div>
 
 A framework for building bots on Bluesky.
 

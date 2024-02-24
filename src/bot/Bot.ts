@@ -41,7 +41,10 @@ export interface BotOptions {
 	 */
 	service?: string;
 
-	/** The default list of languages to attach to posts */
+	/**
+	 * The default list of languages to attach to posts
+	 * @default ["en"]
+	 */
 	langs?: Array<string>;
 
 	/**
@@ -87,7 +90,7 @@ export class Bot extends EventEmitter {
 
 	constructor(
 		{
-			langs,
+			langs = ["en"],
 			emitEvents = true,
 			rateLimitOptions,
 			cacheOptions,
@@ -99,7 +102,7 @@ export class Bot extends EventEmitter {
 
 		this.agent = new BskyAgent({ service: "https://bsky.social", ...options });
 
-		if (langs) this.langs = langs;
+		this.langs = langs;
 
 		this.limiter = new RateLimiter({
 			tokensPerInterval: rateLimitOptions?.rateLimit ?? 3000,
@@ -443,12 +446,16 @@ export class Bot extends EventEmitter {
 	 */
 	async post(
 		payload: PostPayload,
-		options?: BotPostOptions,
+		options?: BotPostOptions & { fetchAfterCreate?: false },
 	): Promise<{ uri: string; cid: string }>;
 	async post(
 		payload: PostPayload,
 		options: BotPostOptions & { fetchAfterCreate: true },
 	): Promise<Post>;
+	async post(
+		payload: PostPayload,
+		options?: BotPostOptions,
+	): Promise<Post | { uri: string; cid: string }>;
 	async post(
 		payload: PostPayload,
 		options: BotPostOptions = {},
@@ -681,11 +688,17 @@ export class Bot extends EventEmitter {
 
 	/**
 	 * Delete a follow
-	 * @param did The user's DID
+	 * @param didOrUri The user's DID or the follow record's AT URI
 	 */
-	async deleteFollow(did: string): Promise<void> {
+	async deleteFollow(didOrUri: string): Promise<void> {
 		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
-		await this.agent.deleteFollow(did);
+		if (didOrUri.startsWith("at://")) {
+			await this.agent.deleteFollow(didOrUri);
+		} else {
+			const user = await this.getProfile(didOrUri);
+			if (!user || !user.followUri) return;
+			await this.agent.deleteFollow(user.followUri);
+		}
 	}
 	/** @see Bot#deleteFollow */
 	unfollow = this.deleteFollow.bind(this);

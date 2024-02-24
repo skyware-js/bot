@@ -318,12 +318,16 @@ export class Post {
 	 */
 	async reply(
 		payload: PostPayload,
-		options?: BotPostOptions,
+		options: BotPostOptions & { fetchAfterCreate?: false },
 	): Promise<{ uri: string; cid: string }>;
 	async reply(
 		payload: PostPayload,
-		options?: BotPostOptions & { fetchAfterCreate: true },
+		options: BotPostOptions & { fetchAfterCreate: true },
 	): Promise<Post>;
+	async reply(
+		payload: PostPayload,
+		options?: BotPostOptions,
+	): Promise<Post | { uri: string; cid: string }>;
 	async reply(
 		payload: PostPayload,
 		options?: BotPostOptions,
@@ -332,7 +336,7 @@ export class Post {
 			...payload,
 			replyRef: {
 				parent: { uri: this.uri, cid: this.cid },
-				root: this.replyRef?.root ?? { uri: this.uri, cid: this.uri },
+				root: this.replyRef?.root ?? { uri: this.uri, cid: this.cid },
 			},
 		}, options);
 	}
@@ -345,12 +349,16 @@ export class Post {
 	 */
 	async quote(
 		payload: PostPayload,
-		options?: BotPostOptions,
+		options?: BotPostOptions & { fetchAfterCreate?: false },
 	): Promise<{ uri: string; cid: string }>;
 	async quote(
 		payload: PostPayload,
 		options?: BotPostOptions & { fetchAfterCreate: true },
 	): Promise<Post>;
+	async quote(
+		payload: PostPayload,
+		options?: BotPostOptions,
+	): Promise<Post | { uri: string; cid: string }>;
 	async quote(
 		payload: PostPayload,
 		options?: BotPostOptions,

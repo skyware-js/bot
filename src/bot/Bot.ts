@@ -134,6 +134,9 @@ export class Bot extends EventEmitter {
 			app: wrapApiWithLimiter(this.agent.api.app, this.limiter),
 			// @ts-expect-error — Hacky way to rate limit API methods
 			com: wrapApiWithLimiter(this.agent.api.com, this.limiter),
+			xrpc: this.agent.api.xrpc,
+			_baseClient: this.agent.api._baseClient,
+			setHeader: this.agent.api.setHeader.bind(this.agent.api),
 		};
 	}
 

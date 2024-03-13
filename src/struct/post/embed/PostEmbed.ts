@@ -1,7 +1,7 @@
-import type { ExternalEmbed } from "./ExternalEmbed";
-import type { ImagesEmbed } from "./ImagesEmbed";
-import type { RecordEmbed } from "./RecordEmbed";
-import type { RecordWithMediaEmbed } from "./RecordWithMediaEmbed";
+import type { ExternalEmbed } from "./ExternalEmbed.js";
+import type { ImagesEmbed } from "./ImagesEmbed.js";
+import type { RecordEmbed } from "./RecordEmbed.js";
+import type { RecordWithMediaEmbed } from "./RecordWithMediaEmbed.js";
 
 export class PostEmbed {
 	isImages(): this is ImagesEmbed {

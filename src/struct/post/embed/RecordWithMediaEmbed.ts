@@ -5,11 +5,11 @@ import {
 	type AppBskyEmbedRecordWithMedia,
 	AppBskyFeedPost,
 } from "@atproto/api";
-import type { Bot } from "../../../bot/Bot";
-import { Post } from "../Post";
-import { ExternalEmbed } from "./ExternalEmbed";
-import { ImagesEmbed } from "./ImagesEmbed";
-import { PostEmbed } from "./PostEmbed";
+import type { Bot } from "../../../bot/Bot.js";
+import { Post } from "../Post.js";
+import { ExternalEmbed } from "./ExternalEmbed.js";
+import { ImagesEmbed } from "./ImagesEmbed.js";
+import { PostEmbed } from "./PostEmbed.js";
 
 /**
  * A post embed that links to a record in addition to either images or external content

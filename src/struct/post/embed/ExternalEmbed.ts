@@ -1,5 +1,5 @@
 import type { AppBskyEmbedExternal } from "@atproto/api";
-import { PostEmbed } from "./PostEmbed";
+import { PostEmbed } from "./PostEmbed.js";
 
 interface ExternalEmbedData {
 	uri: string;

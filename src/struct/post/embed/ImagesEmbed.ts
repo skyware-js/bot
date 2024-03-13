@@ -1,6 +1,6 @@
 import type { AppBskyEmbedImages } from "@atproto/api";
-import { EmbedImage } from "./EmbedImage";
-import { PostEmbed } from "./PostEmbed";
+import { EmbedImage } from "./EmbedImage.js";
+import { PostEmbed } from "./PostEmbed.js";
 
 /**
  * A post embed that contains 1 to 4 images

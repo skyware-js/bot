@@ -4,12 +4,12 @@ import {
 	type AppBskyRichtextFacet,
 	type ComAtprotoLabelDefs,
 } from "@atproto/api";
-import type { Bot, BotPostOptions } from "../../bot/Bot";
-import { Profile } from "../Profile";
-import type { PostEmbed } from "./embed/PostEmbed";
-import { isEmbedMainRecord, isEmbedView, postEmbedFromView } from "./embed/util";
-import type { PostPayload } from "./PostPayload";
-import { Threadgate } from "./Threadgate";
+import type { Bot, BotPostOptions } from "../../bot/Bot.js";
+import { Profile } from "../Profile.js";
+import type { PostEmbed } from "./embed/PostEmbed.js";
+import { isEmbedMainRecord, isEmbedView, postEmbedFromView } from "./embed/util.js";
+import type { PostPayload } from "./PostPayload.js";
+import { Threadgate } from "./Threadgate.js";
 
 /**
  * Data that can be used to construct a Post class

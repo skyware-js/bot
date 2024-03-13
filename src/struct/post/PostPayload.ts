@@ -1,7 +1,7 @@
 import type { AppBskyFeedPost, AppBskyRichtextFacet } from "@atproto/api";
-import type { FeedGenerator } from "../FeedGenerator";
-import type { List } from "../List";
-import type { Post } from "./Post";
+import type { FeedGenerator } from "../FeedGenerator.js";
+import type { List } from "../List.js";
+import type { Post } from "./Post.js";
 
 /**
  * Data that can be used to create a post

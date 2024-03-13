@@ -2,13 +2,18 @@
 	"name": "@skyware/bot",
 	"description": "A framework for building bots on Bluesky.",
 	"type": "module",
-	"version": "0.1.3",
+	"version": "0.1.4",
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
 	"license": "MPL-2.0",
 	"repository": "https://github.com/skyware-js/bot",
 	"homepage": "https://github.com/skyware-js",
-	"keywords": ["bluesky", "bot", "atproto", "skyware"],
+	"keywords": [
+		"bluesky",
+		"bot",
+		"atproto",
+		"skyware"
+	],
 	"dependencies": {
 		"@atproto/api": "^0.6.20",
 		"limiter": "^2.1.0",
@@ -20,11 +25,14 @@
 		"@typescript-eslint/parser": "^6.7.4",
 		"dprint": "^0.41.0",
 		"eslint": "^8.50.0",
+		"eslint-plugin-import": "^2.29.1",
 		"multiformats": "^13.1.0",
 		"typescript": "^5.2.2"
 	},
 	"optionalDependencies": {
 		"@skyware/firehose": "^0.1.2"
 	},
-	"files": ["dist"]
+	"files": [
+		"dist"
+	]
 }

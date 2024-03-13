@@ -4,12 +4,12 @@ import {
 	AppBskyEmbedRecord,
 	AppBskyEmbedRecordWithMedia,
 } from "@atproto/api";
-import type { Bot } from "../../../bot/Bot";
-import { ExternalEmbed } from "./ExternalEmbed";
-import { ImagesEmbed } from "./ImagesEmbed";
-import type { PostEmbed } from "./PostEmbed";
-import { RecordEmbed } from "./RecordEmbed";
-import { RecordWithMediaEmbed } from "./RecordWithMediaEmbed";
+import type { Bot } from "../../../bot/Bot.js";
+import { ExternalEmbed } from "./ExternalEmbed.js";
+import { ImagesEmbed } from "./ImagesEmbed.js";
+import type { PostEmbed } from "./PostEmbed.js";
+import { RecordEmbed } from "./RecordEmbed.js";
+import { RecordWithMediaEmbed } from "./RecordWithMediaEmbed.js";
 
 /**
  * Constructs the appropriate embed type from an embed view and record

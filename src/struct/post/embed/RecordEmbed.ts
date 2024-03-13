@@ -4,11 +4,11 @@ import {
 	AppBskyFeedPost,
 	AppBskyGraphDefs,
 } from "@atproto/api";
-import type { Bot } from "../../../bot/Bot";
-import { FeedGenerator } from "../../FeedGenerator";
-import { List } from "../../List";
-import { Post } from "../Post";
-import { PostEmbed } from "./PostEmbed";
+import type { Bot } from "../../../bot/Bot.js";
+import { FeedGenerator } from "../../FeedGenerator.js";
+import { List } from "../../List.js";
+import { Post } from "../Post.js";
+import { PostEmbed } from "./PostEmbed.js";
 
 /**
  * A post embed that links to a post, list, or feed generator record

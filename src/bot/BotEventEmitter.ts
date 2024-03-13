@@ -10,9 +10,9 @@ import {
 } from "@atproto/api";
 import type { Firehose, FirehoseOptions } from "@skyware/firehose";
 import { EventEmitter as BaseEventEmitter } from "node:events";
-import type { Post } from "../struct/post/Post";
-import { Profile } from "../struct/Profile";
-import type { Bot } from "./Bot";
+import type { Post } from "../struct/post/Post.js";
+import { Profile } from "../struct/Profile.js";
+import type { Bot } from "./Bot.js";
 
 export const EventStrategy = {
 	/**

@@ -1,6 +1,6 @@
 {
-	"extends": ["plugin:@typescript-eslint/strict-type-checked"],
-	"plugins": ["@typescript-eslint"],
+	"extends": ["plugin:@typescript-eslint/strict-type-checked", "plugin:import/recommended"],
+	"plugins": ["@typescript-eslint", "import"],
 	"parser": "@typescript-eslint/parser",
 	"parserOptions": {
 		"project": "./tsconfig.json"
@@ -11,7 +11,9 @@
 		"@typescript-eslint/no-non-null-assertion": "off",
 		"@typescript-eslint/no-unnecessary-condition": "off",
 		"@typescript-eslint/unified-signatures": "off",
-		"@typescript-eslint/no-explicit-any": "off"
+		"@typescript-eslint/no-explicit-any": "off",
+		"import/no-unresolved": "off",
+		"import/extensions": ["error", "ignorePackages"]
 	},
 	"root": true
 }

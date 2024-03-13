@@ -4,9 +4,9 @@ import type {
 	BotGetUserLikesOptions,
 	BotGetUserListsOptions,
 	BotGetUserPostsOptions,
-} from "../bot/Bot";
-import type { List } from "./List";
-import type { Post } from "./post/Post";
+} from "../bot/Bot.js";
+import type { List } from "./List.js";
+import type { Post } from "./post/Post.js";
 
 export interface ProfileData {
 	did: string;

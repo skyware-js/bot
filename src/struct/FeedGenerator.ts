@@ -1,7 +1,7 @@
 import type { AppBskyFeedDefs, AppBskyRichtextFacet } from "@atproto/api";
-import type { Bot } from "../bot/Bot";
-import { Post } from "./post/Post";
-import { Profile } from "./Profile";
+import type { Bot } from "../bot/Bot.js";
+import { Post } from "./post/Post.js";
+import { Profile } from "./Profile.js";
 
 export interface FeedGeneratorData {
 	displayName: string;

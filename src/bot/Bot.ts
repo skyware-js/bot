@@ -18,14 +18,14 @@ import {
 import { RateLimiter } from "limiter";
 import { EventEmitter } from "node:events";
 import type QuickLRU from "quick-lru";
-import { FeedGenerator } from "../struct/FeedGenerator";
-import { List } from "../struct/List";
-import { Post } from "../struct/post/Post";
-import type { PostPayload } from "../struct/post/PostPayload";
-import { Profile } from "../struct/Profile";
-import { typedEntries } from "../util";
-import { BotEventEmitter, type BotEventEmitterOptions, EventStrategy } from "./BotEventEmitter";
-import { type CacheOptions, makeCache } from "./cache";
+import { FeedGenerator } from "../struct/FeedGenerator.js";
+import { List } from "../struct/List.js";
+import { Post } from "../struct/post/Post.js";
+import type { PostPayload } from "../struct/post/PostPayload.js";
+import { Profile } from "../struct/Profile.js";
+import { typedEntries } from "../util.js";
+import { BotEventEmitter, type BotEventEmitterOptions, EventStrategy } from "./BotEventEmitter.js";
+import { type CacheOptions, makeCache } from "./cache.js";
 
 const NO_SESSION_ERROR = "Active session not found. Make sure to call the login method first.";
 

@@ -144,50 +144,22 @@ export class Bot extends EventEmitter {
 	 * Log in with an identifier and password
 	 * @param identifier The bot account's email, handle, or DID
 	 * @param password The bot account's password
+	 * @returns Session data
 	 */
 	async login(
 		{ identifier, password }: AtpAgentLoginOpts,
-	): Promise<ComAtprotoServerCreateSession.OutputSchema>;
-	/**
-	 * Log in with an existing session
-	 * @param session Must have a valid refreshJwt and accessJwt
-	 */
-	async login(session: AtpSessionData): Promise<ComAtprotoServerGetSession.OutputSchema>;
-	async login(
-		options: AtpAgentLoginOpts | AtpSessionData,
-	): Promise<
-		ComAtprotoServerGetSession.OutputSchema | ComAtprotoServerCreateSession.OutputSchema
-	> {
-		let response;
+	): Promise<ComAtprotoServerCreateSession.OutputSchema> {
+		if (identifier[0] === "@") identifier = identifier.slice(1);
 
-		if ("accessJwt" in options && "refreshJwt" in options) {
-			// Try resuming if session data is provided
-			const resumeSessionResponse = await this.agent.resumeSession(options);
-			if (!resumeSessionResponse.success) {
-				throw new Error(
-					"Provided session data is invalid, try logging in with identifier & password instead.",
-				);
-			}
-
-			response = resumeSessionResponse.data;
-		} else if ("identifier" in options && "password" in options) {
-			// Try logging in with identifier & password
-			if (options.identifier[0] === "@") {
-				options.identifier = options.identifier.slice(1);
-			}
-
-			const loginResponse = await this.agent.login(options);
-			if (!loginResponse.success) {
-				throw new Error("Failed to log in — double check your credentials and try again.");
-			}
-
-			response = loginResponse.data;
+		const loginResponse = await this.agent.login({ identifier, password });
+		if (!loginResponse.success) {
+			throw new Error("Failed to log in — double check your credentials and try again.");
 		}
 
+		const response = loginResponse.data;
+
 		if (!response) {
-			throw new Error(
-				"Invalid login options. You must provide either session data or an identifier & password.",
-			);
+			throw new Error("Invalid login options. You must provide an identifier & password.");
 		}
 
 		this.profile = await this.getProfile(response.did).catch((e) => {
@@ -195,6 +167,20 @@ export class Bot extends EventEmitter {
 		});
 
 		return response;
+	}
+
+	/**
+	 * Resume an existing session
+	 * @param session Session data
+	 * @returns Profile data
+	 */
+	async resumeSession(session: AtpSessionData): Promise<ComAtprotoServerGetSession.OutputSchema> {
+		const response = await this.agent.resumeSession(session);
+		if (!response.success || !response.data) {
+			throw new Error("Failed to resume session\n" + JSON.stringify(response.data));
+		}
+		this.profile = await this.getProfile(response.data.did);
+		return response.data;
 	}
 
 	/**

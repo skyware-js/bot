@@ -2,7 +2,7 @@
 	"name": "@skyware/bot",
 	"description": "A framework for building bots on Bluesky.",
 	"type": "module",
-	"version": "0.1.4",
+	"version": "0.1.5",
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
 	"license": "MPL-2.0",
@@ -14,6 +14,9 @@
 		"atproto",
 		"skyware"
 	],
+	"scripts": {
+		"build": "bun build src/index.ts --outdir=dist --target=node && tsc -p tsconfig.build.json"
+	},
 	"dependencies": {
 		"@atproto/api": "^0.10.5",
 		"limiter": "2.0.1",
@@ -23,6 +26,8 @@
 		"@types/node": "^20.11.26",
 		"@typescript-eslint/eslint-plugin": "^6.21.0",
 		"@typescript-eslint/parser": "^6.21.0",
+		"bun": "^1.0.30",
+		"bun-plugin-dts": "^0.2.1",
 		"dprint": "^0.41.0",
 		"eslint": "^8.57.0",
 		"eslint-plugin-import": "^2.29.1",

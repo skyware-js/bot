@@ -153,11 +153,11 @@ export class List {
 
 	/**
 	 * Get a feed of recent posts from accounts on the list
-	 * @param limit The maximum number of posts to fetch (1-100, default 50)
+	 * @param limit The maximum number of posts to fetch (1-100, default 100)
 	 * @param cursor The cursor for pagination
 	 */
 	async getFeed(
-		{ limit = 50, cursor = "" } = {},
+		{ limit = 100, cursor = "" } = {},
 	): Promise<{ cursor: string | undefined; posts: Array<Post> }> {
 		const response = await this.bot.api.app.bsky.feed.getListFeed({
 			list: this.uri,

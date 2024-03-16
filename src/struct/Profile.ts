@@ -177,36 +177,36 @@ export class Profile {
 	}
 
 	/**
-	 * Fetch the user's posts (up to 100 at a time, default 50)
+	 * Fetch the user's posts (up to 100 at a time, default 100)
 	 * @param options Optional configuration
 	 * @returns The user's posts and a cursor for pagination
 	 */
 	async getPosts(
-		options?: BotGetUserPostsOptions,
+		options: BotGetUserPostsOptions = {},
 	): Promise<{ cursor: string | undefined; posts: Array<Post> }> {
-		return this.bot.getUserPosts(this.did, options ?? {});
+		return this.bot.getUserPosts(this.did, { limit: 100, ...options });
 	}
 
 	/**
-	 * Fetch the user's liked posts (up to 100 at a time, default 50)
+	 * Fetch the user's liked posts (up to 100 at a time, default 100)
 	 * @param options Optional configuration
 	 * @returns The user's liked posts and a cursor for pagination
 	 */
 	async getLikedPosts(
-		options?: BotGetUserLikesOptions,
+		options: BotGetUserLikesOptions = {},
 	): Promise<{ cursor: string | undefined; posts: Array<Post> }> {
-		return this.bot.getUserLikes(this.did, options ?? {});
+		return this.bot.getUserLikes(this.did, { limit: 100, ...options });
 	}
 
 	/**
-	 * Fetch the user's lists (up to 100 at a time, default 50)
+	 * Fetch the user's lists (up to 100 at a time, default 100)
 	 * @param options Optional configuration
 	 * @returns The user's lists and a cursor for pagination
 	 */
 	async getLists(
-		options: BotGetUserListsOptions,
+		options: BotGetUserListsOptions = {},
 	): Promise<{ cursor: string | undefined; lists: Array<List> }> {
-		return this.bot.getUserLists(this.did, options);
+		return this.bot.getUserLists(this.did, { limit: 100, ...options });
 	}
 
 	/**

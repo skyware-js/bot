@@ -231,7 +231,7 @@ export class Bot extends EventEmitter {
 	}
 
 	/**
-	 * Fetch up to 100 posts by a user's DID
+	 * Fetch up to 100 (default 100) posts by a user's DID
 	 * @param did The user's DID
 	 * @param options Optional configuration
 	 * @returns The user's posts and, if there are more posts to fetch, a cursor
@@ -259,7 +259,7 @@ export class Bot extends EventEmitter {
 	}
 
 	/**
-	 * Fetch up to 100 posts liked by a user
+	 * Fetch up to 100 (default 100) posts liked by a user
 	 * @param did The user's DID
 	 * @param options Optional configuration
 	 */
@@ -322,7 +322,7 @@ export class Bot extends EventEmitter {
 	}
 
 	/**
-	 * Fetch all (up to 100) lists created by a user
+	 * Fetch all (up to 100, default 100) lists created by a user
 	 * @param did The user's DID
 	 * @param options Optional configuration
 	 */
@@ -645,10 +645,9 @@ export class Bot extends EventEmitter {
 	): Promise<{ uri: string; cid: string }> {
 		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
 
-		const repost = await this.agent.repost(uri, cid).catch((e) => {
+		return this.agent.repost(uri, cid).catch((e) => {
 			throw new Error(`Failed to repost post ${uri}.`, { cause: e });
 		});
-		return repost;
 	}
 
 	/**
@@ -670,10 +669,9 @@ export class Bot extends EventEmitter {
 	async follow(did: string): Promise<{ uri: string; cid: string }> {
 		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
 
-		const follow = await this.agent.follow(did).catch((e) => {
+		return this.agent.follow(did).catch((e) => {
 			throw new Error(`Failed to follow user ${did}.`, { cause: e });
 		});
-		return follow;
 	}
 
 	/**
@@ -925,7 +923,7 @@ export type GetUserPostsFilter = typeof GetUserPostsFilter[keyof typeof GetUserP
 export interface BotGetUserPostsOptions extends Omit<BaseBotGetMethodOptions, "skipCache"> {
 	/**
 	 * The maximum number of posts to fetch (up to 100, inclusive)
-	 * @default 50
+	 * @default 100
 	 */
 	limit?: number;
 
@@ -947,7 +945,7 @@ export interface BotGetUserPostsOptions extends Omit<BaseBotGetMethodOptions, "s
 export interface BotGetUserLikesOptions extends Omit<BaseBotGetMethodOptions, "skipCache"> {
 	/**
 	 * The maximum number of posts to fetch (up to 100, inclusive)
-	 * @default 50
+	 * @default 100
 	 */
 	limit?: number;
 
@@ -973,7 +971,7 @@ export interface BotGetListOptions extends BaseBotGetMethodOptions {}
 export interface BotGetUserListsOptions extends Omit<BaseBotGetMethodOptions, "skipCache"> {
 	/**
 	 * The maximum number of lists to fetch (up to 100, inclusive)
-	 * @default 50
+	 * @default 100
 	 */
 	limit?: number;
 
@@ -999,7 +997,7 @@ export interface BotGetFeedGeneratorsOptions extends BaseBotGetMethodOptions {}
 export interface BotGetTimelineOptions extends BaseBotGetMethodOptions {
 	/**
 	 * The maximum number of posts to fetch (up to 100, inclusive)
-	 * @default 50
+	 * @default 100
 	 */
 	limit?: number;
 

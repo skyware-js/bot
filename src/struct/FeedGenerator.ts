@@ -96,11 +96,11 @@ export class FeedGenerator {
 
 	/**
 	 * Get a feed of posts from the feed generator
-	 * @param limit The maximum number of posts to return (1-100, default 50)
+	 * @param limit The maximum number of posts to return (1-100, default 100)
 	 * @param cursor The cursor for pagination
 	 */
 	async getPosts(
-		{ limit = 50, cursor = "" } = {},
+		{ limit = 100, cursor = "" } = {},
 	): Promise<{ cursor: string | undefined; posts: Array<Post> }> {
 		const response = await this.bot.api.app.bsky.feed.getFeed({ feed: this.uri, limit, cursor })
 			.catch((e) => {

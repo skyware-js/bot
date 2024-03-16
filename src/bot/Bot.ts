@@ -13,6 +13,7 @@ import {
 	AtUri,
 	BlobRef,
 	BskyAgent,
+	ComAtprotoLabelDefs,
 	type ComAtprotoServerCreateSession,
 	ComAtprotoServerGetSession,
 } from "@atproto/api";
@@ -456,9 +457,9 @@ export class Bot extends EventEmitter {
 		// Create post labels
 		const labels = payload.labels?.length
 			? {
-				$type: "com.atproto.label.defs#selfLabels" as const,
+				$type: "com.atproto.label.defs#selfLabels",
 				values: payload.labels.map((label) => ({ val: label })),
-			}
+			} satisfies ComAtprotoLabelDefs.SelfLabels
 			: undefined;
 
 		if (payload.images?.length && payload.quoted && !(payload.quoted instanceof Post)) {

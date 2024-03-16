@@ -1,4 +1,4 @@
-import type { AppBskyFeedPost, AppBskyRichtextFacet } from "@atproto/api";
+import type { AppBskyFeedPost, AppBskyRichtextFacet, ComAtprotoLabelDefs } from "@atproto/api";
 import type { RichText } from "../../richtext/RichText";
 import type { FeedGenerator } from "../FeedGenerator.js";
 import type { List } from "../List.js";
@@ -76,5 +76,27 @@ export interface ImagePayload {
 	data: Uint8Array;
 }
 
-export const PostSelfLabels = { Suggestive: "suggestive", Nudity: "nudity", Porn: "porn" };
+// Filter out `(string & {})` from LabelValue by distributing with `T extends T` then removing values to which `string` is assignable
+// dprint-ignore
+type LabelValues = ComAtprotoLabelDefs.LabelValue extends infer T extends string
+	? T extends T
+		? string extends T
+			? never
+			: T
+		: never
+	: never;
+type SelfLabelValue = Exclude<
+	LabelValues,
+	| `!${string}` /* imperative labels */
+	| "dmca-violation"
+	| "doxxing" /* wouldn't want to self apply these */
+>;
+
+export const PostSelfLabels = {
+	Nsfl: "nsfl",
+	Gore: "gore",
+	Nudity: "nudity",
+	Sexual: "sexual",
+	Porn: "porn",
+} as const satisfies Record<Capitalize<SelfLabelValue>, SelfLabelValue>;
 export type PostSelfLabels = typeof PostSelfLabels[keyof typeof PostSelfLabels];

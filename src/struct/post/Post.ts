@@ -143,6 +143,21 @@ export class Post {
 		if (children) this.children = children;
 	}
 
+	private async fetchThreadView(): Promise<AppBskyFeedDefs.ThreadViewPost> {
+		const response = await this.bot.agent.getPostThread({ uri: this.uri }).catch((e) => {
+			throw new Error("Failed to fetch post like count", { cause: e });
+		});
+		if (!AppBskyFeedDefs.isThreadViewPost(response.data.thread)) {
+			throw new Error(
+				`Could not fetch post ${this.uri}. `
+					+ AppBskyFeedDefs.isBlockedPost(response.data.thread)
+					? "User is blocked from viewing this post."
+					: "The post could not be found.",
+			);
+		}
+		return response.data.thread;
+	}
+
 	/**
 	 * Fetch the root post of the thread
 	 * @param force Whether to fetch the root post even if it's already cached
@@ -192,12 +207,9 @@ export class Post {
 	 * Fetch the post's current like count
 	 */
 	async getLikeCount(): Promise<number | null> {
-		const response = await this.bot.agent.getPostThread({ uri: this.uri });
-		if (!response.success || !AppBskyFeedDefs.isThreadViewPost(response.data.thread)) {
-			throw new Error("Failed to fetch post like count\n" + JSON.stringify(response.data));
-		}
-		this.setCounts(response.data.thread.post);
-		const { likeCount } = response.data.thread.post;
+		const thread = await this.fetchThreadView();
+		this.setCounts(thread.post);
+		const { likeCount } = thread.post;
 		return likeCount ?? null;
 	}
 
@@ -205,12 +217,9 @@ export class Post {
 	 * Fetch the post's current repost count
 	 */
 	async getRepostCount(): Promise<number | null> {
-		const response = await this.bot.agent.getPostThread({ uri: this.uri });
-		if (!response.success || !AppBskyFeedDefs.isThreadViewPost(response.data.thread)) {
-			throw new Error("Failed to fetch post repost count\n" + JSON.stringify(response.data));
-		}
-		this.setCounts(response.data.thread.post);
-		const { repostCount } = response.data.thread.post;
+		const thread = await this.fetchThreadView();
+		this.setCounts(thread.post);
+		const { repostCount } = thread.post;
 		return repostCount ?? null;
 	}
 
@@ -218,12 +227,9 @@ export class Post {
 	 * Fetch the post's current reply count
 	 */
 	async getReplyCount(): Promise<number | null> {
-		const response = await this.bot.agent.getPostThread({ uri: this.uri });
-		if (!response.success || !AppBskyFeedDefs.isThreadViewPost(response.data.thread)) {
-			throw new Error("Failed to fetch post reply count\n" + JSON.stringify(response.data));
-		}
-		this.setCounts(response.data.thread.post);
-		const { replyCount } = response.data.thread.post;
+		const thread = await this.fetchThreadView();
+		this.setCounts(thread.post);
+		const { replyCount } = thread.post;
 		return replyCount ?? null;
 	}
 
@@ -240,10 +246,9 @@ export class Post {
 			cid: this.cid,
 			limit: 100,
 			cursor: cursor ?? "",
+		}).catch((e) => {
+			throw new Error("Failed to fetch likes.", { cause: e });
 		});
-		if (!response.success) {
-			throw new Error("Failed to fetch likes\n" + JSON.stringify(response.data));
-		}
 		return {
 			cursor: response.data.cursor,
 			likes: response.data.likes.map((like) => Profile.fromView(like.actor, this.bot)),
@@ -252,7 +257,7 @@ export class Post {
 
 	/**
 	 * Fetch a list of users who reposted this post.
-	 * This method returns 100 reposts at a time, alongside a cursor to fetch the next 100.
+	 * This method returns 100 users at a time, alongside a cursor to fetch the next 100.
 	 * @param cursor The cursor to begin fetching from
 	 */
 	async getReposts(
@@ -263,10 +268,9 @@ export class Post {
 			cid: this.cid,
 			limit: 100,
 			cursor: cursor ?? "",
+		}).catch((e) => {
+			throw new Error("Failed to fetch reposts.", { cause: e });
 		});
-		if (!response.success) {
-			throw new Error("Failed to fetch reposts\n" + JSON.stringify(response.data));
-		}
 		return {
 			cursor: response.data.cursor,
 			reposts: response.data.repostedBy.map((actor) => Profile.fromView(actor, this.bot)),
@@ -278,7 +282,7 @@ export class Post {
 	 * @returns The like's AT URI
 	 */
 	async like(): Promise<string> {
-		return this.likeUri = await this.bot.like(this);
+		return this.likeUri = (await this.bot.like(this)).uri;
 	}
 
 	/**
@@ -293,7 +297,7 @@ export class Post {
 	 * @returns The repost's AT URI
 	 */
 	async repost(): Promise<string> {
-		return this.repostUri = await this.bot.repost(this);
+		return this.repostUri = (await this.bot.repost(this)).uri;
 	}
 
 	/**
@@ -370,7 +374,7 @@ export class Post {
 	 * Constructs an instance from a PostView
 	 */
 	static fromView(view: AppBskyFeedDefs.PostView, bot: Bot): Post {
-		if (!AppBskyFeedPost.isRecord(view.record)) throw new Error("Invalid post view record");
+		if ((!AppBskyFeedPost.isRecord(view.record))) throw new Error("Invalid post view record");
 		const post = new Post({
 			text: view.record.text,
 			uri: view.uri,
@@ -407,13 +411,11 @@ export class Post {
 			throw new Error("Invalid post view record");
 		}
 
-		const parent = view.parent && AppBskyFeedDefs.isThreadViewPost(view.parent)
+		const parent = AppBskyFeedDefs.isThreadViewPost(view.parent)
 			? Post.fromThreadView(view.parent, bot)
 			: undefined;
 		const children = view.replies?.map((reply) =>
-			reply && AppBskyFeedDefs.isThreadViewPost(reply)
-				? Post.fromThreadView(reply, bot)
-				: undefined
+			AppBskyFeedDefs.isThreadViewPost(reply) ? Post.fromThreadView(reply, bot) : undefined
 		)?.filter((reply): reply is Post => reply !== undefined);
 
 		return new Post({ ...Post.fromView(view.post, bot), parent, children }, bot);

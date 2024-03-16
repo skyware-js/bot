@@ -18,7 +18,7 @@
 		"build": "bun build src/index.ts --outdir=dist --target=node && tsc -p tsconfig.build.json"
 	},
 	"dependencies": {
-		"@atproto/api": "^0.10.5",
+		"@atproto/api": "^0.11.1",
 		"limiter": "2.0.1",
 		"quick-lru": "^7.0.0"
 	},

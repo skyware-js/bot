@@ -1,4 +1,5 @@
 import type { AppBskyFeedPost, AppBskyRichtextFacet } from "@atproto/api";
+import type { RichText } from "../../richtext/RichText";
 import type { FeedGenerator } from "../FeedGenerator.js";
 import type { List } from "../List.js";
 import type { Post } from "./Post.js";
@@ -7,13 +8,13 @@ import type { Post } from "./Post.js";
  * Data that can be used to create a post
  */
 export interface PostPayload {
-	/** The post text */
-	text: string;
+	/** The post text. Can be a string or a RichText instance containing facets. */
+	text: string | RichText;
 
 	/**
 	 * A facet represents a range within the post's text that has special meaning
-	 * (e.g. mentions, links, tags)
-	 * @see https://www.docs.bsky.app/docs/advanced-guides/post-richtext#rich-text-facets
+	 * (e.g. mentions, links, tags). Prefer to use the {@link RichText} class to create
+	 * posts with facets.
 	 */
 	facets?: Array<AppBskyRichtextFacet.Main> | undefined;
 

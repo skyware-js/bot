@@ -1,4 +1,4 @@
-import { AppBskyGraphDefs, type AppBskyRichtextFacet } from "@atproto/api";
+import { AppBskyActorDefs, type AppBskyGraphDefs, type AppBskyRichtextFacet } from "@atproto/api";
 import type { Bot } from "../bot/Bot.js";
 import { Post } from "./post/Post.js";
 import { Profile } from "./Profile.js";
@@ -114,16 +114,18 @@ export class List {
 	 * Mute all accounts on the list
 	 */
 	async mute(): Promise<void> {
-		const response = await this.bot.api.app.bsky.graph.muteActorList({ list: this.uri });
-		if (!response.success) throw new Error("Failed to mute list " + this.uri);
+		await this.bot.agent.muteModList(this.uri).catch((e) => {
+			throw new Error(`Failed to mute list ${this.uri}`, { cause: e });
+		});
 	}
 
 	/**
 	 * Unmute all accounts on the list
 	 */
 	async unmute(): Promise<void> {
-		const response = await this.bot.api.app.bsky.graph.unmuteActorList({ list: this.uri });
-		if (!response.success) throw new Error("Failed to unmute list " + this.uri);
+		await this.bot.agent.unmuteModList(this.uri).catch((e) => {
+			throw new Error(`Failed to unmute list ${this.uri}`, { cause: e });
+		});
 	}
 
 	/**
@@ -131,13 +133,11 @@ export class List {
 	 * @returns The AT URI of the list block record
 	 */
 	async block(): Promise<string> {
-		const { uri } = await this.bot.api.app.bsky.graph.block.create({
-			repo: this.bot.profile.did,
-		}, { subject: this.uri, createdAt: new Date().toISOString() }).catch((e) => {
-			throw new Error("Failed to block list " + this.uri + "\n" + e);
+		const block = await this.bot.agent.blockModList(this.uri).catch((e) => {
+			throw new Error("Failed to block list " + this.uri, { cause: e });
 		});
-		this.blockUri = uri;
-		return uri;
+		this.blockUri = block.uri;
+		return this.blockUri;
 	}
 
 	/**
@@ -145,8 +145,8 @@ export class List {
 	 */
 	async unblock(): Promise<void> {
 		if (this.blockUri) {
-			await this.bot.api.app.bsky.graph.block.delete({ uri: this.blockUri }).catch((e) => {
-				throw new Error("Failed to unblock list " + this.uri + "\n" + e);
+			await this.bot.agent.unblockModList(this.uri).catch((e) => {
+				throw new Error("Failed to unblock list " + this.uri, { cause: e });
 			});
 		}
 	}
@@ -163,8 +163,9 @@ export class List {
 			list: this.uri,
 			limit,
 			cursor,
+		}).catch((e) => {
+			throw new Error("Failed to get feed for list " + this.uri, { cause: e });
 		});
-		if (!response.success) throw new Error("Failed to get feed for list " + this.uri);
 		return {
 			cursor: response.data.cursor,
 			posts: response.data.feed.map(({ post }) => Post.fromView(post, this.bot)),
@@ -182,7 +183,7 @@ export class List {
 	): List {
 		return new List({
 			...view,
-			creator: AppBskyGraphDefs.isListView(view)
+			creator: AppBskyActorDefs.isProfileView(view.creator)
 				? Profile.fromView(view.creator, bot)
 				: undefined,
 			blockUri: view.viewer?.blocked,

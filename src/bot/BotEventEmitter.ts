@@ -91,72 +91,80 @@ export class BotEventEmitter extends BaseEventEmitter {
 				this.firehose.on("websocketError", (error) => this.emit("error", error));
 				this.firehose.on("close", () => this.firehose?.start());
 
-				this.firehose.on("commit", async (message) => {
+				this.firehose.on("commit", (message) => {
 					if (!bot?.agent?.hasSession || !bot.profile) return;
-					for (const op of message.ops) {
-						if (op.action !== "create") continue;
-						const uri = `at://${message.repo}/${op.path}`;
-						if (AppBskyFeedPost.isRecord(op.record)) {
-							let post: Post;
-							// Direct reply
-							if (
-								op.record.reply?.parent.uri.includes(this.bot.profile.did)
-								&& this.listenerCount("reply") >= 1
-							) {
-								post ??= await this.bot.getPost(uri);
-								this.emit("reply", post);
-							}
-							// Quote post
-							if (
-								((AppBskyEmbedRecord.isMain(op.record.embed)
-									&& op.record.embed.record.uri.includes(this.bot.profile.did))
-									|| (AppBskyEmbedRecordWithMedia.isMain(op.record.embed)
-										&& op.record.embed.record.record.uri.includes(
-											this.bot.profile.did,
-										))) && this.listenerCount("quote") >= 1
-							) {
-								post ??= await this.bot.getPost(uri);
-								this.emit("quote", post);
-							}
-							// Mention
-							if (
-								op.record.facets?.some((facet) =>
-									facet.features.some((feature) =>
-										feature.did === this.bot.profile.did
-									)
-								) && this.listenerCount("mention") >= 1
-							) {
-								post ??= await this.bot.getPost(uri);
-								this.emit("mention", post);
-							}
-						} else if (AppBskyFeedRepost.isRecord(op.record)) {
-							if (
-								op.record.subject.uri.includes(this.bot.profile.did)
-								&& this.listenerCount("repost") >= 1
-							) {
-								const post = await this.bot.getPost(op.record.subject.uri);
-								const user = await this.bot.getProfile(message.repo);
-								this.emit("repost", { post, user, uri });
-							}
-						} else if (AppBskyFeedLike.isRecord(op.record)) {
-							if (
-								op.record.subject.uri.includes(this.bot.profile.did)
-								&& this.listenerCount("like") >= 1
-							) {
-								const post = await this.bot.getPost(op.record.subject.uri);
-								const user = await this.bot.getProfile(message.repo);
-								this.emit("like", { post, user, uri });
-							}
-						} else if (AppBskyGraphFollow.isRecord(op.record)) {
-							if (
-								op.record.subject === this.bot.profile.did
-								&& this.listenerCount("follow") >= 1
-							) {
-								const user = await this.bot.getProfile(message.repo);
-								this.emit("follow", { user, uri });
+					(async () => {
+						for (const op of message.ops) {
+							if (op.action !== "create") continue;
+							const uri = `at://${message.repo}/${op.path}`;
+							if (AppBskyFeedPost.isRecord(op.record)) {
+								let post: Post;
+								// Direct reply
+								if (
+									op.record.reply?.parent.uri.includes(this.bot.profile.did)
+									&& this.listenerCount("reply") >= 1
+								) {
+									post ??= await this.bot.getPost(uri);
+									this.emit("reply", post);
+								}
+								// Quote post
+								const isQuote = AppBskyEmbedRecord.isMain(op.record.embed)
+									&& op.record.embed.record.uri.includes(this.bot.profile.did);
+								const isQuoteWithMedia =
+									AppBskyEmbedRecordWithMedia.isMain(op.record.embed)
+									&& op.record.embed.record.record.uri.includes(
+										this.bot.profile.did,
+									);
+								if (
+									(isQuote || isQuoteWithMedia)
+									&& this.listenerCount("quote") >= 1
+								) {
+									post ??= await this.bot.getPost(uri);
+									this.emit("quote", post);
+								}
+								// Mention
+								if (
+									op.record.facets?.some((facet) =>
+										facet.features.some((feature) =>
+											feature.did === this.bot.profile.did
+										)
+									) && this.listenerCount("mention") >= 1
+								) {
+									post ??= await this.bot.getPost(uri);
+									this.emit("mention", post);
+								}
+							} else if (AppBskyFeedRepost.isRecord(op.record)) {
+								// Repost
+								if (
+									op.record.subject.uri.includes(this.bot.profile.did)
+									&& this.listenerCount("repost") >= 1
+								) {
+									const post = await this.bot.getPost(op.record.subject.uri);
+									const user = await this.bot.getProfile(message.repo);
+									this.emit("repost", { post, user, uri });
+								}
+							} else if (AppBskyFeedLike.isRecord(op.record)) {
+								// Like
+								if (
+									op.record.subject.uri.includes(this.bot.profile.did)
+									&& this.listenerCount("like") >= 1
+								) {
+									const post = await this.bot.getPost(op.record.subject.uri);
+									const user = await this.bot.getProfile(message.repo);
+									this.emit("like", { post, user, uri });
+								}
+							} else if (AppBskyGraphFollow.isRecord(op.record)) {
+								// Follow
+								if (
+									op.record.subject === this.bot.profile.did
+									&& this.listenerCount("follow") >= 1
+								) {
+									const user = await this.bot.getProfile(message.repo);
+									this.emit("follow", { user, uri });
+								}
 							}
 						}
-					}
+					})().catch((error) => this.emit("error", error));
 				});
 
 				this.firehose.start();
@@ -187,8 +195,16 @@ export class BotEventEmitter extends BaseEventEmitter {
 
 	/** Poll the notifications endpoint */
 	async poll() {
-		const response = await this.bot.agent.api.app.bsky.notification.listNotifications();
-		if (!response.success) this.emit("error", response);
+		const response = await this.bot.agent.api.app.bsky.notification.listNotifications().catch(
+			(error) => {
+				this.emit("error", error);
+				return { success: false } as const;
+			},
+		);
+		if (!response.success) {
+			this.emit("error", response);
+			return;
+		}
 
 		const { notifications } = response.data;
 

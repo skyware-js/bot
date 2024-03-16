@@ -27,6 +27,9 @@ export interface ProfileData {
 	isBlockedBy?: boolean | undefined;
 }
 
+/**
+ * A Bluesky user profile
+ */
 export class Profile {
 	/** The user's DID */
 	did: string;
@@ -134,7 +137,7 @@ export class Profile {
 	 * @returns The AT URI of the follow relationship
 	 */
 	async follow(): Promise<string> {
-		return this.followUri = await this.bot.follow(this.did);
+		return this.followUri = (await this.bot.follow(this.did)).uri;
 	}
 
 	/**
@@ -163,7 +166,7 @@ export class Profile {
 	 * @returns The AT URI of the block relationship
 	 */
 	async block(): Promise<string> {
-		return this.blockUri = await this.bot.block(this.did);
+		return this.blockUri = (await this.bot.block(this.did)).uri;
 	}
 
 	/**

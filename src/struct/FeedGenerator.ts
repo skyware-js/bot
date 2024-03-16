@@ -17,6 +17,9 @@ export interface FeedGeneratorData {
 	indexedAt: Date;
 }
 
+/**
+ * A feed generator
+ */
 export class FeedGenerator {
 	/** The feed generator's name */
 	displayName: string;
@@ -76,7 +79,7 @@ export class FeedGenerator {
 	 * @returns The like record's AT URI
 	 */
 	async like() {
-		return this.likeUri = await this.bot.like({ uri: this.uri, cid: this.cid });
+		return this.likeUri = (await this.bot.like({ uri: this.uri, cid: this.cid })).uri;
 	}
 
 	/**
@@ -99,12 +102,10 @@ export class FeedGenerator {
 	async getPosts(
 		{ limit = 50, cursor = "" } = {},
 	): Promise<{ cursor: string | undefined; posts: Array<Post> }> {
-		const response = await this.bot.api.app.bsky.feed.getFeed({
-			feed: this.uri,
-			limit,
-			cursor,
-		});
-		if (!response.success) throw new Error("Failed to get feed for generator " + this.uri);
+		const response = await this.bot.api.app.bsky.feed.getFeed({ feed: this.uri, limit, cursor })
+			.catch((e) => {
+				throw new Error("Failed to get feed for generator " + this.uri, { cause: e });
+			});
 		return {
 			cursor: response.data.cursor,
 			posts: response.data.feed.map(({ post }) => Post.fromView(post, this.bot)),

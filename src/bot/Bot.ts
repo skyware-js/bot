@@ -6,30 +6,29 @@ import {
 	AppBskyFeedDefs,
 	AppBskyFeedPost,
 	AppBskyFeedThreadgate,
+	AppBskyRichtextFacet,
 	type AtpAgentLoginOpts,
 	type AtpServiceClient,
 	type AtpSessionData,
 	AtUri,
+	BlobRef,
 	BskyAgent,
 	type ComAtprotoServerCreateSession,
-	type ComAtprotoServerGetSession,
-	RichText,
+	ComAtprotoServerGetSession,
 } from "@atproto/api";
 import { RateLimiter } from "limiter";
 import { EventEmitter } from "node:events";
 import type QuickLRU from "quick-lru";
+import { RichText } from "../richtext/RichText.js";
 import { FeedGenerator } from "../struct/FeedGenerator.js";
 import { List } from "../struct/List.js";
 import { Post } from "../struct/post/Post.js";
 import type { PostPayload } from "../struct/post/PostPayload.js";
 import { Profile } from "../struct/Profile.js";
-import { typedEntries } from "../util.js";
 import { BotEventEmitter, type BotEventEmitterOptions, EventStrategy } from "./BotEventEmitter.js";
 import { type CacheOptions, makeCache } from "./cache.js";
 
 const NO_SESSION_ERROR = "Active session not found. Make sure to call the login method first.";
-
-const NOT_LIMITED_METHODS = ["createSession", "getSession"];
 
 /**
  * Options for the Bot constructor
@@ -90,17 +89,17 @@ export class Bot extends EventEmitter {
 
 	constructor(
 		{
+			service = "https://bsky.social",
 			langs = ["en"],
 			emitEvents = true,
 			rateLimitOptions,
 			cacheOptions,
 			eventEmitterOptions = { strategy: EventStrategy.Polling },
-			...options
 		}: BotOptions = {},
 	) {
 		super();
 
-		this.agent = new BskyAgent({ service: "https://bsky.social", ...options });
+		this.agent = new BskyAgent({ service });
 
 		this.langs = langs;
 
@@ -129,15 +128,7 @@ export class Bot extends EventEmitter {
 			this.eventEmitter.on("follow", (event) => this.emit("follow", event));
 		}
 
-		this.agent.api = this.api = {
-			// @ts-expect-error — Hacky way to rate limit API methods
-			app: wrapApiWithLimiter(this.agent.api.app, this.limiter),
-			// @ts-expect-error — Hacky way to rate limit API methods
-			com: wrapApiWithLimiter(this.agent.api.com, this.limiter),
-			xrpc: this.agent.api.xrpc,
-			_baseClient: this.agent.api._baseClient,
-			setHeader: this.agent.api.setHeader.bind(this.agent.api),
-		};
+		this.api = this.agent.api = wrapApiWithLimiter(this.agent.api, this.limiter);
 	}
 
 	/**
@@ -151,34 +142,28 @@ export class Bot extends EventEmitter {
 	): Promise<ComAtprotoServerCreateSession.OutputSchema> {
 		if (identifier[0] === "@") identifier = identifier.slice(1);
 
-		const loginResponse = await this.agent.login({ identifier, password });
-		if (!loginResponse.success) {
-			throw new Error("Failed to log in — double check your credentials and try again.");
-		}
+		const response = await this.agent.login({ identifier, password }).catch((e) => {
+			throw new Error("Failed to log in — double check your credentials and try again.", {
+				cause: e,
+			});
+		});
 
-		const response = loginResponse.data;
-
-		if (!response) {
-			throw new Error("Invalid login options. You must provide an identifier & password.");
-		}
-
-		this.profile = await this.getProfile(response.did).catch((e) => {
+		this.profile = await this.getProfile(response.data.did).catch((e) => {
 			throw new Error("Failed to fetch bot profile. Error:\n" + e);
 		});
 
-		return response;
+		return response.data;
 	}
 
 	/**
 	 * Resume an existing session
 	 * @param session Session data
-	 * @returns Profile data
+	 * @returns Updated session data
 	 */
 	async resumeSession(session: AtpSessionData): Promise<ComAtprotoServerGetSession.OutputSchema> {
-		const response = await this.agent.resumeSession(session);
-		if (!response.success || !response.data) {
-			throw new Error("Failed to resume session\n" + JSON.stringify(response.data));
-		}
+		const response = await this.agent.resumeSession(session).catch((e) => {
+			throw new Error("Failed to resume session.", { cause: e });
+		});
 		this.profile = await this.getProfile(response.data.did);
 		return response.data;
 	}
@@ -197,13 +182,15 @@ export class Bot extends EventEmitter {
 			uri,
 			parentHeight: options.parentHeight!,
 			depth: options.depth!,
+		}).catch((e) => {
+			throw new Error(`Failed to fetch post ${uri}`, { cause: e });
 		});
-		if (!postThread.success) {
-			throw new Error("Failed to fetch post\n" + JSON.stringify(postThread.data));
-		}
 
 		if (!AppBskyFeedDefs.isThreadViewPost(postThread.data.thread)) {
-			throw new Error(`Could not find post ${uri}`);
+			if (this.cache.posts.has(uri)) this.cache.posts.delete(uri);
+			throw new Error(
+				`Could not find post ${uri}. The bot may be blocked from viewing it, or the post may have been deleted.`,
+			);
 		}
 
 		const post = Post.fromThreadView(postThread.data.thread, this);
@@ -219,16 +206,18 @@ export class Bot extends EventEmitter {
 	 */
 	async getPosts(uris: Array<string>, options: BotGetPostsOptions = {}): Promise<Array<Post>> {
 		if (!uris.length) return [];
-		if (uris.length > 25) throw new Error("You can only fetch up to 25 posts at a time");
+		if (uris.length > 25) throw new Error("You can only fetch up to 25 posts at a time.");
 
 		if (!options.skipCache && uris.every((uri) => this.cache.posts.has(uri))) {
 			return uris.map((uri) => this.cache.posts.get(uri)!);
 		}
 
-		const postViews = await this.api.app.bsky.feed.getPosts({ uris });
-		if (!postViews.success) {
-			throw new Error("Failed to fetch posts\n" + JSON.stringify(postViews.data));
-		}
+		const postViews = await this.agent.getPosts({ uris }).catch((e) => {
+			throw new Error(
+				"Failed to fetch posts at URIs:\n" + uris.slice(0, 3).join("\n") + "\n...",
+				{ cause: e },
+			);
+		});
 
 		const posts: Array<Post> = [];
 		for (const postView of postViews.data.posts) {
@@ -251,10 +240,13 @@ export class Bot extends EventEmitter {
 		did: string,
 		options: BotGetUserPostsOptions = {},
 	): Promise<{ cursor: string | undefined; posts: Array<Post> }> {
-		const response = await this.api.app.bsky.feed.getAuthorFeed({ actor: did, ...options });
-		if (!response.success) {
-			throw new Error("Failed to fetch user posts\n" + JSON.stringify(response.data));
-		}
+		const response = await this.agent.getAuthorFeed({
+			actor: did,
+			filter: GetUserPostsFilter.PostsWithReplies,
+			...options,
+		}).catch((e) => {
+			throw new Error("Failed to fetch user posts.", { cause: e });
+		});
 
 		const posts: Array<Post> = [];
 		for (const feedViewPost of response.data.feed) {
@@ -275,10 +267,9 @@ export class Bot extends EventEmitter {
 		did: string,
 		options: BotGetUserLikesOptions = {},
 	): Promise<{ cursor: string | undefined; posts: Array<Post> }> {
-		const response = await this.api.app.bsky.feed.getActorLikes({ actor: did, ...options });
-		if (!response.success) {
-			throw new Error("Failed to fetch user likes\n" + JSON.stringify(response.data));
-		}
+		const response = await this.agent.getActorLikes({ actor: did, ...options }).catch((e) => {
+			throw new Error("Failed to fetch user likes.", { cause: e });
+		});
 
 		const posts: Array<Post> = [];
 		for (const feedViewPost of response.data.feed) {
@@ -300,12 +291,9 @@ export class Bot extends EventEmitter {
 			return this.cache.profiles.get(didOrHandle)!;
 		}
 
-		const profileView = await this.api.app.bsky.actor.getProfile({ actor: didOrHandle });
-		if (!profileView.success) {
-			throw new Error(
-				`Failed to fetch profile ${didOrHandle}\n` + JSON.stringify(profileView.data),
-			);
-		}
+		const profileView = await this.agent.getProfile({ actor: didOrHandle }).catch((e) => {
+			throw new Error(`Failed to fetch profile ${didOrHandle}.`, { cause: e });
+		});
 
 		const profile = Profile.fromView(profileView.data, this);
 		if (!options.noCacheResponse) this.cache.profiles.set(didOrHandle, profile);
@@ -322,13 +310,12 @@ export class Bot extends EventEmitter {
 			return this.cache.lists.get(uri)!;
 		}
 
-		const listResponse = await this.api.app.bsky.graph.getList({ list: uri });
-		if (!listResponse.success) {
-			throw new Error("Failed to fetch list\n" + JSON.stringify(listResponse.data));
-		}
+		const response = await this.api.app.bsky.graph.getList({ list: uri }).catch((e) => {
+			throw new Error(`Failed to fetch list ${uri}`, { cause: e });
+		});
 
-		const list = List.fromView(listResponse.data.list, this);
-		list.items = listResponse.data.items.map(({ subject }) => Profile.fromView(subject, this));
+		const list = List.fromView(response.data.list, this);
+		list.items = response.data.items.map(({ subject }) => Profile.fromView(subject, this));
 
 		if (!options.noCacheResponse) this.cache.lists.set(uri, list);
 		return list;
@@ -343,17 +330,17 @@ export class Bot extends EventEmitter {
 		did: string,
 		options: BotGetUserListsOptions,
 	): Promise<{ cursor: string | undefined; lists: Array<List> }> {
-		const response = await this.api.app.bsky.graph.getLists({ actor: did, ...options });
-		if (!response.success) {
-			throw new Error("Failed to fetch user lists\n" + JSON.stringify(response.data));
-		}
+		const response = await this.api.app.bsky.graph.getLists({ actor: did, ...options }).catch(
+			(e) => {
+				throw new Error(`Failed to fetch user lists for ${did}.`, { cause: e });
+			},
+		);
 
-		const lists: Array<List> = [];
-		for (const listView of response.data.lists) {
+		const lists = response.data.lists.map((listView) => {
 			const list = List.fromView(listView, this);
 			this.cache.lists.set(list.uri, list);
-			lists.push(list);
-		}
+			return list;
+		});
 
 		return { cursor: response.data.cursor, lists };
 	}
@@ -371,13 +358,12 @@ export class Bot extends EventEmitter {
 			return this.cache.feeds.get(uri)!;
 		}
 
-		const feedResponse = await this.api.app.bsky.feed.getFeedGenerator({ feed: uri });
-		if (!feedResponse.success) {
-			throw new Error("Failed to fetch feed generator\n" + JSON.stringify(feedResponse.data));
-		}
+		const response = await this.api.app.bsky.feed.getFeedGenerator({ feed: uri }).catch((e) => {
+			throw new Error(`Failed to fetch feed generator ${uri}`, { cause: e });
+		});
 
-		const feed = FeedGenerator.fromView(feedResponse.data.view, this);
-		feed.isOnline = feedResponse.data.isOnline;
+		const feed = FeedGenerator.fromView(response.data.view, this);
+		feed.isOnline = response.data.isOnline;
 		if (!options.noCacheResponse) this.cache.feeds.set(uri, feed);
 		return feed;
 	}
@@ -393,19 +379,21 @@ export class Bot extends EventEmitter {
 	): Promise<Array<FeedGenerator>> {
 		if (!uris.length) return [];
 
-		const feedViews = await this.api.app.bsky.feed.getFeedGenerators({ feeds: uris });
-		if (!feedViews.success) {
-			throw new Error("Failed to fetch feed generators\n" + JSON.stringify(feedViews.data));
-		}
+		const feedViews = await this.api.app.bsky.feed.getFeedGenerators({ feeds: uris }).catch(
+			(e) => {
+				throw new Error(
+					"Failed to fetch feed generators at URIs:\n" + uris.slice(0, 3).join("\n")
+						+ "\n...",
+					{ cause: e },
+				);
+			},
+		);
 
-		const feeds: Array<FeedGenerator> = [];
-		for (const feedView of feedViews.data.feeds) {
+		return feedViews.data.feeds.map((feedView) => {
 			const feed = FeedGenerator.fromView(feedView, this);
 			if (!options.noCacheResponse) this.cache.feeds.set(feed.uri, feed);
-			feeds.push(feed);
-		}
-
-		return feeds;
+			return feed;
+		});
 	}
 
 	/**
@@ -413,19 +401,15 @@ export class Bot extends EventEmitter {
 	 * @param options Optional configuration
 	 */
 	async getTimeline(options: BotGetTimelineOptions = {}): Promise<Array<Post>> {
-		const response = await this.api.app.bsky.feed.getTimeline(options);
-		if (!response.success) {
-			throw new Error("Failed to fetch timeline\n" + JSON.stringify(response.data));
-		}
+		const response = await this.agent.getTimeline(options).catch((e) => {
+			throw new Error("Failed to fetch timeline.", { cause: e });
+		});
 
-		const posts: Array<Post> = [];
-		for (const feedViewPost of response.data.feed) {
+		return response.data.feed.map((feedViewPost) => {
 			const post = Post.fromView(feedViewPost.post, this);
 			if (!options.noCacheResponse) this.cache.posts.set(post.uri, post);
-			posts.push(post);
-		}
-
-		return posts;
+			return post;
+		});
 	}
 
 	/**
@@ -455,23 +439,28 @@ export class Bot extends EventEmitter {
 
 		// Use default langs if none are provided (an explicit empty array will be ignored)
 		payload.langs ??= this.langs;
+		// Use current time if none is provided
 		payload.createdAt ??= new Date();
 
 		// Resolve facets if necessary
-		const richText = new RichText({ text: payload.text, facets: payload.facets ?? [] });
-		if (options.resolveFacets && !payload.facets?.length) {
-			await richText.detectFacets(this.agent);
+		let text: string, facets: Array<AppBskyRichtextFacet.Main> = [];
+		if (payload.text instanceof RichText) {
+			({ text, facets } = payload.text.build());
+		} else if (options.resolveFacets) {
+			text = payload.text;
+			facets = await RichText.detectFacets(text, this);
+		} else {
+			text = payload.text;
 		}
 
 		// Create post labels
 		const labels = payload.labels?.length
 			? {
-				$type: "com.atproto.label.defs#selfLabels",
+				$type: "com.atproto.label.defs#selfLabels" as const,
 				values: payload.labels.map((label) => ({ val: label })),
 			}
 			: undefined;
 
-		// I'm not entirely sure how true this is but it's the case for posts made with the official client, at least
 		if (payload.images?.length && payload.quoted && !(payload.quoted instanceof Post)) {
 			throw new Error("Only a post can be embedded alongside images");
 		}
@@ -484,68 +473,68 @@ export class Bot extends EventEmitter {
 
 				image.alt ??= "";
 
-				const imageResponse = await this.api.com.atproto.repo.uploadBlob(image.data);
-				if (!imageResponse.success) {
-					throw new Error(
-						"Failed to upload image\n" + JSON.stringify(imageResponse.data),
-					);
-				}
+				const imageResponse = await this.agent.uploadBlob(image.data).catch((e) => {
+					throw new Error("Failed to upload image\n" + e);
+				});
 
 				const { blob } = imageResponse.data;
+
+				if (!blob.mimeType.startsWith("image/")) {
+					throw new Error("Uploaded blob is not an image");
+				}
+
 				images.push({ ...image, alt: image.alt, image: blob });
 			}
 		}
 
 		// Construct the post embed
-		let embed:
-			| AppBskyEmbedImages.Main
-			| AppBskyEmbedExternal.Main
-			| AppBskyEmbedRecord.Main
-			| AppBskyEmbedRecordWithMedia.Main
-			| undefined;
+		let embed: AppBskyFeedPost.Record["embed"] | undefined;
 
 		if (payload.quoted) {
-			const record: AppBskyEmbedRecord.Main = {
+			const record = {
 				$type: "app.bsky.embed.record",
 				record: { uri: payload.quoted.uri, cid: payload.quoted.cid },
-			};
+			} satisfies AppBskyEmbedRecord.Main;
 			embed = images.length
 				? {
 					$type: "app.bsky.embed.recordWithMedia",
 					record,
 					media: { $type: "app.bsky.embed.images", images },
-				}
+				} satisfies AppBskyEmbedRecordWithMedia.Main
 				: record;
 		} else if (payload.external) {
+			let thumbBlob: BlobRef | undefined;
+
+			if (payload.external.thumb?.data.byteLength) {
+				const thumbResponse = await this.agent.uploadBlob(payload.external.thumb.data)
+					.catch((e) => {
+						throw new Error("Failed to upload thumbnail\n" + e);
+					});
+				thumbBlob = thumbResponse.data.blob;
+
+				if (!thumbBlob?.mimeType.startsWith("image/")) {
+					throw new Error("Uploaded blob is not an image");
+				}
+			}
+
 			embed = {
 				$type: "app.bsky.embed.external",
 				external: {
 					title: payload.external.title,
 					uri: payload.external.uri,
 					description: payload.external.description,
+					...(thumbBlob ? { thumb: thumbBlob } : {}),
 				},
-			};
-
-			if (payload.external.thumb?.data.byteLength) {
-				const thumbResponse = await this.api.com.atproto.repo.uploadBlob(
-					payload.external.thumb.data,
-				);
-				if (!thumbResponse.success) {
-					throw new Error(
-						"Failed to upload thumbnail\n" + JSON.stringify(thumbResponse.data),
-					);
-				}
-				embed.external.thumb = thumbResponse.data.blob;
-			}
+			} satisfies AppBskyEmbedExternal.Main;
 		} else if (images.length) {
-			embed = { $type: "app.bsky.embed.images", images };
+			embed = { $type: "app.bsky.embed.images", images } satisfies AppBskyEmbedImages.Main;
 		}
 
 		// Put together the post record
 		const postRecord: AppBskyFeedPost.Record = {
 			$type: "app.bsky.feed.post",
-			text: richText.text,
-			facets: richText.facets ?? [],
+			text,
+			facets,
 			createdAt: payload.createdAt.toISOString(),
 			langs: payload.langs,
 		};
@@ -554,18 +543,16 @@ export class Bot extends EventEmitter {
 		if (labels) postRecord.labels = labels;
 		if (payload.tags?.length) postRecord.tags = payload.tags;
 
-		const postResponse = await this.api.com.atproto.repo.createRecord({
-			collection: "app.bsky.feed.post",
-			repo: this.profile.did,
-			record: postRecord,
+		const { uri: postUri, cid: postCid } = await this.createRecord(
+			"app.bsky.feed.post",
+			postRecord,
+		).catch((e) => {
+			throw new Error("Error when uploading post.", { cause: e });
 		});
-		if (!postResponse.success) {
-			throw new Error("Failed to create post\n" + JSON.stringify(postResponse.data));
-		}
 
 		// Threadgate is a separate record
 		if (payload.threadgate) {
-			const { rkey } = new AtUri(postResponse.data.uri);
+			const { rkey } = new AtUri(postUri);
 			const allow: AppBskyFeedThreadgate.Record["allow"] = [];
 
 			if (payload.threadgate.allowFollowing) {
@@ -584,28 +571,25 @@ export class Bot extends EventEmitter {
 			const threadgateRecord: AppBskyFeedThreadgate.Record = {
 				$type: "app.bsky.feed.threadgate",
 				createdAt: new Date().toISOString(),
-				post: postResponse.data.uri,
+				post: postUri,
 				allow,
 			};
 
-			const threadgateResponse = await this.api.com.atproto.repo.createRecord({
-				collection: "app.bsky.feed.threadgate",
-				repo: this.profile.did,
-				rkey, // threadgate rkey must match post rkey
-				record: threadgateRecord,
-			});
-			if (!threadgateResponse.success) {
-				throw new Error(
-					"Failed to create threadgate\n" + JSON.stringify(threadgateResponse.data),
-				);
-			}
+			// Threadgate rkey must equal the post's rkey
+			await this.createRecord("app.bsky.feed.threadgate", threadgateRecord, rkey).catch(
+				(e) => {
+					throw new Error(`Failed to create threadgate on post ${postUri}.`, {
+						cause: e,
+					});
+				},
+			);
 		}
 
 		if (!options.fetchAfterCreate) {
-			return { uri: postResponse.data.uri, cid: postResponse.data.cid };
+			return { uri: postUri, cid: postCid };
 		}
 
-		const createdPost = await this.getPost(postResponse.data.uri);
+		const createdPost = await this.getPost(postUri);
 		if (!options.noCacheResponse) this.cache.posts.set(createdPost.uri, createdPost);
 		return createdPost;
 	}
@@ -616,29 +600,36 @@ export class Bot extends EventEmitter {
 	 */
 	async deletePost(uri: string): Promise<void> {
 		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
-		await this.agent.deletePost(uri);
-		this.cache.posts.delete(uri);
+
+		await this.deleteRecord(uri).catch((e) => {
+			throw new Error(`Failed to delete post ${uri}.`, { cause: e });
+		}).finally(() => this.cache.posts.delete(uri));
 	}
 
 	/**
 	 * Like a post or feed generator
 	 * @param uri The post's AT URI
 	 * @param cid The post's CID
-	 * @returns The like's AT URI
+	 * @returns The like record's AT URI and CID
 	 */
-	async like({ uri, cid }: { uri: string; cid: string }): Promise<string> {
+	async like({ uri, cid }: { uri: string; cid: string }): Promise<{ uri: string; cid: string }> {
 		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
-		const like = await this.agent.like(uri, cid);
-		return like.uri;
+
+		return this.agent.like(uri, cid).catch((e) => {
+			throw new Error(`Failed to like post ${uri}.`, { cause: e });
+		});
 	}
 
 	/**
 	 * Delete a like
-	 * @param uri The like's AT URI
+	 * @param uri The like record's AT URI
 	 */
 	async deleteLike(uri: string): Promise<void> {
 		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
-		await this.agent.deleteLike(uri);
+
+		await this.deleteRecord(uri).catch((e) => {
+			throw new Error(`Failed to delete like ${uri}.`, { cause: e });
+		});
 	}
 	/** @see Bot#deleteLike */
 	unlike = this.deleteLike.bind(this);
@@ -647,32 +638,42 @@ export class Bot extends EventEmitter {
 	 * Repost a post
 	 * @param uri The post's AT URI
 	 * @param cid The post's CID
-	 * @returns The repost's AT URI
+	 * @returns The repost record's AT URI and CID
 	 */
-	async repost({ uri, cid }: { uri: string; cid: string }): Promise<string> {
+	async repost(
+		{ uri, cid }: { uri: string; cid: string },
+	): Promise<{ uri: string; cid: string }> {
 		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
-		const repost = await this.agent.repost(uri, cid);
-		return repost.uri;
+
+		const repost = await this.agent.repost(uri, cid).catch((e) => {
+			throw new Error(`Failed to repost post ${uri}.`, { cause: e });
+		});
+		return repost;
 	}
 
 	/**
 	 * Delete a repost
-	 * @param uri The repost's AT URI
+	 * @param uri The repost record's AT URI
 	 */
 	async deleteRepost(uri: string): Promise<void> {
 		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
-		await this.agent.deleteRepost(uri);
+		await this.deleteRecord(uri).catch((e) => {
+			throw new Error(`Failed to delete repost ${uri}.`, { cause: e });
+		});
 	}
 
 	/**
 	 * Follow a user
 	 * @param did The user's DID
-	 * @returns The follow's AT URI
+	 * @returns The follow record's AT URI and CID
 	 */
-	async follow(did: string): Promise<string> {
+	async follow(did: string): Promise<{ uri: string; cid: string }> {
 		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
-		const follow = await this.agent.follow(did);
-		return follow.uri;
+
+		const follow = await this.agent.follow(did).catch((e) => {
+			throw new Error(`Failed to follow user ${did}.`, { cause: e });
+		});
+		return follow;
 	}
 
 	/**
@@ -681,13 +682,20 @@ export class Bot extends EventEmitter {
 	 */
 	async deleteFollow(didOrUri: string): Promise<void> {
 		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
-		if (didOrUri.startsWith("at://")) {
-			await this.agent.deleteFollow(didOrUri);
-		} else {
+
+		let followUri: string;
+
+		if (didOrUri.startsWith("at://")) followUri = didOrUri;
+		else {
 			const user = await this.getProfile(didOrUri);
-			if (!user || !user.followUri) return;
-			await this.agent.deleteFollow(user.followUri);
+			if (!user) throw new Error(`User ${didOrUri} not found.`);
+			if (!user.followUri) return;
+			followUri = user.followUri;
 		}
+
+		await this.deleteRecord(followUri).catch((e) => {
+			throw new Error(`Failed to delete follow ${didOrUri}.`, { cause: e });
+		});
 	}
 	/** @see Bot#deleteFollow */
 	unfollow = this.deleteFollow.bind(this);
@@ -698,7 +706,9 @@ export class Bot extends EventEmitter {
 	 */
 	async mute(did: string): Promise<void> {
 		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
-		await this.agent.mute(did);
+		await this.agent.mute(did).catch((e) => {
+			throw new Error(`Failed to mute user ${did}.`, { cause: e });
+		});
 	}
 
 	/**
@@ -707,7 +717,9 @@ export class Bot extends EventEmitter {
 	 */
 	async deleteMute(did: string): Promise<void> {
 		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
-		await this.agent.unmute(did);
+		await this.agent.unmute(did).catch((e) => {
+			throw new Error(`Failed to delete mute for user ${did}.`, { cause: e });
+		});
 	}
 	/** @see Bot#deleteMute */
 	unmute = this.deleteMute.bind(this);
@@ -715,35 +727,35 @@ export class Bot extends EventEmitter {
 	/**
 	 * Block a user
 	 * @param did The user's DID
+	 * @returns The block record's AT URI and CID
 	 */
-	async block(did: string): Promise<string> {
+	async block(did: string): Promise<{ uri: string; cid: string }> {
 		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
-		const block = await this.agent.api.app.bsky.graph.block.create({ repo: did }, {
-			$type: "app.bsky.graph.block",
-			subject: did,
-			createdAt: new Date().toISOString(),
+		return this.createRecord("app.bsky.graph.block", { subject: did }).catch((e) => {
+			throw new Error(`Failed to block user ${did}.`, { cause: e });
 		});
-		return block.uri;
 	}
 
 	/**
 	 * Delete a block
-	 * @param uri The block's AT URI
+	 * @param uri The block record's AT URI
 	 */
 	async deleteBlock(uri: string): Promise<void> {
 		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
-		await this.agent.api.app.bsky.graph.block.delete({ uri });
+		await this.deleteRecord(uri).catch((e) => {
+			throw new Error(`Failed to delete block ${uri}.`, { cause: e });
+		});
 	}
 
 	/**
 	 * Resolve a handle to a DID
 	 * @param handle The handle to resolve
+	 * @returns The user's DID
 	 */
 	async resolveHandle(handle: string): Promise<string> {
-		const response = await this.api.com.atproto.identity.resolveHandle({ handle });
-		if (!response.success) {
-			throw new Error("Failed to resolve handle\n" + JSON.stringify(response.data));
-		}
+		const response = await this.agent.resolveHandle({ handle }).catch((e) => {
+			throw new Error(`Failed to resolve handle ${handle}`, { cause: e });
+		});
 		return response.data.did;
 	}
 
@@ -753,22 +765,43 @@ export class Bot extends EventEmitter {
 	 */
 	async updateHandle(handle: string): Promise<void> {
 		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
-		const { success } = await this.api.com.atproto.identity.updateHandle({ handle });
-		if (!success) {
-			throw new Error("Failed to update handle");
-		}
+		await this.agent.updateHandle({ handle }).catch((e) => {
+			throw new Error("Failed to update handle.", { cause: e });
+		});
 		this.profile.handle = handle;
 	}
 
-	// this.eventEmitter.on("open", () => this.emit("open"));
-	// 			this.eventEmitter.on("error", (error) => this.emit("error", error));
-	// 			this.eventEmitter.on("close", () => this.emit("close"));
-	// 			this.eventEmitter.on("reply", (event) => this.emit("reply", event));
-	// 			this.eventEmitter.on("quote", (event) => this.emit("quote", event));
-	// 			this.eventEmitter.on("mention", (event) => this.emit("mention", event));
-	// 			this.eventEmitter.on("repost", (event) => this.emit("repost", event));
-	// 			this.eventEmitter.on("like", (event) => this.emit("like", event));
-	// 			this.eventEmitter.on("follow", (event) => this.emit("follow", event));
+	/**
+	 * Create a record
+	 * @param nsid The collection's NSID
+	 * @param record The record to create
+	 * @param rkey The rkey to use
+	 * @returns The record's AT URI and CID
+	 */
+	async createRecord(
+		nsid: string,
+		record: object,
+		rkey?: string,
+	): Promise<{ uri: string; cid: string }> {
+		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
+		const response = await this.api.com.atproto.repo.createRecord({
+			collection: nsid,
+			record: { $type: nsid, createdAt: new Date().toISOString(), ...record },
+			repo: this.profile.did,
+			...(rkey ? { rkey } : {}),
+		});
+		return response.data;
+	}
+
+	/**
+	 * Delete a record
+	 * @param uri The record's AT URI
+	 */
+	async deleteRecord(uri: string): Promise<void> {
+		const { host: repo, collection, rkey } = new AtUri(uri);
+		if (repo !== this.profile.did) throw new Error("Can only delete own record.");
+		await this.api.com.atproto.repo.deleteRecord({ collection, repo, rkey });
+	}
 
 	override on(event: "open", listener: () => void): this;
 	override on(event: "error", listener: (error: unknown) => void): this;
@@ -791,26 +824,15 @@ export class Bot extends EventEmitter {
 	}
 }
 
-function wrapApiWithLimiter<
-	T extends Record<string, ((...args: unknown[]) => never) | Record<string, never>>,
->(api: T, limiter: RateLimiter): T {
-	// Rate limit API methods by wrapping each method with a function that will remove a token from the limiter
-	for (const [key, value] of typedEntries(api)) {
-		if (key === "_service") continue;
-		if (typeof value === "function") {
-			// @ts-expect-error — Hacky way to rate limit API methods
-			api[key] = async (input: unknown) => {
-				if (NOT_LIMITED_METHODS.includes(key)) return value(input);
+const NOT_LIMITED_METHODS = ["com.atproto.server.createSession", "com.atproto.server.getSession"];
 
-				// If there are 0 tokens remaining, this call will block until the interval resets
-				await limiter.removeTokens(1);
-				return value(input);
-			};
-		} else if (typeof value === "object") {
-			wrapApiWithLimiter(value, limiter);
-		}
-	}
-	return api;
+function wrapApiWithLimiter(client: AtpServiceClient, limiter: RateLimiter) {
+	const call = client.xrpc.call.bind(client.xrpc);
+	client.xrpc.call = async (nsid, ...params) => {
+		if (!NOT_LIMITED_METHODS.includes(nsid)) await limiter.removeTokens(1);
+		return call(nsid, ...params);
+	};
+	return client;
 }
 
 /**
@@ -894,7 +916,7 @@ export const GetUserPostsFilter = {
 	PostsWithMedia: "posts_with_media",
 	/** Top-level posts and threads where the only author is the user */
 	PostsAndAuthorThreads: "posts_and_author_threads",
-};
+} as const;
 export type GetUserPostsFilter = typeof GetUserPostsFilter[keyof typeof GetUserPostsFilter];
 
 /**

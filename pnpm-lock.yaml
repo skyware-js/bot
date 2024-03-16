@@ -6,8 +6,8 @@ settings:
 
 dependencies:
   '@atproto/api':
-    specifier: ^0.10.5
-    version: 0.10.5
+    specifier: ^0.11.1
+    version: 0.11.1
   limiter:
     specifier: 2.0.1
     version: 2.0.1
@@ -59,13 +59,13 @@ packages:
     engines: {node: '>=0.10.0'}
     dev: true
 
-  /@atproto/api@0.10.5:
-    resolution: {integrity: sha512-GYdST5sPKU2JnPmm8x3KqjOSlDiYXrp4GkW7bpQTVLPabnUNq5NLN6HJEoJABjjOAsaLF12rBoV+JpRb1UjNsQ==}
+  /@atproto/api@0.11.1:
+    resolution: {integrity: sha512-U0kdo73e5xFXD4YGLrpviMHPaB/BT4s/22Z/V/geha5V1zjo6DjSC1LVLV1oYx3r/nVaaspPmumwzM0oorU50w==}
     dependencies:
-      '@atproto/common-web': 0.2.3
-      '@atproto/lexicon': 0.3.2
-      '@atproto/syntax': 0.2.0
-      '@atproto/xrpc': 0.4.2
+      '@atproto/common-web': 0.2.4
+      '@atproto/lexicon': 0.3.3
+      '@atproto/syntax': 0.2.1
+      '@atproto/xrpc': 0.4.3
       multiformats: 9.9.0
       tlds: 1.251.0
       typed-emitter: 2.1.0
@@ -74,6 +74,16 @@ packages:
 
   /@atproto/common-web@0.2.3:
     resolution: {integrity: sha512-k9VKGYUqjsRlI3wS31XyCbeb2U7ddS4X/eFgzos2CE5rIbk/uQGyKH+0Jcn1JIwRkvI1BemyNuUVrS8Ok3wiuw==}
+    dependencies:
+      graphemer: 1.4.0
+      multiformats: 9.9.0
+      uint8arrays: 3.0.0
+      zod: 3.22.4
+    dev: false
+    optional: true
+
+  /@atproto/common-web@0.2.4:
+    resolution: {integrity: sha512-6+DOhQcTklFmeiSkZRx6iFeqi4OFtGl4yEDGATk00q4tEcPoPvyOBtYHN6+G9lrfJIfx5RfmggamvXlJv1PxxA==}
     dependencies:
       graphemer: 1.4.0
       multiformats: 9.9.0
@@ -123,6 +133,17 @@ packages:
       multiformats: 9.9.0
       zod: 3.22.4
     dev: false
+    optional: true
+
+  /@atproto/lexicon@0.3.3:
+    resolution: {integrity: sha512-6FOjdc3V05JKrtkhjfhHMS7f/4hMJOeHNtoE3Na7iFMpzBz0Lw5sw8kIFKY8pc8IG79qGcFgELyHLsljZYX+5A==}
+    dependencies:
+      '@atproto/common-web': 0.2.4
+      '@atproto/syntax': 0.2.1
+      iso-datestring-validator: 2.2.2
+      multiformats: 9.9.0
+      zod: 3.22.4
+    dev: false
 
   /@atproto/repo@0.3.8:
     resolution: {integrity: sha512-rncPC33XEq1e4Buk/nXu+ytuWd5fAHaR+atKFBjHYn5yL0W9DGlKOf0g1uKpyKr20U2Dq40hc6i97XVpi5Oq3g==}
@@ -148,6 +169,13 @@ packages:
     dependencies:
       '@atproto/common-web': 0.2.3
     dev: false
+    optional: true
+
+  /@atproto/syntax@0.2.1:
+    resolution: {integrity: sha512-ImOuiICtB5h78j90hAYOfTYzr5q5Wut0irNdELiogA3i74a8EXThe+j6Tj8snanYggrShbu5c6BDc1tVj477Yw==}
+    dependencies:
+      '@atproto/common-web': 0.2.4
+    dev: false
 
   /@atproto/xrpc-server@0.4.3:
     resolution: {integrity: sha512-JJLtKfCGGDP7/62Hw37DJU7mryUBS+lGYbiC+rswNG0RApfY7T4a8q3KdWlHb2F1NCoMjndhjkB31OucTWHzVw==}
@@ -170,10 +198,10 @@ packages:
     dev: false
     optional: true
 
-  /@atproto/xrpc@0.4.2:
-    resolution: {integrity: sha512-x4x2QB4nWmLjIpz2Ue9n/QVbVyJkk6tQMhvmDQaVFF89E3FcVI4rxF4uhzSxaLpbNtyVQBNEEmNHOr5EJLeHVA==}
+  /@atproto/xrpc@0.4.3:
+    resolution: {integrity: sha512-0rn3abHORG0T93mci8WW97Cpg2ClU2aCtTq5rxdCPRsl9P4tyP+8F4snbkrIaMbVO05Rd9D9gFwtWs5Z473pCQ==}
     dependencies:
-      '@atproto/lexicon': 0.3.2
+      '@atproto/lexicon': 0.3.3
       zod: 3.22.4
     dev: false
 

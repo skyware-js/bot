@@ -6,6 +6,7 @@ import {
 	AppBskyFeedDefs,
 	AppBskyFeedPost,
 	AppBskyFeedThreadgate,
+	AppBskyLabelerDefs,
 	AppBskyRichtextFacet,
 	type AtpAgentLoginOpts,
 	type AtpServiceClient,
@@ -818,7 +819,48 @@ export class Bot extends EventEmitter {
 	): this;
 	override on(event: "follow", listener: (event: { user: Profile; uri: string }) => void): this;
 	override on(event: string | symbol, listener: (...args: any[]) => void): this {
+		if (!this.eventEmitter) throw new Error("Events are not enabled.");
+		if (!this.eventEmitter.emitting) this.eventEmitter.start();
 		super.on(event, listener);
+		return this;
+	}
+
+	override addListener(event: "open", listener: () => void): this;
+	override addListener(event: "error", listener: (error: unknown) => void): this;
+	override addListener(event: "close", listener: () => void): this;
+	override addListener(event: "reply", listener: (post: Post) => void): this;
+	override addListener(event: "quote", listener: (post: Post) => void): this;
+	override addListener(event: "mention", listener: (post: Post) => void): this;
+	override addListener(
+		event: "repost",
+		listener: (event: { post: Post; user: Profile; uri: string }) => void,
+	): this;
+	override addListener(
+		event: "like",
+		listener: (event: { post: Post; user: Profile; uri: string }) => void,
+	): this;
+	override addListener(
+		event: "follow",
+		listener: (event: { user: Profile; uri: string }) => void,
+	): this;
+	override addListener(event: string | symbol, listener: (...args: any[]) => void): this {
+		return this.on(event as never, listener);
+	}
+
+	override off(event: string, listener: (...args: any[]) => void): this {
+		super.off(event, listener);
+		if (!this.listenerCount(event)) this.eventEmitter?.stop();
+		return this;
+	}
+
+	override removeListener(event: string, listener: (...args: any[]) => void): this {
+		return this.off(event, listener);
+	}
+
+	override removeAllListeners(event?: string): this {
+		if (!this.eventEmitter) throw new Error("Events are not enabled.");
+		super.removeAllListeners(event);
+		this.eventEmitter.stop();
 		return this;
 	}
 }

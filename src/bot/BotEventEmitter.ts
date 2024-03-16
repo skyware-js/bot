@@ -9,7 +9,8 @@ import {
 	AtUri,
 } from "@atproto/api";
 import type { Firehose, FirehoseOptions } from "@skyware/firehose";
-import { EventEmitter as BaseEventEmitter } from "node:events";
+import { EventEmitter } from "node:events";
+import { setInterval } from "node:timers/promises";
 import type { Post } from "../struct/post/Post.js";
 import { Profile } from "../struct/Profile.js";
 import type { Bot } from "./Bot.js";
@@ -59,20 +60,27 @@ export interface BotEventEmitterOptions {
 	firehoseOptions?: FirehoseOptions;
 }
 
-export class BotEventEmitter extends BaseEventEmitter {
+export class BotEventEmitter extends EventEmitter {
 	/** How the bot will receive and emit events */
 	private strategy: EventStrategy;
 
 	/**
-	 * The interval in seconds at which the bot will poll the notifications endpoint. Only used if `strategy` is `EventStrategy.Polling`.
+	 * The interval in seconds at which the bot will poll the notifications endpoint.
+	 * Only used if `strategy` is `EventStrategy.Polling`.
 	 */
 	private pollingInterval: number;
 
 	/** The timestamp of the last notification processed, if using `EventStrategy.Polling`. */
 	private lastSeen?: Date;
 
+	/** Used to cancel polling */
+	private pollingController?: AbortController;
+
 	/** The firehose event stream */
 	public firehose?: Firehose;
+
+	/** Whether the bot is emitting events */
+	public emitting: boolean = false;
 
 	constructor(options: BotEventEmitterOptions, private bot: Bot) {
 		super();
@@ -85,89 +93,6 @@ export class BotEventEmitter extends BaseEventEmitter {
 					options.relayUri ?? "wss://bsky.network",
 					options.firehoseOptions,
 				);
-
-				this.firehose.on("open", () => this.emit("open"));
-				this.firehose.on("error", (error) => this.emit("error", error));
-				this.firehose.on("websocketError", (error) => this.emit("error", error));
-				this.firehose.on("close", () => this.firehose?.start());
-
-				this.firehose.on("commit", (message) => {
-					if (!bot?.agent?.hasSession || !bot.profile) return;
-					(async () => {
-						for (const op of message.ops) {
-							if (op.action !== "create") continue;
-							const uri = `at://${message.repo}/${op.path}`;
-							if (AppBskyFeedPost.isRecord(op.record)) {
-								let post: Post;
-								// Direct reply
-								if (
-									op.record.reply?.parent.uri.includes(this.bot.profile.did)
-									&& this.listenerCount("reply") >= 1
-								) {
-									post ??= await this.bot.getPost(uri);
-									this.emit("reply", post);
-								}
-								// Quote post
-								const isQuote = AppBskyEmbedRecord.isMain(op.record.embed)
-									&& op.record.embed.record.uri.includes(this.bot.profile.did);
-								const isQuoteWithMedia =
-									AppBskyEmbedRecordWithMedia.isMain(op.record.embed)
-									&& op.record.embed.record.record.uri.includes(
-										this.bot.profile.did,
-									);
-								if (
-									(isQuote || isQuoteWithMedia)
-									&& this.listenerCount("quote") >= 1
-								) {
-									post ??= await this.bot.getPost(uri);
-									this.emit("quote", post);
-								}
-								// Mention
-								if (
-									op.record.facets?.some((facet) =>
-										facet.features.some((feature) =>
-											feature.did === this.bot.profile.did
-										)
-									) && this.listenerCount("mention") >= 1
-								) {
-									post ??= await this.bot.getPost(uri);
-									this.emit("mention", post);
-								}
-							} else if (AppBskyFeedRepost.isRecord(op.record)) {
-								// Repost
-								if (
-									op.record.subject.uri.includes(this.bot.profile.did)
-									&& this.listenerCount("repost") >= 1
-								) {
-									const post = await this.bot.getPost(op.record.subject.uri);
-									const user = await this.bot.getProfile(message.repo);
-									this.emit("repost", { post, user, uri });
-								}
-							} else if (AppBskyFeedLike.isRecord(op.record)) {
-								// Like
-								if (
-									op.record.subject.uri.includes(this.bot.profile.did)
-									&& this.listenerCount("like") >= 1
-								) {
-									const post = await this.bot.getPost(op.record.subject.uri);
-									const user = await this.bot.getProfile(message.repo);
-									this.emit("like", { post, user, uri });
-								}
-							} else if (AppBskyGraphFollow.isRecord(op.record)) {
-								// Follow
-								if (
-									op.record.subject === this.bot.profile.did
-									&& this.listenerCount("follow") >= 1
-								) {
-									const user = await this.bot.getProfile(message.repo);
-									this.emit("follow", { user, uri });
-								}
-							}
-						}
-					})().catch((error) => this.emit("error", error));
-				});
-
-				this.firehose.start();
 			}).catch(() => {
 				throw new Error(
 					"Failed to import Firehose event emitter. Make sure you have the @skyware/firehose package installed.",
@@ -180,17 +105,112 @@ export class BotEventEmitter extends BaseEventEmitter {
 		}
 	}
 
-	/** Close the firehose connection */
-	close() {
+	/** Start emitting events */
+	start() {
+		if (this.emitting) return;
+		if (this.strategy === EventStrategy.Firehose) this.startFirehose();
+		else this.startPolling();
+		this.emitting = true;
+	}
+
+	/** Stop emitting events */
+	stop() {
+		if (!this.emitting) return;
 		if (this.firehose) this.firehose.close();
+		this.pollingController?.abort();
+		this.emitting = false;
+	}
+
+	startFirehose() {
+		this.firehose?.on("open", () => this.emit("open"));
+		this.firehose?.on("error", (error) => this.emit("error", error));
+		this.firehose?.on("websocketError", (error) => this.emit("error", error));
+		this.firehose?.on("close", () => this.firehose?.start());
+
+		this.firehose?.on("commit", (message) => {
+			if (!this.bot?.agent?.hasSession || !this.bot.profile) return;
+			(async () => {
+				for (const op of message.ops) {
+					if (op.action !== "create") continue;
+					const uri = `at://${message.repo}/${op.path}`;
+					if (AppBskyFeedPost.isRecord(op.record)) {
+						let post: Post;
+						// Direct reply
+						if (
+							op.record.reply?.parent.uri.includes(this.bot.profile.did)
+							&& this.listenerCount("reply") >= 1
+						) {
+							post ??= await this.bot.getPost(uri);
+							this.emit("reply", post);
+						}
+						// Quote post
+						const isQuote = AppBskyEmbedRecord.isMain(op.record.embed)
+							&& op.record.embed.record.uri.includes(this.bot.profile.did);
+						const isQuoteWithMedia = AppBskyEmbedRecordWithMedia.isMain(op.record.embed)
+							&& op.record.embed.record.record.uri.includes(this.bot.profile.did);
+						if ((isQuote || isQuoteWithMedia) && this.listenerCount("quote") >= 1) {
+							post ??= await this.bot.getPost(uri);
+							this.emit("quote", post);
+						}
+						// Mention
+						if (
+							op.record.facets?.some((facet) =>
+								facet.features.some((feature) =>
+									feature.did === this.bot.profile.did
+								)
+							) && this.listenerCount("mention") >= 1
+						) {
+							post ??= await this.bot.getPost(uri);
+							this.emit("mention", post);
+						}
+					} else if (AppBskyFeedRepost.isRecord(op.record)) {
+						// Repost
+						if (
+							op.record.subject.uri.includes(this.bot.profile.did)
+							&& this.listenerCount("repost") >= 1
+						) {
+							const post = await this.bot.getPost(op.record.subject.uri);
+							const user = await this.bot.getProfile(message.repo);
+							this.emit("repost", { post, user, uri });
+						}
+					} else if (AppBskyFeedLike.isRecord(op.record)) {
+						// Like
+						if (
+							op.record.subject.uri.includes(this.bot.profile.did)
+							&& this.listenerCount("like") >= 1
+						) {
+							const post = await this.bot.getPost(op.record.subject.uri);
+							const user = await this.bot.getProfile(message.repo);
+							this.emit("like", { post, user, uri });
+						}
+					} else if (AppBskyGraphFollow.isRecord(op.record)) {
+						// Follow
+						if (
+							op.record.subject === this.bot.profile.did
+							&& this.listenerCount("follow") >= 1
+						) {
+							const user = await this.bot.getProfile(message.repo);
+							this.emit("follow", { user, uri });
+						}
+					}
+				}
+			})().catch((error) => this.emit("error", error));
+		});
+
+		this.firehose?.start();
 	}
 
 	/** Start polling the notifications endpoint */
 	startPolling() {
-		setInterval(
-			() => void this.poll().catch((error) => this.emit("error", error)),
-			this.pollingInterval * 1000,
-		);
+		this.pollingController = new AbortController();
+		const interval = setInterval(this.pollingInterval * 1000, undefined, {
+			signal: this.pollingController.signal,
+		});
+		void (async () => {
+			for await (const _ of interval) {
+				await this.poll().catch((error) => this.emit("error", error));
+			}
+		})();
 	}
 
 	/** Poll the notifications endpoint */

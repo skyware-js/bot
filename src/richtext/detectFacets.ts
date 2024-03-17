@@ -33,13 +33,13 @@ const TAG_REGEX =
 
 const encoder = new TextEncoder();
 
-const utf16IndexToUtf8Index = (text: string, i: number) => {
+export const utf16IndexToUtf8Index = (text: string, i: number) => {
 	return encoder.encode(text.slice(0, i)).byteLength;
 };
 
 /**
- * This is a vendored version of the @atproto/api detectFacets method that doesn't use the UnicodeString class.
- * This allows us to avoid importing `graphemer`, instead using `Intl.Segmenter` (see {@link graphemeLength}), saving ~800kB in bundle size.
+ * This is a modified version of the @atproto/api detectFacets function that doesn't use the UnicodeString class.
+ * This allows us to avoid importing `graphemer`, instead using `Intl.Segmenter` (see {@link graphemeLength}), which saves ~800kB in bundle size.
  *
  * JS strings are UTF-16 by default; `utf16IndexToUtf8Index` is used to get UTF-8 byte indices of facets within text.
  * @param text Text to detect facets in.
@@ -51,20 +51,22 @@ export function detectFacets(text: string): Array<Facet> | undefined {
 		// mentions
 		const re = MENTION_REGEX;
 		while ((match = re.exec(text))) {
-			const did = match[3];
-			if (!did.startsWith("did:")) continue;
-			const start = text.indexOf(match[3], match.index) - 1;
+			const mention = match[3];
+			if (!mention.includes(".")) continue;
+
+			const start = text.indexOf(mention, match.index) - 1;
 			facets.push({
 				index: {
 					byteStart: utf16IndexToUtf8Index(text, start),
-					byteEnd: utf16IndexToUtf8Index(text, start + match[3].length + 1),
+					byteEnd: utf16IndexToUtf8Index(text, start + mention.length + 1),
 				},
 				features: [{
 					$type: "app.bsky.richtext.facet#mention",
-					did, // must be resolved afterwards
+					did: mention, // must be resolved afterwards
 				}],
 			});
 		}
+		re.lastIndex = 0;
 	}
 	{
 		// links
@@ -97,6 +99,7 @@ export function detectFacets(text: string): Array<Facet> | undefined {
 				features: [{ $type: "app.bsky.richtext.facet#link", uri }],
 			});
 		}
+		re.lastIndex = 0;
 	}
 	{
 		const re = TAG_REGEX;
@@ -120,6 +123,7 @@ export function detectFacets(text: string): Array<Facet> | undefined {
 				features: [{ $type: "app.bsky.richtext.facet#tag", tag: tag }],
 			});
 		}
+		re.lastIndex = 0;
 	}
 	return facets.length > 0 ? facets : undefined;
 }

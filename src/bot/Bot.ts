@@ -6,7 +6,6 @@ import {
 	AppBskyFeedDefs,
 	AppBskyFeedPost,
 	AppBskyFeedThreadgate,
-	AppBskyLabelerDefs,
 	AppBskyRichtextFacet,
 	type AtpAgentLoginOpts,
 	type AtpServiceClient,
@@ -21,7 +20,7 @@ import {
 import { RateLimiter } from "limiter";
 import { EventEmitter } from "node:events";
 import type QuickLRU from "quick-lru";
-import { RichText } from "../richtext/RichText.js";
+import { facetAwareSegment, graphemeLength, RichText } from "../richtext/RichText.js";
 import { FeedGenerator } from "../struct/FeedGenerator.js";
 import { List } from "../struct/List.js";
 import { Post } from "../struct/post/Post.js";
@@ -455,6 +454,50 @@ export class Bot extends EventEmitter {
 			text = payload.text;
 		}
 
+		if (graphemeLength(text) > 300) {
+			if (options.splitLongPost) {
+				const segments = facetAwareSegment(text, 300, facets);
+				if (!segments.length) {
+					throw new Error("Post is too long and could not be split into shorter posts.");
+				}
+				const { text: postText, facets: postFacets } = segments.shift()!;
+				const firstPost = await this.post({
+					...payload,
+					text: postText,
+					facets: postFacets,
+				}, options);
+
+				let previousPost = firstPost;
+
+				while (segments.length) {
+					const { text: replyText, facets: replyFacets } = segments.shift()!;
+
+					const root = payload.replyRef?.root
+						?? { uri: firstPost.uri, cid: firstPost.cid };
+
+					// We don't want to copy over the entire payload; for instance, images, tags, embed should only be on the first post
+					// With labels and threadgate, it's better to be safe than sorry
+					previousPost = await this.post({
+						text: replyText,
+						facets: replyFacets,
+						labels: payload.labels,
+						langs: payload.langs,
+						createdAt: payload.createdAt,
+						threadgate: payload.threadgate,
+
+						replyRef: {
+							parent: { uri: previousPost.uri, cid: previousPost.cid },
+							root,
+						},
+					}, { ...options, fetchAfterCreate: false });
+				}
+
+				return firstPost;
+			} else {
+				throw new Error("Post exceeds maximum length of 300 graphemes.");
+			}
+		}
+
 		// Create post labels
 		const labels = payload.labels?.length
 			? {
@@ -464,7 +507,7 @@ export class Bot extends EventEmitter {
 			: undefined;
 
 		if (payload.images?.length && payload.quoted && !(payload.quoted instanceof Post)) {
-			throw new Error("Only a post can be embedded alongside images");
+			throw new Error("Only a post can be embedded alongside images.");
 		}
 
 		// Upload image blobs
@@ -1067,6 +1110,12 @@ export interface BotPostOptions {
 	 * @default false
 	 */
 	fetchAfterCreate?: boolean;
+
+	/**
+	 * Whether to split the post into multiple posts if it exceeds the character limit
+	 * @default false
+	 */
+	splitLongPost?: boolean;
 
 	/**
 	 * Whether to skip caching the response

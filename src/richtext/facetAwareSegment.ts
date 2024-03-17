@@ -1,4 +1,5 @@
-import { type Facet, utf16IndexToUtf8Index } from "./detectFacets.js";
+import type { AppBskyRichtextFacet } from "@atproto/api";
+import { utf16IndexToUtf8Index } from "./detectFacets.js";
 
 const segmenter = new Intl.Segmenter();
 
@@ -12,13 +13,13 @@ const segmenter = new Intl.Segmenter();
 export function facetAwareSegment(
 	text: string,
 	length: number,
-	facets: Array<Facet>,
-): Array<{ text: string; facets: Array<Facet> }> {
+	facets: Array<AppBskyRichtextFacet.Main>,
+): Array<{ text: string; facets: Array<AppBskyRichtextFacet.Main> }> {
 	// The text segmented into graphemes
 	const segments = [...segmenter.segment(text)];
 
 	// The substrings to return and their facets
-	const substrings: Array<{ text: string; facets: Array<Facet> }> = [];
+	const substrings: Array<{ text: string; facets: Array<AppBskyRichtextFacet.Main> }> = [];
 	// The graphemes in the current substring
 	let currentSubstring: Array<Intl.SegmentData> = [];
 
@@ -57,19 +58,25 @@ export function facetAwareSegment(
 			const substring = currentSubstring.map((s) => s.segment).join("");
 
 			// Alongside it, we include the facets that are contained within the substring
-			const substringFacets = facets.reduce<Array<Facet>>((acc, facet) => {
-				const { byteStart, byteEnd } = facet.index;
-				if (
-					byteStart >= utf16IndexToUtf8Index(text, currentSubstring[0].index)
-					&& byteEnd <= utf16IndexToUtf8Index(text, lastSegment.index) + 1 // byteEnd is exclusive, so if it's at the end of a string, it will be 1 greater than the last index
-				) {
-					acc.push({
-						...facet,
-						index: { byteStart: byteStart - byteOffset, byteEnd: byteEnd - byteOffset },
-					});
-				}
-				return acc;
-			}, []);
+			const substringFacets = facets.reduce<Array<AppBskyRichtextFacet.Main>>(
+				(acc, facet) => {
+					const { byteStart, byteEnd } = facet.index;
+					if (
+						byteStart >= utf16IndexToUtf8Index(text, currentSubstring[0].index)
+						&& byteEnd <= utf16IndexToUtf8Index(text, lastSegment.index) + 1 // byteEnd is exclusive, so if it's at the end of a string, it will be 1 greater than the last index
+					) {
+						acc.push({
+							...facet,
+							index: {
+								byteStart: byteStart - byteOffset,
+								byteEnd: byteEnd - byteOffset,
+							},
+						});
+					}
+					return acc;
+				},
+				[],
+			);
 
 			substrings.push({ text: substring, facets: substringFacets });
 			currentSubstring = [];
@@ -80,7 +87,7 @@ export function facetAwareSegment(
 
 	// Push the remaining substring
 	const substring = currentSubstring.map((s) => s.segment).join("");
-	const substringFacets = facets.reduce<Array<Facet>>((acc, facet) => {
+	const substringFacets = facets.reduce<Array<AppBskyRichtextFacet.Main>>((acc, facet) => {
 		const { byteStart, byteEnd } = facet.index;
 		if (
 			byteStart >= utf16IndexToUtf8Index(text, currentSubstring[0].index)

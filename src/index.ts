@@ -30,6 +30,13 @@ export { PostEmbed } from "./struct/post/embed/PostEmbed.js";
 export { RecordEmbed } from "./struct/post/embed/RecordEmbed.js";
 export { RecordWithMediaEmbed } from "./struct/post/embed/RecordWithMediaEmbed.js";
 export { isEmbedMainRecord, isEmbedView, postEmbedFromView } from "./struct/post/embed/util.js";
+export {
+	Facet,
+	FacetFeature,
+	LinkFeature,
+	MentionFeature,
+	TagFeature,
+} from "./struct/post/Facet.js";
 export { Post, type PostData } from "./struct/post/Post.js";
 export { type ImagePayload, type PostPayload, PostSelfLabels } from "./struct/post/PostPayload.js";
 export { Threadgate, type ThreadgateData } from "./struct/post/Threadgate.js";

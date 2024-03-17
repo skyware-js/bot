@@ -1,13 +1,9 @@
-import {
-	AppBskyFeedDefs,
-	AppBskyFeedPost,
-	type AppBskyRichtextFacet,
-	type ComAtprotoLabelDefs,
-} from "@atproto/api";
+import { AppBskyFeedDefs, AppBskyFeedPost, type ComAtprotoLabelDefs } from "@atproto/api";
 import type { Bot, BotPostOptions } from "../../bot/Bot.js";
 import { Profile } from "../Profile.js";
 import type { PostEmbed } from "./embed/PostEmbed.js";
 import { isEmbedMainRecord, isEmbedView, postEmbedFromView } from "./embed/util.js";
+import { Facet } from "./Facet.js";
 import type { PostPayload } from "./PostPayload.js";
 import { Threadgate } from "./Threadgate.js";
 
@@ -19,7 +15,7 @@ export interface PostData {
 	uri: string;
 	cid: string;
 	author: Profile;
-	facets?: Array<AppBskyRichtextFacet.Main> | undefined;
+	facets?: Array<Facet> | undefined;
 	replyRef?: AppBskyFeedPost.ReplyRef | undefined;
 	langs?: Array<string> | undefined;
 	embed?: PostEmbed | undefined;
@@ -59,7 +55,7 @@ export class Post {
 	 * (e.g. mentions, links, tags)
 	 * @see https://www.docs.bsky.app/docs/advanced-guides/post-richtext#rich-text-facets
 	 */
-	facets?: Array<AppBskyRichtextFacet.Main>;
+	facets?: Array<Facet>;
 
 	/** A reference to the post's parent and root post */
 	replyRef?: AppBskyFeedPost.ReplyRef;
@@ -378,12 +374,13 @@ export class Post {
 	 */
 	static fromView(view: AppBskyFeedDefs.PostView, bot: Bot): Post {
 		if ((!AppBskyFeedPost.isRecord(view.record))) throw new Error("Invalid post view record");
+		const text = view.record.text;
 		const post = new Post({
-			text: view.record.text,
+			text,
 			uri: view.uri,
 			cid: view.cid,
 			author: Profile.fromView(view.author, bot),
-			facets: view.record.facets,
+			facets: view.record.facets?.map((facet) => new Facet(text, facet)),
 			replyRef: view.record.reply,
 			langs: view.record.langs,
 			embed: view.embed && isEmbedView(view.embed) && isEmbedMainRecord(view.record.embed)

@@ -19,9 +19,9 @@
 
 import { AppBskyRichtextFacet } from "@atproto/api";
 import type { Bot } from "../bot/Bot";
-import { detectFacets, type Facet } from "./detectFacets.js";
+import { detectFacets } from "./detectFacets.js";
 
-type FacetFeature = Facet["features"][number];
+type FacetFeature = AppBskyRichtextFacet.Main["features"][number];
 
 const segmenter = new Intl.Segmenter();
 
@@ -48,7 +48,8 @@ const concat = (a: Uint8Array, b: Uint8Array): Uint8Array => {
 	return buf;
 };
 
-const facetSort = (a: Facet, b: Facet) => a.index.byteStart - b.index.byteStart;
+const facetSort = (a: AppBskyRichtextFacet.Main, b: AppBskyRichtextFacet.Main) =>
+	a.index.byteStart - b.index.byteStart;
 
 /**
  * Used to build a rich text string with facets.
@@ -56,13 +57,13 @@ const facetSort = (a: Facet, b: Facet) => a.index.byteStart - b.index.byteStart;
  */
 export class RichText {
 	private buffer = new Uint8Array(0);
-	private facets: Array<Facet> = [];
+	private facets: Array<AppBskyRichtextFacet.Main> = [];
 
 	/**
 	 * Completes the rich text string and returns the result, with parsed facets
 	 * and the length of the string in graphemes.
 	 */
-	build(): { text: string; facets: Array<Facet>; length: number } {
+	build(): { text: string; facets: Array<AppBskyRichtextFacet.Main>; length: number } {
 		const text = decoder.decode(this.buffer);
 		return { text: text, facets: this.facets, length: graphemeLength(text) };
 	}
@@ -142,7 +143,7 @@ export class RichText {
 	 * Will produce invalid facets! For instance, mentions will not have their DIDs set.
 	 * Use `RichText.detectFacets` to produce valid facets that can be attached to a post.
 	 */
-	static detectFacetsWithoutResolution = (text: string): Array<Facet> => {
+	static detectFacetsWithoutResolution = (text: string): Array<AppBskyRichtextFacet.Main> => {
 		return (detectFacets(text) || []).sort(facetSort);
 	};
 }

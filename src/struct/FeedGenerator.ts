@@ -1,5 +1,6 @@
 import type { AppBskyFeedDefs, AppBskyRichtextFacet } from "@atproto/api";
 import type { Bot } from "../bot/Bot.js";
+import { Facet } from "./post/Facet.js";
 import { Post } from "./post/Post.js";
 import { Profile } from "./Profile.js";
 
@@ -10,7 +11,7 @@ export interface FeedGeneratorData {
 	did: string;
 	creator: Profile;
 	description?: string;
-	descriptionFacets?: Array<AppBskyRichtextFacet.Main>;
+	descriptionFacets?: Array<Facet>;
 	avatar?: string;
 	isOnline?: boolean;
 	likeUri?: string;
@@ -40,7 +41,7 @@ export class FeedGenerator {
 	description?: string;
 
 	/** Any facets associated with the feed generator's description */
-	descriptionFacets?: Array<AppBskyRichtextFacet.Main>;
+	descriptionFacets?: Array<Facet>;
 
 	/** The feed generator's avatar */
 	avatar?: string;
@@ -119,10 +120,18 @@ export class FeedGenerator {
 	 * @param bot The active Bot instance
 	 */
 	static fromView(view: AppBskyFeedDefs.GeneratorView, bot: Bot): FeedGenerator {
+		const { descriptionFacets, ...rest } = view;
 		return new FeedGenerator({
-			...view,
+			...rest,
 			creator: Profile.fromView(view.creator, bot),
 			indexedAt: new Date(view.indexedAt),
+			...(descriptionFacets?.length && view.description?.length
+				? {
+					descriptionFacets: descriptionFacets.map((facet) =>
+						new Facet(view.description!, facet)
+					),
+				}
+				: {}),
 		}, bot);
 	}
 }

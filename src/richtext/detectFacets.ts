@@ -19,8 +19,6 @@
 
 import type { AppBskyRichtextFacet } from "@atproto/api";
 
-export type Facet = AppBskyRichtextFacet.Main;
-
 const MENTION_REGEX = /(^|\s|\()(@)([a-zA-Z0-9.-]+)(\b)/g;
 const URL_REGEX = /(^|\s|\()((https?:\/\/[\S]+)|((?<domain>[a-z][a-z0-9]*(\.[a-z0-9]+)+)[\S]*))/gim;
 const TRAILING_PUNCTUATION_REGEX = /\p{P}+$/gu;
@@ -32,21 +30,25 @@ const TAG_REGEX =
 	/(^|\s)[#＃]((?!\ufe0f)[^\s\u00AD\u2060\u200A\u200B\u200C\u200D\u20e2]*[^\d\s\p{P}\u00AD\u2060\u200A\u200B\u200C\u200D\u20e2]+[^\s\u00AD\u2060\u200A\u200B\u200C\u200D\u20e2]*)?/gu;
 
 const encoder = new TextEncoder();
+const decoder = new TextDecoder();
 
 export const utf16IndexToUtf8Index = (text: string, i: number) => {
 	return encoder.encode(text.slice(0, i)).byteLength;
 };
+export const utf8IndexToUtf16Index = (text: string, i: number) => {
+	return decoder.decode(encoder.encode(text).slice(0, i + 1)).length - 1;
+};
 
 /**
  * This is a modified version of the @atproto/api detectFacets function that doesn't use the UnicodeString class.
- * This allows us to avoid importing `graphemer`, instead using `Intl.Segmenter` (see {@link graphemeLength}), which saves ~800kB in bundle size.
+ * This allows us to avoid importing `graphemer`, instead using the `Intl.Segmenter` builtin (see {@link graphemeLength}), which saves ~800kB in bundle size.
  *
- * JS strings are UTF-16 by default; `utf16IndexToUtf8Index` is used to get UTF-8 byte indices of facets within text.
+ * JS strings are encoded as UTF-16; `utf16IndexToUtf8Index` is used to get UTF-8 byte indices of facets within text.
  * @param text Text to detect facets in.
  */
-export function detectFacets(text: string): Array<Facet> | undefined {
+export function detectFacets(text: string): Array<AppBskyRichtextFacet.Main> | undefined {
 	let match;
-	const facets: Array<Facet> = [];
+	const facets: Array<AppBskyRichtextFacet.Main> = [];
 	{
 		// mentions
 		const re = MENTION_REGEX;

@@ -13,9 +13,10 @@ import { RecordWithMediaEmbed } from "./RecordWithMediaEmbed.js";
 
 /**
  * Constructs the appropriate embed type from an embed view and record
- * @param view
- * @param record
- * @param bot
+ * @param options The options for constructing the embed
+ * @param view The embed view
+ * @param record The embed record
+ * @param bot The active Bot instance (needed to create Post instance for RecordEmbed and RecordWithMediaEmbed)
  */
 export function postEmbedFromView(
 	{ view, record, bot }: {
@@ -57,7 +58,7 @@ export function postEmbedFromView(
 
 /**
  * Determines if the provided value is an embed record
- * @param embed
+ * @param embed The embed to check
  */
 export function isEmbedMainRecord(
 	embed: unknown,
@@ -75,7 +76,7 @@ export function isEmbedMainRecord(
 
 /**
  * Determines if the provided value is an embed view
- * @param view
+ * @param view The view to check
  */
 export function isEmbedView(
 	view: unknown,

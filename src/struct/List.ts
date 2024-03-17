@@ -101,7 +101,8 @@ export class List {
 
 	/**
 	 * Fetch the list's members
-	 * @param force Whether to fetch items even if they are already cached
+	 * @param options Options for fetching list members
+	 * @param options.force Whether to fetch items even if they are already cached
 	 */
 	async fetchItems({ force = false } = {}): Promise<Array<Profile>> {
 		if (!force && this.items) return this.items;
@@ -153,8 +154,9 @@ export class List {
 
 	/**
 	 * Get a feed of recent posts from accounts on the list
-	 * @param limit The maximum number of posts to fetch (1-100, default 100)
-	 * @param cursor The cursor for pagination
+	 * @param options Options for fetching the feed
+	 * @param options.limit The maximum number of posts to fetch (1-100, default 100)
+	 * @param options.cursor The cursor for pagination
 	 */
 	async getFeed(
 		{ limit = 100, cursor = "" } = {},

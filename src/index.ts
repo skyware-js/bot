@@ -19,7 +19,8 @@ export {
 } from "./bot/Bot.js";
 export { type CacheOptions } from "./bot/cache.js";
 
-export { facetAwareSegment, graphemeLength, RichText } from "./richtext/RichText.js";
+export { facetAwareSegment } from "./richtext/facetAwareSegment.js";
+export { graphemeLength, RichText } from "./richtext/RichText.js";
 export { FeedGenerator, type FeedGeneratorData } from "./struct/FeedGenerator.js";
 export { List, type ListData, ListPurpose } from "./struct/List.js";
 export { EmbedImage, type ImageData } from "./struct/post/embed/EmbedImage.js";

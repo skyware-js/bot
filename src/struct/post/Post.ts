@@ -160,7 +160,8 @@ export class Post {
 
 	/**
 	 * Fetch the root post of the thread
-	 * @param force Whether to fetch the root post even if it's already cached
+	 * @param options Optional configuration
+	 * @param options.force Whether to fetch the root post even if it's already cached
 	 */
 	async getRoot({ force = false }: { force?: boolean } = {}): Promise<Post | null> {
 		if (this.root && !force) return this.root;
@@ -170,8 +171,9 @@ export class Post {
 
 	/**
 	 * Fetch the parent post
-	 * @param parentHeight How many levels up to fetch
-	 * @param force Whether to fetch the parent post even if it's already cached
+	 * @param options Optional configuration
+	 * @param options.parentHeight How many levels up to fetch
+	 * @param options.force Whether to fetch the parent post even if it's already cached
 	 */
 	async fetchParent(
 		{ parentHeight = 1, force = false }: { parentHeight?: number; force?: boolean } = {},
@@ -186,8 +188,9 @@ export class Post {
 
 	/**
 	 * Fetch the children of the post
-	 * @param depth How many levels of replies to fetch
-	 * @param force Whether to fetch children even if they're already cached
+	 * @param options Optional configuration
+	 * @param options.depth How many levels of replies to fetch
+	 * @param options.force Whether to fetch children even if they're already cached
 	 */
 	async fetchChildren(
 		{ depth = 1, force = false }: { depth?: number; force?: boolean } = {},

@@ -96,8 +96,9 @@ export class FeedGenerator {
 
 	/**
 	 * Get a feed of posts from the feed generator
-	 * @param limit The maximum number of posts to return (1-100, default 100)
-	 * @param cursor The cursor for pagination
+	 * @param options Options for fetching the feed
+	 * @param options.limit The maximum number of posts to return (1-100, default 100)
+	 * @param options.cursor The cursor for pagination
 	 */
 	async getPosts(
 		{ limit = 100, cursor = "" } = {},

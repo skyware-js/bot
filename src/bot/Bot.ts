@@ -20,7 +20,8 @@ import {
 import { RateLimiter } from "limiter";
 import { EventEmitter } from "node:events";
 import type QuickLRU from "quick-lru";
-import { facetAwareSegment, graphemeLength, RichText } from "../richtext/RichText.js";
+import { facetAwareSegment } from "../richtext/facetAwareSegment.js";
+import { graphemeLength, RichText } from "../richtext/RichText.js";
 import { FeedGenerator } from "../struct/FeedGenerator.js";
 import { List } from "../struct/List.js";
 import { Post } from "../struct/post/Post.js";
@@ -88,6 +89,10 @@ export class Bot extends EventEmitter {
 	/** The bot account's Bluesky profile */
 	profile!: Profile;
 
+	/**
+	 * Create a new bot
+	 * @param options Configuration options
+	 */
 	constructor(
 		{
 			service = "https://bsky.social",
@@ -134,8 +139,9 @@ export class Bot extends EventEmitter {
 
 	/**
 	 * Log in with an identifier and password
-	 * @param identifier The bot account's email, handle, or DID
-	 * @param password The bot account's password
+	 * @param options The bot account's identifier and password
+	 * @param options.identifier The bot account's email, handle, or DID
+	 * @param options.password The bot account's password
 	 * @returns Session data
 	 */
 	async login(
@@ -653,8 +659,9 @@ export class Bot extends EventEmitter {
 
 	/**
 	 * Like a post or feed generator
-	 * @param uri The post's AT URI
-	 * @param cid The post's CID
+	 * @param reference The post or feed generator to like
+	 * @param reference.uri The target's AT URI
+	 * @param reference.cid The target's CID
 	 * @returns The like record's AT URI and CID
 	 */
 	async like({ uri, cid }: { uri: string; cid: string }): Promise<{ uri: string; cid: string }> {
@@ -681,8 +688,9 @@ export class Bot extends EventEmitter {
 
 	/**
 	 * Repost a post
-	 * @param uri The post's AT URI
-	 * @param cid The post's CID
+	 * @param reference The post to repost
+	 * @param reference.uri The post's AT URI
+	 * @param reference.cid The post's CID
 	 * @returns The repost record's AT URI and CID
 	 */
 	async repost(

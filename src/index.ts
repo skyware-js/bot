@@ -17,8 +17,9 @@ export {
 	GetUserPostsFilter,
 	type RateLimitOptions,
 } from "./bot/Bot.js";
-export { type CacheOptions, makeCache } from "./bot/cache.js";
+export { type CacheOptions } from "./bot/cache.js";
 
+export { facetAwareSegment, graphemeLength, RichText } from "./richtext/RichText.js";
 export { FeedGenerator, type FeedGeneratorData } from "./struct/FeedGenerator.js";
 export { List, type ListData, ListPurpose } from "./struct/List.js";
 export { EmbedImage, type ImageData } from "./struct/post/embed/EmbedImage.js";
@@ -29,6 +30,6 @@ export { RecordEmbed } from "./struct/post/embed/RecordEmbed.js";
 export { RecordWithMediaEmbed } from "./struct/post/embed/RecordWithMediaEmbed.js";
 export { isEmbedMainRecord, isEmbedView, postEmbedFromView } from "./struct/post/embed/util.js";
 export { Post, type PostData } from "./struct/post/Post.js";
-export { type PostPayload } from "./struct/post/PostPayload.js";
+export { type ImagePayload, type PostPayload, PostSelfLabels } from "./struct/post/PostPayload.js";
 export { Threadgate, type ThreadgateData } from "./struct/post/Threadgate.js";
 export { Profile, type ProfileData } from "./struct/Profile.js";

@@ -481,15 +481,13 @@ export class Bot extends EventEmitter {
 					const root = payload.replyRef?.root
 						?? { uri: firstPost.uri, cid: firstPost.cid };
 
-					// We don't want to copy over the entire payload; for instance, images, tags, embed should only be on the first post
-					// With labels and threadgate, it's better to be safe than sorry
+					// We don't want to copy over the entire payload; for instance, images, tags, embed, threadgate should only be on the first post
 					previousPost = await this.post({
 						text: replyText,
 						facets: replyFacets,
 						labels: payload.labels,
 						langs: payload.langs,
 						createdAt: payload.createdAt,
-						threadgate: payload.threadgate,
 
 						replyRef: {
 							parent: { uri: previousPost.uri, cid: previousPost.cid },

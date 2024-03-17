@@ -317,12 +317,6 @@ export class Post {
 		return this.bot.deletePost(this.uri);
 	}
 
-	/**
-	 * Reply to the post
-	 * @param payload The post payload
-	 * @param options Optional configuration (see {@link Bot#post})
-	 * @returns The new post's AT URI and CID, or a Post instance if `options.fetchAfterCreate` is true
-	 */
 	async reply(
 		payload: PostPayload,
 		options: BotPostOptions & { fetchAfterCreate?: false },
@@ -335,6 +329,12 @@ export class Post {
 		payload: PostPayload,
 		options?: BotPostOptions,
 	): Promise<Post | { uri: string; cid: string }>;
+	/**
+	 * Reply to the post
+	 * @param payload The post payload
+	 * @param options Optional configuration (see {@link Bot#post})
+	 * @returns The new post's AT URI and CID, or a Post instance if `options.fetchAfterCreate` is true
+	 */
 	async reply(
 		payload: PostPayload,
 		options?: BotPostOptions,
@@ -348,12 +348,6 @@ export class Post {
 		}, options);
 	}
 
-	/**
-	 * Quote the post
-	 * @param payload The post payload
-	 * @param options Optional configuration (see {@link Bot#post})
-	 * @returns The new post's AT URI and CID, or a Post instance if `options.fetchAfterCreate` is true
-	 */
 	async quote(
 		payload: PostPayload,
 		options?: BotPostOptions & { fetchAfterCreate?: false },
@@ -366,6 +360,12 @@ export class Post {
 		payload: PostPayload,
 		options?: BotPostOptions,
 	): Promise<Post | { uri: string; cid: string }>;
+	/**
+	 * Quote the post
+	 * @param payload The post payload
+	 * @param options Optional configuration (see {@link Bot#post})
+	 * @returns The new post's AT URI and CID, or a Post instance if `options.fetchAfterCreate` is true
+	 */
 	async quote(
 		payload: PostPayload,
 		options?: BotPostOptions,

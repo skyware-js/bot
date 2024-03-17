@@ -419,11 +419,6 @@ export class Bot extends EventEmitter {
 		});
 	}
 
-	/**
-	 * Create a post
-	 * @param payload The post to create
-	 * @param options Optional configuration
-	 */
 	async post(
 		payload: PostPayload,
 		options?: BotPostOptions & { fetchAfterCreate?: false },
@@ -436,6 +431,11 @@ export class Bot extends EventEmitter {
 		payload: PostPayload,
 		options?: BotPostOptions,
 	): Promise<Post | { uri: string; cid: string }>;
+	/**
+	 * Create a post
+	 * @param payload The post to create
+	 * @param options Optional configuration
+	 */
 	async post(
 		payload: PostPayload,
 		options: BotPostOptions = {},
@@ -463,7 +463,7 @@ export class Bot extends EventEmitter {
 		if (graphemeLength(text) > 300) {
 			if (options.splitLongPost) {
 				const segments = facetAwareSegment(text, 300, facets);
-				if (!segments.length) {
+				if (segments.length <= 1) {
 					throw new Error("Post is too long and could not be split into shorter posts.");
 				}
 				const { text: postText, facets: postFacets } = segments.shift()!;
@@ -674,13 +674,23 @@ export class Bot extends EventEmitter {
 
 	/**
 	 * Delete a like
-	 * @param uri The like record's AT URI
+	 * @param uri The liked post/feed's AT URI or the like record's AT URI
 	 */
 	async deleteLike(uri: string): Promise<void> {
 		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
 
-		await this.deleteRecord(uri).catch((e) => {
-			throw new Error(`Failed to delete like ${uri}.`, { cause: e });
+		const likeUri = uri.includes("app.bsky.feed.like")
+			? uri
+			: uri.includes("app.bsky.feed.generator")
+			? (await this.getFeedGenerator(uri)).likeUri
+			: (await this.getPost(uri)).likeUri;
+		if (!likeUri) return;
+
+		await this.deleteRecord(likeUri).catch((e) => {
+			throw new Error(
+				`Failed to delete like ${likeUri}` + likeUri === uri ? "." : ` for record ${uri}.`,
+				{ cause: e },
+			);
 		});
 	}
 	/** @see Bot#deleteLike */
@@ -705,12 +715,23 @@ export class Bot extends EventEmitter {
 
 	/**
 	 * Delete a repost
-	 * @param uri The repost record's AT URI
+	 * @param uri The post's AT URI or the repost record's AT URI
 	 */
 	async deleteRepost(uri: string): Promise<void> {
 		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
-		await this.deleteRecord(uri).catch((e) => {
-			throw new Error(`Failed to delete repost ${uri}.`, { cause: e });
+
+		const repostUri = uri.includes("app.bsky.feed.repost")
+			? uri
+			: (await this.getPost(uri)).repostUri;
+		if (!repostUri) return;
+
+		await this.deleteRecord(repostUri).catch((e) => {
+			throw new Error(
+				`Failed to delete repost ${repostUri}` + repostUri === uri
+					? "."
+					: ` for post ${uri}.`,
+				{ cause: e },
+			);
 		});
 	}
 
@@ -745,7 +766,12 @@ export class Bot extends EventEmitter {
 		}
 
 		await this.deleteRecord(followUri).catch((e) => {
-			throw new Error(`Failed to delete follow ${didOrUri}.`, { cause: e });
+			throw new Error(
+				`Failed to delete follow ${didOrUri}` + followUri === didOrUri
+					? "."
+					: ` for user ${didOrUri}.`,
+				{ cause: e },
+			);
 		});
 	}
 	/** @see Bot#deleteFollow */
@@ -789,12 +815,28 @@ export class Bot extends EventEmitter {
 
 	/**
 	 * Delete a block
-	 * @param uri The block record's AT URI
+	 * @param didOrUri The user's DID or the block record's AT URI
 	 */
-	async deleteBlock(uri: string): Promise<void> {
+	async deleteBlock(didOrUri: string): Promise<void> {
 		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
-		await this.deleteRecord(uri).catch((e) => {
-			throw new Error(`Failed to delete block ${uri}.`, { cause: e });
+
+		let blockUri: string;
+
+		if (didOrUri.startsWith("at://")) blockUri = didOrUri;
+		else {
+			const user = await this.getProfile(didOrUri);
+			if (!user) throw new Error(`User ${didOrUri} not found.`);
+			if (!user.blockUri) return;
+			blockUri = user.blockUri;
+		}
+
+		await this.deleteRecord(blockUri).catch((e) => {
+			throw new Error(
+				`Failed to delete block ${didOrUri}` + blockUri === didOrUri
+					? "."
+					: ` for user ${didOrUri}.`,
+				{ cause: e },
+			);
 		});
 	}
 

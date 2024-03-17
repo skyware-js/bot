@@ -46,8 +46,13 @@ export function graphemeLength(text: string) {
  * @param text The string to segment.
  * @param length The maximum grapheme length of each segment.
  * @param facets The facets to avoid breaking.
+ * @returns An array of substrings and their associated facets.
  */
-export function facetAwareSegment(text: string, length: number, facets: Array<Facet>) {
+export function facetAwareSegment(
+	text: string,
+	length: number,
+	facets: Array<Facet>,
+): Array<{ text: string; facets: Array<Facet> }> {
 	// The text segmented into graphemes
 	const segments = [...segmenter.segment(text)];
 

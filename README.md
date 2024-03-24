@@ -30,7 +30,7 @@ const bot = new Bot();
 await bot.login({ identifier: "···", password: "···" });
 
 bot.on("reply", async (post) => {
-    post.reply("Thanks for replying to my post!");
+    await post.reply({ text: "Thanks for replying to my post!" });
     await post.like();
     await post.author.follow();
 })

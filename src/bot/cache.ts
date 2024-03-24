@@ -1,13 +1,19 @@
 import QuickLRU from "quick-lru";
 
 /**
- * Options for request caching
+ * Options for request caching.
  */
 export interface CacheOptions {
-	/** The maximum age of a cached item in seconds */
+	/**
+	 * The maximum age of a cached item in seconds.
+	 * @default `12 * 60 * 60` (12 hours)
+	 */
 	maxAge?: number;
 
-	/** The maximum number of entries in the cache */
+	/**
+	 * The maximum number of entries in the cache.
+	 * @default 250
+	 */
 	maxEntries?: number;
 }
 

@@ -11,13 +11,13 @@ import { Post } from "../Post.js";
 import { PostEmbed } from "./PostEmbed.js";
 
 /**
- * A post embed that links to a post, list, or feed generator record
+ * A post embed that links to a post, list, or feed generator record.
  */
 export class RecordEmbed extends PostEmbed {
-	constructor(
-		/** The embedded record */
-		public record: Post | List | FeedGenerator,
-	) {
+	/**
+	 * @param record The embedded record.
+	 */
+	constructor(public record: Post | List | FeedGenerator) {
 		super();
 	}
 
@@ -26,9 +26,9 @@ export class RecordEmbed extends PostEmbed {
 	}
 
 	/**
-	 * Constructs a RecordEmbed from an embed record view
-	 * @param recordView The view of the embed record
-	 * @param bot The active Bot instance
+	 * Constructs a RecordEmbed from an embed record view.
+	 * @param recordView The view of the embed record.
+	 * @param bot The active Bot instance.
 	 */
 	static fromView(recordView: AppBskyEmbedRecord.View, bot: Bot): RecordEmbed {
 		if (AppBskyEmbedRecord.isViewRecord(recordView.record)) {

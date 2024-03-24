@@ -3,13 +3,13 @@ import { EmbedImage } from "./EmbedImage.js";
 import { PostEmbed } from "./PostEmbed.js";
 
 /**
- * A post embed that contains 1 to 4 images
+ * A post embed that contains 1 to 4 images.
  */
 export class ImagesEmbed extends PostEmbed {
-	constructor(
-		/** The images within this embed */
-		public images: Array<EmbedImage>,
-	) {
+	/**
+	 * @param images The images within this embed.
+	 */
+	constructor(public images: Array<EmbedImage>) {
 		super();
 	}
 
@@ -18,9 +18,9 @@ export class ImagesEmbed extends PostEmbed {
 	}
 
 	/**
-	 * Constructs an ImagesEmbed from an embed view and a record
-	 * @param imagesView The view of the embed
-	 * @param imagesRecord The embed images record
+	 * Constructs an ImagesEmbed from an embed view and a record.
+	 * @param imagesView The view of the embed.
+	 * @param imagesRecord The embed images record.
 	 */
 	static fromView(
 		imagesView: AppBskyEmbedImages.View,

@@ -1,9 +1,12 @@
-import type { AppBskyFeedDefs, AppBskyRichtextFacet } from "@atproto/api";
+import type { AppBskyFeedDefs } from "@atproto/api";
 import type { Bot } from "../bot/Bot.js";
 import { Facet } from "./post/Facet.js";
 import { Post } from "./post/Post.js";
 import { Profile } from "./Profile.js";
 
+/**
+ * Data used to construct a FeedGenerator class.
+ */
 export interface FeedGeneratorData {
 	displayName: string;
 	uri: string;
@@ -19,47 +22,50 @@ export interface FeedGeneratorData {
 }
 
 /**
- * A feed generator
+ * A feed generator that can be followed to receive posts.
  */
 export class FeedGenerator {
-	/** The feed generator's name */
+	/** The feed generator's name. */
 	displayName: string;
 
-	/** The feed generator's AT URI */
+	/** The feed generator's AT URI. */
 	uri: string;
 
-	/** The feed generator's CID */
+	/** The feed generator's CID. */
 	cid: string;
 
-	/** The feed generator's DID */
+	/** The feed generator's DID. */
 	did: string;
 
-	/** The feed generator's creator */
+	/** The feed generator's creator. */
 	creator: Profile;
 
-	/** The feed generator's description */
+	/** The feed generator's description. */
 	description?: string;
 
-	/** Any facets associated with the feed generator's description */
+	/** Any facets associated with the feed generator's description. */
 	descriptionFacets?: Array<Facet>;
 
-	/** The feed generator's avatar */
+	/** The feed generator's avatar. */
 	avatar?: string;
 
-	/** Whether the feed generator is currently online */
+	/** Whether the feed generator is currently online. */
 	isOnline?: boolean;
 
-	/** The URI of the feed generator's like record, if the viewer has liked the feed generator */
+	/** The URI of the feed generator's like record, if the viewer has liked the feed generator. */
 	likeUri?: string;
 
-	/** The time the feed generator was indexed by the App View */
+	/** The time the feed generator was indexed by the App View. */
 	indexedAt: Date;
 
+	/**
+	 * @param data Feed generator data.
+	 * @param bot The active Bot instance.
+	 */
 	constructor(
 		// dprint-ignore
 		{ displayName, uri, cid, did, creator, description, descriptionFacets, avatar, isOnline, likeUri, indexedAt }:
 			FeedGeneratorData,
-		/** The active Bot instance */
 		public bot: Bot,
 	) {
 		this.displayName = displayName;
@@ -76,15 +82,15 @@ export class FeedGenerator {
 	}
 
 	/**
-	 * Like the feed generator
-	 * @returns The like record's AT URI
+	 * Like the feed generator.
+	 * @returns The like record's AT URI.
 	 */
 	async like() {
 		return this.likeUri = (await this.bot.like({ uri: this.uri, cid: this.cid })).uri;
 	}
 
 	/**
-	 * Unlike the feed generator
+	 * Unlike the feed generator.
 	 */
 	async unlike() {
 		if (this.likeUri) await this.bot.unlike(this.likeUri);
@@ -96,13 +102,11 @@ export class FeedGenerator {
 	}
 
 	/**
-	 * Get a feed of posts from the feed generator
-	 * @param options Options for fetching the feed
-	 * @param options.limit The maximum number of posts to return (1-100, default 100)
-	 * @param options.cursor The cursor for pagination
+	 * Get a feed of posts from the feed generator.
+	 * @param options Options for fetching the feed.
 	 */
 	async getPosts(
-		{ limit = 100, cursor = "" } = {},
+		{ limit = 100, cursor = "" }: FeedGeneratorGetPostsOptions = {},
 	): Promise<{ cursor: string | undefined; posts: Array<Post> }> {
 		const response = await this.bot.api.app.bsky.feed.getFeed({ feed: this.uri, limit, cursor })
 			.catch((e) => {
@@ -115,9 +119,9 @@ export class FeedGenerator {
 	}
 
 	/**
-	 * Constructs an instance from a GeneratorView
-	 * @param view The GeneratorView to construct from
-	 * @param bot The active Bot instance
+	 * Constructs an instance from a GeneratorView.
+	 * @param view The GeneratorView to construct from.
+	 * @param bot The active Bot instance.
 	 */
 	static fromView(view: AppBskyFeedDefs.GeneratorView, bot: Bot): FeedGenerator {
 		const { descriptionFacets, ...rest } = view;
@@ -134,4 +138,14 @@ export class FeedGenerator {
 				: {}),
 		}, bot);
 	}
+}
+
+/**
+ * Options for the {@link FeedGenerator#getPosts} method.
+ */
+export interface FeedGeneratorGetPostsOptions {
+	/** The maximum number of posts to return (1-100, default 100). */
+	limit?: number;
+	/** The cursor for pagination. */
+	cursor?: string;
 }

@@ -8,6 +8,9 @@ import type {
 import type { List } from "./List.js";
 import type { Post } from "./post/Post.js";
 
+/**
+ * Data used to construct a Profile class.
+ */
 export interface ProfileData {
 	did: string;
 	handle: string;
@@ -28,40 +31,40 @@ export interface ProfileData {
 }
 
 /**
- * A Bluesky user profile
+ * A Bluesky user profile.
  */
 export class Profile {
-	/** The user's DID */
+	/** The user's DID. */
 	did: string;
 
-	/** The user's handle */
+	/** The user's handle. */
 	handle: string;
 
-	/** The user's display name */
+	/** The user's display name. */
 	displayName?: string;
 
-	/** The user's profile description  */
+	/** The user's profile description . */
 	description?: string;
 
-	/** The user's avatar URL */
+	/** The user's avatar URL. */
 	avatar?: string;
 
-	/** The user's banner URL */
+	/** The user's banner URL. */
 	banner?: string;
 
-	/** The number of followers the user has */
+	/** The number of followers the user has. */
 	followerCount?: number;
 
-	/** The number of users the user is following */
+	/** The number of users the user is following. */
 	followingCount?: number;
 
-	/** The number of posts the user has made */
+	/** The number of posts the user has made. */
 	postsCount?: number;
 
-	/** Labels on the user's profile */
+	/** Labels on the user's profile. */
 	labels: Array<ComAtprotoLabelDefs.Label>;
 
-	/** The time when the user's profile was indexed by the App View */
+	/** The time when the user's profile was indexed by the App View. */
 	indexedAt?: Date;
 
 	/**
@@ -76,7 +79,7 @@ export class Profile {
 	 */
 	followedByUri?: string;
 
-	/** Whether the user is muted by the bot */
+	/** Whether the user is muted by the bot. */
 	isMuted?: boolean;
 
 	/**
@@ -85,10 +88,10 @@ export class Profile {
 	 */
 	blockUri?: string;
 
-	/** Whether the bot is blocked by the user */
+	/** Whether the bot is blocked by the user. */
 	blockedBy?: boolean;
 
-	/** Whether the bot is following the user */
+	/** Whether the bot is following the user. */
 	get isFollowing() {
 		return this.followUri != undefined;
 	}
@@ -108,10 +111,13 @@ export class Profile {
 		return this.isFollowing && this.followedBy;
 	}
 
+	/**
+	 * @param data Profile data.
+	 * @param bot The active Bot instance.
+	 */
 	constructor(
 		// dprint-ignore
 		{ did, handle, displayName, description, avatar, banner, followerCount, followingCount, postsCount, labels, indexedAt, followUri, followedByUri, isMuted, blockUri, isBlockedBy }: ProfileData,
-		/** The active Bot instance */
 		public bot: Bot,
 	) {
 		this.did = did;
@@ -133,53 +139,53 @@ export class Profile {
 	}
 
 	/**
-	 * Follow the user
-	 * @returns The AT URI of the follow relationship
+	 * Follow the user.
+	 * @returns The AT URI of the follow relationship.
 	 */
 	async follow(): Promise<string> {
 		return this.followUri = (await this.bot.follow(this.did)).uri;
 	}
 
 	/**
-	 * Unfollow the user
+	 * Unfollow the user.
 	 */
 	async unfollow(): Promise<void> {
 		return this.bot.unfollow(this.did);
 	}
 
 	/**
-	 * Mute the user
+	 * Mute the user.
 	 */
 	async mute(): Promise<void> {
 		return this.bot.mute(this.did);
 	}
 
 	/**
-	 * Unmute the user
+	 * Unmute the user.
 	 */
 	async unmute(): Promise<void> {
 		return this.bot.unmute(this.did);
 	}
 
 	/**
-	 * Block the user
-	 * @returns The AT URI of the block relationship
+	 * Block the user.
+	 * @returns The AT URI of the block relationship.
 	 */
 	async block(): Promise<string> {
 		return this.blockUri = (await this.bot.block(this.did)).uri;
 	}
 
 	/**
-	 * Unblock the user
+	 * Unblock the user.
 	 */
 	async unblock(): Promise<void> {
 		return this.bot.deleteBlock(this.did);
 	}
 
 	/**
-	 * Fetch the user's posts (up to 100 at a time, default 100)
-	 * @param options Optional configuration
-	 * @returns The user's posts and a cursor for pagination
+	 * Fetch the user's posts (up to 100 at a time, default 100).
+	 * @param options Optional configuration.
+	 * @returns The user's posts and a cursor for pagination.
 	 */
 	async getPosts(
 		options: BotGetUserPostsOptions = {},
@@ -188,9 +194,9 @@ export class Profile {
 	}
 
 	/**
-	 * Fetch the user's liked posts (up to 100 at a time, default 100)
-	 * @param options Optional configuration
-	 * @returns The user's liked posts and a cursor for pagination
+	 * Fetch the user's liked posts (up to 100 at a time, default 100).
+	 * @param options Optional configuration.
+	 * @returns The user's liked posts and a cursor for pagination.
 	 */
 	async getLikedPosts(
 		options: BotGetUserLikesOptions = {},
@@ -199,9 +205,9 @@ export class Profile {
 	}
 
 	/**
-	 * Fetch the user's lists (up to 100 at a time, default 100)
-	 * @param options Optional configuration
-	 * @returns The user's lists and a cursor for pagination
+	 * Fetch the user's lists (up to 100 at a time, default 100).
+	 * @param options Optional configuration.
+	 * @returns The user's lists and a cursor for pagination.
 	 */
 	async getLists(
 		options: BotGetUserListsOptions = {},
@@ -210,9 +216,9 @@ export class Profile {
 	}
 
 	/**
-	 * Constructs an instance from a ProfileView
-	 * @param view The ProfileView to construct from
-	 * @param bot The active Bot instance
+	 * Constructs an instance from a ProfileView.
+	 * @param view The ProfileView to construct from.
+	 * @param bot The active Bot instance.
 	 */
 	static fromView(
 		view: AppBskyActorDefs.ProfileView | AppBskyActorDefs.ProfileViewBasic,

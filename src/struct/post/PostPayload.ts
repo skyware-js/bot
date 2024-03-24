@@ -18,61 +18,62 @@ export interface PostPayload {
 	 */
 	facets?: Array<AppBskyRichtextFacet.Main> | undefined;
 
-	/**  A reference to the post's parent and root posts */
+	/**  A reference to the post's parent and root posts. */
 	replyRef?: AppBskyFeedPost.ReplyRef | undefined;
 
-	/** 1-4 images to attach to the post */
+	/** 1-4 images to attach to the post. */
 	images?: [ImagePayload?, ImagePayload?, ImagePayload?, ImagePayload?] | undefined;
 
-	/** A link to a post, list, or feed generator to be embedded within the post */
+	/** A link to a post, list, or feed generator to be embedded within the post. */
 	quoted?: Post | List | FeedGenerator | undefined;
 
-	/** An external embed to attach to the post */
+	/** An external embed to attach to the post. */
 	external?: {
-		/** The URI of the external content */
+		/** The URI of the external content. */
 		uri: string;
-		/** The title of the external content */
+		/** The title of the external content. */
 		title: string;
-		/** The description of the external content */
+		/** The description of the external content. */
 		description: string;
-		/** The thumbnail image associated with the external content */
+		/** The thumbnail image associated with the external content. */
 		thumb?: ImagePayload;
 	} | undefined;
 
-	/** A list of two-letter language codes that the post is written in */
+	/** A list of two-letter language codes that the post is written in. */
 	langs?: Array<string> | undefined;
 
-	/** The labels to attach to the post, if there are any */
+	/** The labels to attach to the post, if there are any. */
 	labels?: Array<PostSelfLabels> | undefined;
 
-	/** Additional non-inline tags to attach to the post */
+	/** Additional non-inline tags to attach to the post. */
 	tags?: Array<string> | undefined;
 
-	/** An optional threadgate to be applied to the post */
+	/** An optional threadgate to be applied to the post. */
 	threadgate?: {
-		/** Whether users mentioned in the post are allowed to reply */
+		/** Whether users mentioned in the post are allowed to reply. */
 		allowMentioned?: boolean;
-		/** Whether users followed by the bot are allowed to reply */
+		/** Whether users followed by the bot are allowed to reply. */
 		allowFollowing?: boolean;
-		/** Lists or AT URIs pointing to lists whose members are allowed to reply */
+		/** Lists or AT URIs pointing to lists whose members are allowed to reply. */
 		allowLists?: Array<string> | Array<List>;
 	} | undefined;
 
 	/**
-	 * The time the post was created
+	 * The time the post was created.
 	 * @default new Date()
 	 */
 	createdAt?: Date | undefined;
 }
 
+/** Data for an image to be attached to a post. */
 export interface ImagePayload {
-	/** Alt text for the image */
+	/** Alt text for the image, */
 	alt?: string;
 
-	/** The image's aspect ratio */
+	/** The image's aspect ratio, */
 	aspectRatio?: { width: number; height: number };
 
-	/** The image's data */
+	/** The image's data. */
 	data: Uint8Array;
 }
 
@@ -92,6 +93,10 @@ type SelfLabelValue = Exclude<
 	| "doxxing" /* wouldn't want to self apply these */
 >;
 
+/**
+ * Labels that can be self-applied when creating a post.
+ * @enum
+ */
 export const PostSelfLabels = {
 	Nsfl: "nsfl",
 	Gore: "gore",

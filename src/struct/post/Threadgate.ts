@@ -3,6 +3,9 @@ import type { Bot } from "../../bot/Bot.js";
 import { List } from "../List.js";
 import type { Post } from "./Post.js";
 
+/**
+ * Data used to construct a Threadgate class.
+ */
 export interface ThreadgateData {
 	cid: string;
 	uri: string;
@@ -14,30 +17,33 @@ export interface ThreadgateData {
 }
 
 /**
- * A threadgate limits who can reply to a post
+ * A threadgate limits who can reply to a post.
  */
 export class Threadgate {
-	/** The threadgate's CID */
+	/** The threadgate's CID. */
 	cid: string;
 
-	/** The threadgate's AT URI */
+	/** The threadgate's AT URI. */
 	uri: string;
 
-	/** When the threadgate was created */
+	/** When the threadgate was created. */
 	createdAt: Date;
 
-	/** The post this threadgate is attached to */
+	/** The post this threadgate is attached to. */
 	post: Post;
 
-	/** Whether users followed by the threadgate author are allowed to reply */
+	/** Whether users followed by the threadgate author are allowed to reply. */
 	allowsFollowing: boolean;
 
-	/** Whether users mentioned in the post are allowed to reply */
+	/** Whether users mentioned in the post are allowed to reply. */
 	allowsMentioned: boolean;
 
-	/** Lists whose members are allowed to reply */
+	/** Lists whose members are allowed to reply. */
 	allowedLists: Array<List>;
 
+	/**
+	 * @param data Threadgate data.
+	 */
 	constructor(
 		{
 			cid,
@@ -58,13 +64,13 @@ export class Threadgate {
 		this.allowedLists = allowedLists;
 	}
 
-	/** Whether the threadgate allows replies based on user lists */
+	/** Whether the threadgate allows replies based on user lists. */
 	get allowsListMembers(): boolean {
 		return this.allowedLists.length > 0;
 	}
 
 	/**
-	 * Constructs an instance from a ThreadgateView
+	 * Constructs an instance from a ThreadgateView.
 	 */
 	static fromView(view: AppBskyFeedDefs.ThreadgateView, post: Post, bot: Bot): Threadgate {
 		if (!AppBskyFeedThreadgate.isRecord(view.record) || !view.cid || !view.uri) {

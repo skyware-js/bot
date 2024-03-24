@@ -1,6 +1,9 @@
 import type { AppBskyEmbedExternal } from "@atproto/api";
 import { PostEmbed } from "./PostEmbed.js";
 
+/**
+ * Data used to construct an ExternalEmbed class.
+ */
 interface ExternalEmbedData {
 	uri: string;
 	title: string;
@@ -9,21 +12,24 @@ interface ExternalEmbedData {
 }
 
 /**
- * A post embed that links to external content
+ * A post embed that links to external content.
  */
 export class ExternalEmbed extends PostEmbed {
-	/** The URI of the external content */
+	/** The URI of the external content. */
 	uri: string;
 
-	/** The title of the embed */
+	/** The title of the embed. */
 	title: string;
 
-	/** The description of the embed */
+	/** The description of the embed. */
 	description: string;
 
-	/** The URL for the embed's thumbnail */
+	/** The URL for the embed's thumbnail. */
 	thumb?: string;
 
+	/**
+	 * @param data Embed data.
+	 */
 	constructor({ uri, title, description, thumb }: ExternalEmbedData) {
 		super();
 		this.uri = uri;
@@ -37,8 +43,8 @@ export class ExternalEmbed extends PostEmbed {
 	}
 
 	/**
-	 * Constructs an ExternalEmbed from an embed view
-	 * @param externalView The view of the embed
+	 * Constructs an ExternalEmbed from an embed view.
+	 * @param externalView The view of the embed.
 	 */
 	static fromView(externalView: AppBskyEmbedExternal.View): ExternalEmbed {
 		return new ExternalEmbed(externalView.external);

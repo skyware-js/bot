@@ -12,15 +12,14 @@ import { ImagesEmbed } from "./ImagesEmbed.js";
 import { PostEmbed } from "./PostEmbed.js";
 
 /**
- * A post embed that links to a record in addition to either images or external content
+ * A post embed that links to a record in addition to either images or external content.
  */
 export class RecordWithMediaEmbed extends PostEmbed {
-	constructor(
-		/** The embedded post record */
-		public record: Post,
-		/** The media within this embed */
-		public media: ImagesEmbed | ExternalEmbed,
-	) {
+	/**
+	 * @param record The embedded post record.
+	 * @param media The media within this embed.
+	 */
+	constructor(public record: Post, public media: ImagesEmbed | ExternalEmbed) {
 		super();
 	}
 
@@ -29,10 +28,10 @@ export class RecordWithMediaEmbed extends PostEmbed {
 	}
 
 	/**
-	 * Constructs a RecordWithMediaEmbed from an embed view and a record
-	 * @param view The view of the embed
-	 * @param record The embed record
-	 * @param bot The active Bot instance
+	 * Constructs a RecordWithMediaEmbed from an embed view and a record.
+	 * @param view The view of the embed.
+	 * @param record The embed record.
+	 * @param bot The active Bot instance.
 	 */
 	static fromView(
 		view: AppBskyEmbedRecordWithMedia.View,

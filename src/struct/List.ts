@@ -3,12 +3,19 @@ import type { Bot } from "../bot/Bot.js";
 import { Post } from "./post/Post.js";
 import { Profile } from "./Profile.js";
 
+/**
+ * The purpose of a list.
+ * @enum
+ */
 export const ListPurpose = {
 	ModList: "app.bsky.graph.defs#modlist",
 	CurateList: "app.bsky.graph.defs#curatelist",
 };
 export type ListPurpose = typeof ListPurpose[keyof typeof ListPurpose];
 
+/**
+ * Data used to construct a List class.
+ */
 export interface ListData {
 	name: string;
 	uri: string;
@@ -24,53 +31,60 @@ export interface ListData {
 	indexedAt?: Date | undefined;
 }
 
+/**
+ * A list of users.
+ */
 export class List {
-	/** The list's name */
+	/** The list's name. */
 	name: string;
 
-	/** The list's AT URI */
+	/** The list's AT URI. */
 	uri: string;
 
-	/** The list's CID */
+	/** The list's CID. */
 	cid: string;
 
-	/** The list's purpose */
+	/** The list's purpose. */
 	purpose: ListPurpose;
 
-	/** The list's creator */
+	/** The list's creator. */
 	creator?: Profile;
 
-	/** The list's description */
+	/** The list's description. */
 	description?: string;
 
-	/** Any facets associated with the list's description */
+	/** Any facets associated with the list's description. */
 	descriptionFacets?: Array<AppBskyRichtextFacet.Main>;
 
-	/** The list's avatar */
+	/** The list's avatar. */
 	avatar?: string;
 
-	/** The list's members */
+	/** The list's members. */
 	items?: Array<Profile>;
 
-	/** The AT URI of the list block record, if the bot has the list blocked */
+	/** The AT URI of the list block record, if the bot has the list blocked. */
 	blockUri?: string;
 
-	/** Whether the bot has the list muted */
+	/** Whether the bot has the list muted. */
 	muted?: boolean;
 
-	/** The time the list was indexed by the App View */
+	/** The time the list was indexed by the App View. */
 	indexedAt?: Date;
 
-	/** Whether the list is a mod list */
+	/** Whether the list is a mod list. */
 	get isModList(): boolean {
 		return this.purpose === ListPurpose.ModList;
 	}
 
-	/** Whether the list is a curate list */
+	/** Whether the list is a curation list. */
 	get isCurateList(): boolean {
 		return this.purpose === ListPurpose.CurateList;
 	}
 
+	/**
+	 * @param data List data.
+	 * @param bot The active Bot instance.
+	 */
 	constructor(
 		{
 			name,
@@ -84,7 +98,6 @@ export class List {
 			items,
 			indexedAt,
 		}: ListData,
-		/** The active Bot instance */
 		public bot: Bot,
 	) {
 		this.name = name;
@@ -100,11 +113,10 @@ export class List {
 	}
 
 	/**
-	 * Fetch the list's members
-	 * @param options Options for fetching list members
-	 * @param options.force Whether to fetch items even if they are already cached
+	 * Fetch the list's members.
+	 * @param options Options for fetching list members.
 	 */
-	async fetchItems({ force = false } = {}): Promise<Array<Profile>> {
+	async fetchItems({ force = false }: ListFetchItemsOptions = {}): Promise<Array<Profile>> {
 		if (!force && this.items) return this.items;
 		const { items } = await this.bot.getList(this.uri);
 		if (items) return this.items = items;
@@ -112,7 +124,7 @@ export class List {
 	}
 
 	/**
-	 * Mute all accounts on the list
+	 * Mute all accounts on the list.
 	 */
 	async mute(): Promise<void> {
 		await this.bot.agent.muteModList(this.uri).catch((e) => {
@@ -121,7 +133,7 @@ export class List {
 	}
 
 	/**
-	 * Unmute all accounts on the list
+	 * Unmute all accounts on the list.
 	 */
 	async unmute(): Promise<void> {
 		await this.bot.agent.unmuteModList(this.uri).catch((e) => {
@@ -130,8 +142,8 @@ export class List {
 	}
 
 	/**
-	 * Block all accounts on the list
-	 * @returns The AT URI of the list block record
+	 * Block all accounts on the list.
+	 * @returns The AT URI of the list block record.
 	 */
 	async block(): Promise<string> {
 		const block = await this.bot.agent.blockModList(this.uri).catch((e) => {
@@ -142,7 +154,7 @@ export class List {
 	}
 
 	/**
-	 * Unblock all accounts on the list
+	 * Unblock all accounts on the list.
 	 */
 	async unblock(): Promise<void> {
 		if (this.blockUri) {
@@ -153,13 +165,11 @@ export class List {
 	}
 
 	/**
-	 * Get a feed of recent posts from accounts on the list
-	 * @param options Options for fetching the feed
-	 * @param options.limit The maximum number of posts to fetch (1-100, default 100)
-	 * @param options.cursor The cursor for pagination
+	 * Get a feed of recent posts from accounts on the list.
+	 * @param options Options for fetching the feed.
 	 */
 	async getFeed(
-		{ limit = 100, cursor = "" } = {},
+		{ limit = 100, cursor = "" }: ListGetFeedOptions = {},
 	): Promise<{ cursor: string | undefined; posts: Array<Post> }> {
 		const response = await this.bot.api.app.bsky.feed.getListFeed({
 			list: this.uri,
@@ -175,9 +185,9 @@ export class List {
 	}
 
 	/**
-	 * Constructs an instance from a ListView
-	 * @param view The ListView to construct from
-	 * @param bot The active Bot instance
+	 * Constructs an instance from a ListView.
+	 * @param view The ListView to construct from.
+	 * @param bot The active Bot instance.
 	 */
 	static fromView(
 		view: AppBskyGraphDefs.ListView | AppBskyGraphDefs.ListViewBasic,
@@ -193,4 +203,22 @@ export class List {
 			indexedAt: view.indexedAt ? new Date(view.indexedAt) : undefined,
 		}, bot);
 	}
+}
+
+/**
+ * Options for the {@link List#fetchItems} method.
+ */
+export interface ListFetchItemsOptions {
+	/** Whether to fetch items even if they are already cached. */
+	force?: boolean;
+}
+
+/**
+ * Options for the {@link List#getFeed} method.
+ */
+export interface ListGetFeedOptions {
+	/** The maximum number of posts to fetch (1-100, default 100). */
+	limit?: number;
+	/** The cursor for pagination. */
+	cursor?: string;
 }

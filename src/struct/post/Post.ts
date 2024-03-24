@@ -1,5 +1,5 @@
 import { AppBskyFeedDefs, AppBskyFeedPost, type ComAtprotoLabelDefs } from "@atproto/api";
-import type { Bot, BotPostOptions } from "../../bot/Bot.js";
+import type { Bot, BotPostOptions, StrongRef } from "../../bot/Bot.js";
 import { Profile } from "../Profile.js";
 import type { PostEmbed } from "./embed/PostEmbed.js";
 import { isEmbedMainRecord, isEmbedView, postEmbedFromView } from "./embed/util.js";
@@ -8,7 +8,7 @@ import type { PostPayload } from "./PostPayload.js";
 import { Threadgate } from "./Threadgate.js";
 
 /**
- * Data that can be used to construct a Post class
+ * Data used to construct a Post class.
  */
 export interface PostData {
 	text: string;
@@ -35,80 +35,82 @@ export interface PostData {
 }
 
 /**
- * Represents a post on Bluesky
+ * Represents a post on Bluesky.
  */
 export class Post {
-	/**  The text of the post */
+	/**  The text of the post. */
 	text: string;
 
-	/** The post's AT URI */
+	/** The post's AT URI. */
 	uri: string;
 
-	/** The post's CID */
+	/** The post's CID. */
 	cid: string;
 
-	/** The post's author */
+	/** The post's author. */
 	author: Profile;
 
 	/**
-	 * A facet represents a range within the post's text that has special meaning
-	 * (e.g. mentions, links, tags)
-	 * @see https://www.docs.bsky.app/docs/advanced-guides/post-richtext#rich-text-facets
+	 * A facet represents a range within the post's text that has special meaning (e.g. mentions, links, tags).
+	 * @see [Links, mentions, and rich text | Bluesky](https://www.docs.bsky.app/docs/advanced-guides/post-richtext#rich-text-facets)
 	 */
 	facets?: Array<Facet>;
 
-	/** A reference to the post's parent and root post */
+	/** A reference to the post's parent and root post. */
 	replyRef?: AppBskyFeedPost.ReplyRef;
 
-	/** A list of two-letter language codes that the post is written in */
+	/** A list of two-letter language codes that the post is written in. */
 	langs?: Array<string>;
 
-	/** The embed attached to the post, if there is any */
+	/** The embed attached to the post, if there is any. */
 	embed?: PostEmbed;
 
-	/** The labels attached to the post, if there are any */
+	/** The labels attached to the post, if there are any. */
 	labels?: Array<ComAtprotoLabelDefs.Label>;
 
-	/** Additional non-inline tags attached to the post */
+	/** Additional non-inline tags attached to the post. */
 	tags?: Array<string>;
 
-	/** The post's like URI, if the bot has liked the post */
-	likeUri?: string;
-
-	/** The post's repost URI, if the bot has reposted the post */
-	repostUri?: string;
-
-	/** The post's like count */
-	likeCount?: number;
-
-	/** The post's repost count */
-	repostCount?: number;
-
-	/** The post's reply count */
-	replyCount?: number;
-
-	/** The threadgate attached to the post, if there is any */
+	/** The threadgate attached to the post, if there is any. */
 	threadgate?: Threadgate;
 
-	/** The time the post was created */
-	createdAt: Date;
-
-	/** The time the post was indexed by the App View */
-	indexedAt?: Date;
-
-	/** The root post of this post's thread */
+	/** The root post of this post's thread. */
 	root?: Post;
 
-	/** The post's parent */
+	/** The post's parent. */
 	parent?: Post;
 
-	/** The post's children */
+	/** The post's children. */
 	children?: Array<Post>;
 
+	/** The time the post was created. */
+	createdAt: Date;
+
+	/** The time the post was indexed by the App View. */
+	indexedAt?: Date;
+
+	/** The post's like URI, if the bot has liked the post. */
+	likeUri?: string;
+
+	/** The post's repost URI, if the bot has reposted the post. */
+	repostUri?: string;
+
+	/** The post's like count. */
+	likeCount?: number;
+
+	/** The post's repost count. */
+	repostCount?: number;
+
+	/** The post's reply count. */
+	replyCount?: number;
+
+	/**
+	 * @param data Post data.
+	 * @param bot The active Bot instance.
+	 */
 	constructor(
 		// dprint-ignore
 		{ text, uri, cid, author, facets, replyRef, langs, embed, labels, tags, likeUri, repostUri, likeCount, replyCount, repostCount, threadgate, createdAt = new Date(), indexedAt, parent, root, children, }: PostData,
-		/** The active Bot instance */
 		public bot: Bot,
 	) {
 		this.text = text;
@@ -155,24 +157,21 @@ export class Post {
 	}
 
 	/**
-	 * Fetch the root post of the thread
-	 * @param options Optional configuration
-	 * @param options.force Whether to fetch the root post even if it's already cached
+	 * Fetch the root post of the thread.
+	 * @param options Optional configuration.
 	 */
-	async getRoot({ force = false }: { force?: boolean } = {}): Promise<Post | null> {
+	async fetchRoot({ force = false }: PostFetchRootOptions = {}): Promise<Post | null> {
 		if (this.root && !force) return this.root;
 		if (!this.replyRef?.root?.uri) return null;
 		return this.root = await this.bot.getPost(this.replyRef.root.uri, { skipCache: force });
 	}
 
 	/**
-	 * Fetch the parent post
-	 * @param options Optional configuration
-	 * @param options.parentHeight How many levels up to fetch
-	 * @param options.force Whether to fetch the parent post even if it's already cached
+	 * Fetch the parent post.
+	 * @param options Optional configuration.
 	 */
 	async fetchParent(
-		{ parentHeight = 1, force = false }: { parentHeight?: number; force?: boolean } = {},
+		{ parentHeight = 1, force = false }: PostFetchParentOptions = {},
 	): Promise<Post | null> {
 		if (this.parent && !force) return this.parent;
 		if (!this.replyRef?.parent?.uri) return null;
@@ -183,13 +182,11 @@ export class Post {
 	}
 
 	/**
-	 * Fetch the children of the post
-	 * @param options Optional configuration
-	 * @param options.depth How many levels of replies to fetch
-	 * @param options.force Whether to fetch children even if they're already cached
+	 * Fetch the children of the post.
+	 * @param options Optional configuration.
 	 */
 	async fetchChildren(
-		{ depth = 1, force = false }: { depth?: number; force?: boolean } = {},
+		{ depth = 1, force = false }: PostFetchChildrenOptions = {},
 	): Promise<Array<Post>> {
 		if (this.children && !force) return this.children;
 		const threadView = await this.bot.getPost(this.uri, { depth, skipCache: force });
@@ -203,7 +200,7 @@ export class Post {
 	}
 
 	/**
-	 * Fetch the post's current like count
+	 * Fetch the post's current like count.
 	 */
 	async getLikeCount(): Promise<number | null> {
 		const thread = await this.fetchThreadView();
@@ -213,7 +210,7 @@ export class Post {
 	}
 
 	/**
-	 * Fetch the post's current repost count
+	 * Fetch the post's current repost count.
 	 */
 	async getRepostCount(): Promise<number | null> {
 		const thread = await this.fetchThreadView();
@@ -223,7 +220,7 @@ export class Post {
 	}
 
 	/**
-	 * Fetch the post's current reply count
+	 * Fetch the post's current reply count.
 	 */
 	async getReplyCount(): Promise<number | null> {
 		const thread = await this.fetchThreadView();
@@ -235,7 +232,7 @@ export class Post {
 	/**
 	 * Fetch a list of users who liked this post.
 	 * This method returns 100 likes at a time, alongside a cursor to fetch the next 100.
-	 * @param cursor The cursor to begin fetching from
+	 * @param cursor The cursor to begin fetching from.
 	 */
 	async getLikes(
 		cursor?: string,
@@ -257,7 +254,7 @@ export class Post {
 	/**
 	 * Fetch a list of users who reposted this post.
 	 * This method returns 100 users at a time, alongside a cursor to fetch the next 100.
-	 * @param cursor The cursor to begin fetching from
+	 * @param cursor The cursor to begin fetching from.
 	 */
 	async getReposts(
 		cursor?: string,
@@ -277,64 +274,72 @@ export class Post {
 	}
 
 	/**
-	 * Like the post
-	 * @returns The like's AT URI
+	 * Like the post.
+	 * @returns The like's AT URI.
 	 */
 	async like(): Promise<string> {
 		return this.likeUri = (await this.bot.like(this)).uri;
 	}
 
 	/**
-	 * Unlike the post
+	 * Unlike the post.
 	 */
 	async unlike(): Promise<void> {
 		if (this.likeUri) return this.bot.unlike(this.likeUri);
 	}
 
 	/**
-	 * Repost the post
-	 * @returns The repost's AT URI
+	 * Repost the post.
+	 * @returns The repost's AT URI.
 	 */
 	async repost(): Promise<string> {
 		return this.repostUri = (await this.bot.repost(this)).uri;
 	}
 
 	/**
-	 * Unrepost the post
+	 * Unrepost the post.
 	 */
 	async unrepost(): Promise<void> {
 		if (this.repostUri) return this.bot.deleteRepost(this.uri);
 	}
 
 	/**
-	 * Delete the post
+	 * Delete the post.
 	 */
 	async delete(): Promise<void> {
 		return this.bot.deletePost(this.uri);
 	}
 
+	/**
+	 * Reply to the post.
+	 * @param payload The post payload.
+	 * @param options Optional configuration. Will return post URI and CID when {@link BotPostOptions.fetchAfterCreate fetchAfterCreate} is not set (see {@link Bot#post}).
+	 * @returns The new post's AT URI and CID.
+	 * @overload
+	 */
 	async reply(
 		payload: PostPayload,
 		options: BotPostOptions & { fetchAfterCreate?: false },
-	): Promise<{ uri: string; cid: string }>;
+	): Promise<StrongRef>;
+	/**
+	 * Reply to the post.
+	 * @param payload The post payload.
+	 * @param options Optional configuration. Will return a {@link Post} instance when {@link BotPostOptions.fetchAfterCreate fetchAfterCreate} is set (see {@link Bot#post}).
+	 * @returns A {@link Post} instance.
+	 * @overload
+	 */
 	async reply(
 		payload: PostPayload,
 		options: BotPostOptions & { fetchAfterCreate: true },
 	): Promise<Post>;
-	async reply(
-		payload: PostPayload,
-		options?: BotPostOptions,
-	): Promise<Post | { uri: string; cid: string }>;
 	/**
-	 * Reply to the post
-	 * @param payload The post payload
-	 * @param options Optional configuration (see {@link Bot#post})
-	 * @returns The new post's AT URI and CID, or a Post instance if `options.fetchAfterCreate` is true
+	 * Reply to the post.
+	 * @param payload The post payload.
+	 * @param options Optional configuration (see {@link Bot#post}).
+	 * @returns The new post's AT URI and CID, or a {@link Post} instance if {@link BotPostOptions.fetchAfterCreate options.fetchAfterCreate} is true.
 	 */
-	async reply(
-		payload: PostPayload,
-		options?: BotPostOptions,
-	): Promise<Post | { uri: string; cid: string }> {
+	async reply(payload: PostPayload, options?: BotPostOptions): Promise<Post | StrongRef>;
+	async reply(payload: PostPayload, options?: BotPostOptions): Promise<Post | StrongRef> {
 		return this.bot.post({
 			...payload,
 			replyRef: {
@@ -344,33 +349,41 @@ export class Post {
 		}, options);
 	}
 
+	/**
+	 * Create a new post with this post quoted.
+	 * @param payload The post payload.
+	 * @param options Optional configuration. Will return post URI and CID when {@link BotPostOptions.fetchAfterCreate fetchAfterCreate} is not set (see {@link Bot#post}).
+	 * @returns The new post's AT URI and CID.
+	 * @overload
+	 */
 	async quote(
 		payload: PostPayload,
 		options?: BotPostOptions & { fetchAfterCreate?: false },
-	): Promise<{ uri: string; cid: string }>;
+	): Promise<StrongRef>;
+	/**
+	 * Create a new post with this post quoted..
+	 * @param payload The post payload.
+	 * @param options Optional configuration. Will return a {@link Post} instance when {@link BotPostOptions.fetchAfterCreate fetchAfterCreate} is set (see {@link Bot#post}).
+	 * @returns A {@link Post} instance.
+	 * @overload
+	 */
 	async quote(
 		payload: PostPayload,
 		options?: BotPostOptions & { fetchAfterCreate: true },
 	): Promise<Post>;
-	async quote(
-		payload: PostPayload,
-		options?: BotPostOptions,
-	): Promise<Post | { uri: string; cid: string }>;
 	/**
-	 * Quote the post
-	 * @param payload The post payload
-	 * @param options Optional configuration (see {@link Bot#post})
-	 * @returns The new post's AT URI and CID, or a Post instance if `options.fetchAfterCreate` is true
+	 * Create a new post with this post quoted.
+	 * @param payload The post payload.
+	 * @param options Optional configuration (see {@link Bot#post}).
+	 * @returns The new post's AT URI and CID, or a {@link Post} instance if {@link BotPostOptions.fetchAfterCreate options.fetchAfterCreate} is true.
 	 */
-	async quote(
-		payload: PostPayload,
-		options?: BotPostOptions,
-	): Promise<Post | { uri: string; cid: string }> {
+	async quote(payload: PostPayload, options?: BotPostOptions): Promise<Post | StrongRef>;
+	async quote(payload: PostPayload, options?: BotPostOptions): Promise<Post | StrongRef> {
 		return this.bot.post({ ...payload, quoted: this }, options);
 	}
 
 	/**
-	 * Constructs an instance from a PostView
+	 * Constructs an instance from a PostView.
 	 */
 	static fromView(view: AppBskyFeedDefs.PostView, bot: Bot): Post {
 		if ((!AppBskyFeedPost.isRecord(view.record))) throw new Error("Invalid post view record");
@@ -404,7 +417,7 @@ export class Post {
 	}
 
 	/**
-	 * Constructs an instance from a ThreadViewPost
+	 * Constructs an instance from a ThreadViewPost.
 	 */
 	static fromThreadView(view: AppBskyFeedDefs.ThreadViewPost, bot: Bot): Post {
 		if (!AppBskyFeedPost.isRecord(view.post.record)) {
@@ -420,4 +433,32 @@ export class Post {
 
 		return new Post({ ...Post.fromView(view.post, bot), parent, children }, bot);
 	}
+}
+
+/**
+ * Options for the {@link Post#fetchRoot} method.
+ */
+export interface PostFetchRootOptions {
+	/** Whether to fetch the root post even if it's already cached. */
+	force?: boolean;
+}
+
+/**
+ * Options for the {@link Post#fetchParent} method.
+ */
+export interface PostFetchParentOptions {
+	/** How many levels up to fetch. */
+	parentHeight?: number;
+	/** Whether to fetch the parent post even if it's already cached. */
+	force?: boolean;
+}
+
+/**
+ * Options for the {@link Post#fetchChildren} method.
+ */
+export interface PostFetchChildrenOptions {
+	/** How many levels of replies to fetch. */
+	depth?: number;
+	/** Whether to fetch children even if they're already cached. */
+	force?: boolean;
 }

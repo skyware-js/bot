@@ -40,8 +40,8 @@ export const utf8IndexToUtf16Index = (text: string, i: number) => {
 };
 
 /**
- * This is a modified version of the @atproto/api detectFacets function that doesn't use the UnicodeString class.
- * This allows us to avoid importing `graphemer`, instead using the `Intl.Segmenter` builtin (see {@link graphemeLength}), which saves ~800kB in bundle size.
+ * This is a modified version of the {@link import("@atproto/api").RichText#detectFacets} function that doesn't use the UnicodeString class.
+ * This allows us to avoid importing `graphemer`, instead using the `Intl.Segmenter` builtin (see {@link graphemeLength}), which saves ~800kB in bundle size (200kB gzipped).
  *
  * JS strings are encoded as UTF-16; `utf16IndexToUtf8Index` is used to get UTF-8 byte indices of facets within text.
  * @param text Text to detect facets in.

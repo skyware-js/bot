@@ -15,6 +15,10 @@ import type { Post } from "../struct/post/Post.js";
 import { Profile } from "../struct/Profile.js";
 import type { Bot } from "./Bot.js";
 
+/**
+ * How the bot will receive and emit events.
+ * @enum
+ */
 export const EventStrategy = {
 	/**
 	 * By default, the bot will poll the notifications endpoint every `pollingInterval` seconds.
@@ -31,9 +35,10 @@ export const EventStrategy = {
 };
 export type EventStrategy = typeof EventStrategy[keyof typeof EventStrategy];
 
+/** Options for the bot event emitter. */
 export interface BotEventEmitterOptions {
 	/**
-	 * How the bot will receive and emit events
+	 * How the bot will receive and emit events.
 	 * @default EventStrategy.Polling
 	 */
 	strategy: EventStrategy;
@@ -56,12 +61,12 @@ export interface BotEventEmitterOptions {
 	 */
 	relayUri?: string;
 
-	/** Options to pass to the Firehose constructor */
+	/** Options to pass to the Firehose constructor. */
 	firehoseOptions?: FirehoseOptions;
 }
 
 export class BotEventEmitter extends EventEmitter {
-	/** How the bot will receive and emit events */
+	/** How the bot will receive and emit events. */
 	private strategy: EventStrategy;
 
 	/**
@@ -73,15 +78,19 @@ export class BotEventEmitter extends EventEmitter {
 	/** The timestamp of the last notification processed, if using `EventStrategy.Polling`. */
 	private lastSeen?: Date;
 
-	/** Used to cancel polling */
+	/** Used to cancel polling. */
 	private pollingController?: AbortController;
 
-	/** The firehose event stream */
+	/** The firehose event stream. */
 	public firehose?: Firehose;
 
-	/** Whether the bot is emitting events */
+	/** Whether the bot is emitting events. */
 	public emitting: boolean = false;
 
+	/**
+	 * @param options The options for the event emitter.
+	 * @param bot The active Bot instance.
+	 */
 	constructor(options: BotEventEmitterOptions, private bot: Bot) {
 		super();
 		this.strategy = options.strategy;
@@ -105,7 +114,7 @@ export class BotEventEmitter extends EventEmitter {
 		}
 	}
 
-	/** Start emitting events */
+	/** Start emitting events. */
 	start() {
 		if (this.emitting) return;
 		if (this.strategy === EventStrategy.Firehose) this.startFirehose();
@@ -113,7 +122,7 @@ export class BotEventEmitter extends EventEmitter {
 		this.emitting = true;
 	}
 
-	/** Stop emitting events */
+	/** Stop emitting events. */
 	stop() {
 		if (!this.emitting) return;
 		if (this.firehose) this.firehose.close();
@@ -121,6 +130,7 @@ export class BotEventEmitter extends EventEmitter {
 		this.emitting = false;
 	}
 
+	/** Start receiving and processing firehose events. */
 	startFirehose() {
 		this.firehose?.on("open", () => this.emit("open"));
 		this.firehose?.on("error", (error) => this.emit("error", error));
@@ -200,7 +210,7 @@ export class BotEventEmitter extends EventEmitter {
 		this.firehose?.start();
 	}
 
-	/** Start polling the notifications endpoint */
+	/** Start polling the notifications endpoint. */
 	startPolling() {
 		this.pollingController = new AbortController();
 		const interval = setInterval(this.pollingInterval * 1000, undefined, {
@@ -213,7 +223,7 @@ export class BotEventEmitter extends EventEmitter {
 		})();
 	}
 
-	/** Poll the notifications endpoint */
+	/** Poll the notifications endpoint. */
 	async poll() {
 		const response = await this.bot.agent.api.app.bsky.notification.listNotifications().catch(
 			(error) => {

@@ -7,7 +7,6 @@ import {
 	AppBskyFeedPost,
 	AppBskyFeedThreadgate,
 	AppBskyRichtextFacet,
-	type AtpAgentLoginOpts,
 	type AtpServiceClient,
 	type AtpSessionData,
 	AtUri,
@@ -33,65 +32,65 @@ import { type CacheOptions, makeCache } from "./cache.js";
 const NO_SESSION_ERROR = "Active session not found. Make sure to call the login method first.";
 
 /**
- * Options for the Bot constructor
+ * Options for the Bot constructor.
  */
 export interface BotOptions {
 	/**
-	 * The PDS to connect to
+	 * The PDS to connect to.
 	 * @default "https://bsky.social"
 	 */
 	service?: string;
 
 	/**
-	 * The default list of languages to attach to posts
+	 * The default list of languages to attach to posts.
 	 * @default ["en"]
 	 */
 	langs?: Array<string>;
 
 	/**
-	 * Whether to emit events
+	 * Whether to emit events.
 	 * @default true
 	 */
 	emitEvents?: boolean;
 
-	/** Options for the built-in rate limiter */
+	/** Options for the built-in rate limiter. */
 	rateLimitOptions?: RateLimitOptions;
 
-	/** Options for the request cache */
+	/** Options for the request cache. */
 	cacheOptions?: CacheOptions;
 
-	/** Options for the event emitter */
+	/** Options for the event emitter. */
 	eventEmitterOptions?: BotEventEmitterOptions;
 }
 
 /**
- * A bot that can interact with the Bluesky API
+ * A bot that can interact with the Bluesky API.
  */
 export class Bot extends EventEmitter {
-	/** The agent used to communicate with the Bluesky API */
+	/** The agent used to communicate with the Bluesky API. */
 	readonly agent: BskyAgent;
 
-	/** A limiter to rate limit API requests */
+	/** A limiter to rate limit API requests. */
 	private readonly limiter: RateLimiter;
 
-	/** A cache to store API responses */
+	/** A cache to store API responses. */
 	readonly cache: BotCache;
 
-	/** Receives and emits events */
+	/** Receives and emits events.. */
 	private readonly eventEmitter?: BotEventEmitter;
 
-	/** The Bluesky API client, with rate-limited methods */
+	/** The Bluesky API client, with rate-limited methods. */
 	readonly api: AtpServiceClient;
 
-	/** The default list of languages to attach to posts */
+	/** The default list of languages to attach to posts. */
 	langs: Array<string> = [];
 
-	/** The bot account's Bluesky profile */
+	/** The bot account's Bluesky profile. */
 	profile!: Profile;
 
 	/**
-	 * Create a new bot
-	 * @param options Configuration options
+	 * Create a new bot.
+	 * @param options Configuration options.
 	 */
 	constructor(
 		{
@@ -138,14 +137,12 @@ export class Bot extends EventEmitter {
 	}
 
 	/**
-	 * Log in with an identifier and password
-	 * @param options The bot account's identifier and password
-	 * @param options.identifier The bot account's email, handle, or DID
-	 * @param options.password The bot account's password
-	 * @returns Session data
+	 * Log in with an identifier and password.
+	 * @param options The bot account's identifier and password.
+	 * @returns Session data.
 	 */
 	async login(
-		{ identifier, password }: AtpAgentLoginOpts,
+		{ identifier, password }: BotLoginOptions,
 	): Promise<ComAtprotoServerCreateSession.OutputSchema> {
 		if (identifier[0] === "@") identifier = identifier.slice(1);
 
@@ -163,9 +160,9 @@ export class Bot extends EventEmitter {
 	}
 
 	/**
-	 * Resume an existing session
-	 * @param session Session data
-	 * @returns Updated session data
+	 * Resume an existing session.
+	 * @param session Session data.
+	 * @returns Updated session data.
 	 */
 	async resumeSession(session: AtpSessionData): Promise<ComAtprotoServerGetSession.OutputSchema> {
 		const response = await this.agent.resumeSession(session).catch((e) => {
@@ -176,9 +173,9 @@ export class Bot extends EventEmitter {
 	}
 
 	/**
-	 * Fetch a post by its AT URI
-	 * @param uri The post's AT URI
-	 * @param options Optional configuration
+	 * Fetch a post by its AT URI.
+	 * @param uri The post's AT URI.
+	 * @param options Optional configuration.
 	 */
 	async getPost(uri: string, options: BotGetPostOptions = {}): Promise<Post> {
 		options = { parentHeight: 1, depth: 1, ...options };
@@ -207,9 +204,9 @@ export class Bot extends EventEmitter {
 	}
 
 	/**
-	 * Fetch up to 25 posts by their AT URIs
-	 * @param uris The URIs of the posts to fetch
-	 * @param options Optional configuration
+	 * Fetch up to 25 posts by their AT URIs.
+	 * @param uris The URIs of the posts to fetch.
+	 * @param options Optional configuration.
 	 */
 	async getPosts(uris: Array<string>, options: BotGetPostsOptions = {}): Promise<Array<Post>> {
 		if (!uris.length) return [];
@@ -238,10 +235,10 @@ export class Bot extends EventEmitter {
 	}
 
 	/**
-	 * Fetch up to 100 (default 100) posts by a user's DID
-	 * @param did The user's DID
-	 * @param options Optional configuration
-	 * @returns The user's posts and, if there are more posts to fetch, a cursor
+	 * Fetch up to 100 (default 100) posts by a user's DID.
+	 * @param did The user's DID.
+	 * @param options Optional configuration.
+	 * @returns The user's posts and, if there are more posts to fetch, a cursor.
 	 */
 	async getUserPosts(
 		did: string,
@@ -266,9 +263,9 @@ export class Bot extends EventEmitter {
 	}
 
 	/**
-	 * Fetch up to 100 (default 100) posts liked by a user
-	 * @param did The user's DID
-	 * @param options Optional configuration
+	 * Fetch up to 100 (default 100) posts liked by a user.
+	 * @param did The user's DID.
+	 * @param options Optional configuration.
 	 */
 	async getUserLikes(
 		did: string,
@@ -289,9 +286,9 @@ export class Bot extends EventEmitter {
 	}
 
 	/**
-	 * Fetch a profile by DID or handle
-	 * @param didOrHandle The user's DID or handle
-	 * @param options Optional configuration
+	 * Fetch a profile by DID or handle.
+	 * @param didOrHandle The user's DID or handle.
+	 * @param options Optional configuration.
 	 */
 	async getProfile(didOrHandle: string, options: BotGetProfileOptions = {}): Promise<Profile> {
 		if (!options.skipCache && this.cache.profiles.has(didOrHandle)) {
@@ -308,9 +305,9 @@ export class Bot extends EventEmitter {
 	}
 
 	/**
-	 * Fetch a list by its AT URI
-	 * @param uri The list's AT URI
-	 * @param options Optional configuration
+	 * Fetch a list by its AT URI.
+	 * @param uri The list's AT URI.
+	 * @param options Optional configuration.
 	 */
 	async getList(uri: string, options: BotGetListOptions = {}): Promise<List> {
 		if (!options.skipCache && this.cache.lists.has(uri)) {
@@ -329,9 +326,9 @@ export class Bot extends EventEmitter {
 	}
 
 	/**
-	 * Fetch all (up to 100, default 100) lists created by a user
-	 * @param did The user's DID
-	 * @param options Optional configuration
+	 * Fetch all (up to 100, default 100) lists created by a user.
+	 * @param did The user's DID.
+	 * @param options Optional configuration.
 	 */
 	async getUserLists(
 		did: string,
@@ -353,9 +350,9 @@ export class Bot extends EventEmitter {
 	}
 
 	/**
-	 * Fetch a feed generator by its AT URI
-	 * @param uri The feed generator's AT URI
-	 * @param options Optional configuration
+	 * Fetch a feed generator by its AT URI.
+	 * @param uri The feed generator's AT URI.
+	 * @param options Optional configuration.
 	 */
 	async getFeedGenerator(
 		uri: string,
@@ -376,9 +373,9 @@ export class Bot extends EventEmitter {
 	}
 
 	/**
-	 * Fetch a list of feed generators by their AT URIs
-	 * @param uris The URIs of the feed generators to fetch
-	 * @param options Optional configuration
+	 * Fetch a list of feed generators by their AT URIs.
+	 * @param uris The URIs of the feed generators to fetch.
+	 * @param options Optional configuration.
 	 */
 	async getFeedGenerators(
 		uris: Array<string>,
@@ -404,8 +401,8 @@ export class Bot extends EventEmitter {
 	}
 
 	/**
-	 * Get the bot's home timeline
-	 * @param options Optional configuration
+	 * Get the bot's home timeline.
+	 * @param options Optional configuration.
 	 */
 	async getTimeline(options: BotGetTimelineOptions = {}): Promise<Array<Post>> {
 		const response = await this.agent.getTimeline(options).catch((e) => {
@@ -419,27 +416,36 @@ export class Bot extends EventEmitter {
 		});
 	}
 
+	/**
+	 * Create a post.
+	 * @param payload The post payload.
+	 * @param options Optional configuration. Will return post URI and CID when {@link BotPostOptions.fetchAfterCreate fetchAfterCreate} is not set.
+	 * @returns The new post's AT URI and CID.
+	 * @overload
+	 */
 	async post(
 		payload: PostPayload,
-		options?: BotPostOptions & { fetchAfterCreate?: false },
-	): Promise<{ uri: string; cid: string }>;
+		options: BotPostOptions & { fetchAfterCreate?: false },
+	): Promise<StrongRef>;
+	/**
+	 * Create a post.
+	 * @param payload The post payload.
+	 * @param options Optional configuration. Will return a {@link Post} instance when {@link BotPostOptions.fetchAfterCreate fetchAfterCreate} is set.
+	 * @returns A {@link Post} instance.
+	 * @overload
+	 */
 	async post(
 		payload: PostPayload,
 		options: BotPostOptions & { fetchAfterCreate: true },
 	): Promise<Post>;
-	async post(
-		payload: PostPayload,
-		options?: BotPostOptions,
-	): Promise<Post | { uri: string; cid: string }>;
 	/**
-	 * Create a post
-	 * @param payload The post to create
-	 * @param options Optional configuration
+	 * Create a post.
+	 * @param payload The post payload.
+	 * @param options Optional configuration (see {@link Bot#post}).
+	 * @returns The new post's AT URI and CID, or a {@link Post} instance if {@link BotPostOptions.fetchAfterCreate options.fetchAfterCreate} is true.
 	 */
-	async post(
-		payload: PostPayload,
-		options: BotPostOptions = {},
-	): Promise<Post | { uri: string; cid: string }> {
+	async post(payload: PostPayload, options?: BotPostOptions): Promise<StrongRef | Post>;
+	async post(payload: PostPayload, options: BotPostOptions = {}): Promise<StrongRef | Post> {
 		options = { resolveFacets: true, ...options };
 
 		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
@@ -644,8 +650,8 @@ export class Bot extends EventEmitter {
 	}
 
 	/**
-	 * Delete a post
-	 * @param uri The post's AT URI
+	 * Delete a post.
+	 * @param uri The post's AT URI.
 	 */
 	async deletePost(uri: string): Promise<void> {
 		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
@@ -656,13 +662,11 @@ export class Bot extends EventEmitter {
 	}
 
 	/**
-	 * Like a post or feed generator
-	 * @param reference The post or feed generator to like
-	 * @param reference.uri The target's AT URI
-	 * @param reference.cid The target's CID
-	 * @returns The like record's AT URI and CID
+	 * Like a post or feed generator.
+	 * @param reference The post or feed generator to like.
+	 * @returns The like record's AT URI and CID.
 	 */
-	async like({ uri, cid }: { uri: string; cid: string }): Promise<{ uri: string; cid: string }> {
+	async like({ uri, cid }: StrongRef): Promise<StrongRef> {
 		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
 
 		return this.agent.like(uri, cid).catch((e) => {
@@ -671,8 +675,8 @@ export class Bot extends EventEmitter {
 	}
 
 	/**
-	 * Delete a like
-	 * @param uri The liked post/feed's AT URI or the like record's AT URI
+	 * Delete a like.
+	 * @param uri The liked record's AT URI or the like record's AT URI.
 	 */
 	async deleteLike(uri: string): Promise<void> {
 		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
@@ -695,15 +699,11 @@ export class Bot extends EventEmitter {
 	unlike = this.deleteLike.bind(this);
 
 	/**
-	 * Repost a post
-	 * @param reference The post to repost
-	 * @param reference.uri The post's AT URI
-	 * @param reference.cid The post's CID
-	 * @returns The repost record's AT URI and CID
+	 * Repost a post.
+	 * @param reference The post to repost.
+	 * @returns The repost record's AT URI and CID.
 	 */
-	async repost(
-		{ uri, cid }: { uri: string; cid: string },
-	): Promise<{ uri: string; cid: string }> {
+	async repost({ uri, cid }: StrongRef): Promise<StrongRef> {
 		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
 
 		return this.agent.repost(uri, cid).catch((e) => {
@@ -712,8 +712,8 @@ export class Bot extends EventEmitter {
 	}
 
 	/**
-	 * Delete a repost
-	 * @param uri The post's AT URI or the repost record's AT URI
+	 * Delete a repost.
+	 * @param uri The post's AT URI or the repost record's AT URI.
 	 */
 	async deleteRepost(uri: string): Promise<void> {
 		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
@@ -734,11 +734,11 @@ export class Bot extends EventEmitter {
 	}
 
 	/**
-	 * Follow a user
-	 * @param did The user's DID
-	 * @returns The follow record's AT URI and CID
+	 * Follow a user.
+	 * @param did The user's DID.
+	 * @returns The follow record's AT URI and CID.
 	 */
-	async follow(did: string): Promise<{ uri: string; cid: string }> {
+	async follow(did: string): Promise<StrongRef> {
 		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
 
 		return this.agent.follow(did).catch((e) => {
@@ -747,8 +747,8 @@ export class Bot extends EventEmitter {
 	}
 
 	/**
-	 * Delete a follow
-	 * @param didOrUri The user's DID or the follow record's AT URI
+	 * Delete a follow.
+	 * @param didOrUri The user's DID or the follow record's AT URI.
 	 */
 	async deleteFollow(didOrUri: string): Promise<void> {
 		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
@@ -776,8 +776,8 @@ export class Bot extends EventEmitter {
 	unfollow = this.deleteFollow.bind(this);
 
 	/**
-	 * Mute a user
-	 * @param did The user's DID
+	 * Mute a user.
+	 * @param did The user's DID.
 	 */
 	async mute(did: string): Promise<void> {
 		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
@@ -787,8 +787,8 @@ export class Bot extends EventEmitter {
 	}
 
 	/**
-	 * Delete a mute
-	 * @param did The user's DID
+	 * Delete a mute.
+	 * @param did The user's DID.
 	 */
 	async deleteMute(did: string): Promise<void> {
 		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
@@ -800,11 +800,11 @@ export class Bot extends EventEmitter {
 	unmute = this.deleteMute.bind(this);
 
 	/**
-	 * Block a user
-	 * @param did The user's DID
-	 * @returns The block record's AT URI and CID
+	 * Block a user.
+	 * @param did The user's DID.
+	 * @returns The block record's AT URI and CID.
 	 */
-	async block(did: string): Promise<{ uri: string; cid: string }> {
+	async block(did: string): Promise<StrongRef> {
 		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
 		return this.createRecord("app.bsky.graph.block", { subject: did }).catch((e) => {
 			throw new Error(`Failed to block user ${did}.`, { cause: e });
@@ -812,8 +812,8 @@ export class Bot extends EventEmitter {
 	}
 
 	/**
-	 * Delete a block
-	 * @param didOrUri The user's DID or the block record's AT URI
+	 * Delete a block.
+	 * @param didOrUri The user's DID or the block record's AT URI.
 	 */
 	async deleteBlock(didOrUri: string): Promise<void> {
 		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
@@ -839,9 +839,9 @@ export class Bot extends EventEmitter {
 	}
 
 	/**
-	 * Resolve a handle to a DID
-	 * @param handle The handle to resolve
-	 * @returns The user's DID
+	 * Resolve a handle to a DID.
+	 * @param handle The handle to resolve.
+	 * @returns The user's DID.
 	 */
 	async resolveHandle(handle: string): Promise<string> {
 		const response = await this.agent.resolveHandle({ handle }).catch((e) => {
@@ -851,8 +851,8 @@ export class Bot extends EventEmitter {
 	}
 
 	/**
-	 * Update the bot's handle
-	 * @param handle The new handle
+	 * Update the bot's handle.
+	 * @param handle The new handle.
 	 */
 	async updateHandle(handle: string): Promise<void> {
 		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
@@ -863,17 +863,13 @@ export class Bot extends EventEmitter {
 	}
 
 	/**
-	 * Create a record
-	 * @param nsid The collection's NSID
-	 * @param record The record to create
-	 * @param rkey The rkey to use
-	 * @returns The record's AT URI and CID
+	 * Create a record.
+	 * @param nsid The collection's NSID.
+	 * @param record The record to create.
+	 * @param rkey The rkey to use.
+	 * @returns The record's AT URI and CID.
 	 */
-	async createRecord(
-		nsid: string,
-		record: object,
-		rkey?: string,
-	): Promise<{ uri: string; cid: string }> {
+	async createRecord(nsid: string, record: object, rkey?: string): Promise<StrongRef> {
 		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
 		const response = await this.api.com.atproto.repo.createRecord({
 			collection: nsid,
@@ -885,8 +881,8 @@ export class Bot extends EventEmitter {
 	}
 
 	/**
-	 * Delete a record
-	 * @param uri The record's AT URI
+	 * Delete a record.
+	 * @param uri The record's AT URI.
 	 */
 	async deleteRecord(uri: string): Promise<void> {
 		const { host: repo, collection, rkey } = new AtUri(uri);
@@ -998,6 +994,28 @@ export interface RateLimitOptions {
 }
 
 /**
+ * Options for the {@link Bot#login} method
+ */
+export interface BotLoginOptions {
+	/** The bot account's email, handle, or DID */
+	identifier: string;
+
+	/** The bot account's password */
+	password: string;
+}
+
+/**
+ * A reference to a record.
+ */
+export interface StrongRef {
+	/** The record's AT URI */
+	uri: string;
+
+	/** The record's CID */
+	cid: string;
+}
+
+/**
  * Base options for any Bot method that fetches data
  */
 export interface BaseBotGetMethodOptions {
@@ -1015,7 +1033,7 @@ export interface BaseBotGetMethodOptions {
 }
 
 /**
- * Options for the Bot#getPost method
+ * Options for the {@link Bot#getPost} method
  */
 export interface BotGetPostOptions extends BaseBotGetMethodOptions {
 	/**
@@ -1032,12 +1050,13 @@ export interface BotGetPostOptions extends BaseBotGetMethodOptions {
 }
 
 /**
- * Options for the Bot#getPosts method
+ * Options for the {@link Bot#getPosts} method
  */
 export interface BotGetPostsOptions extends BaseBotGetMethodOptions {}
 
 /**
- * Post types to include in the response to Bot#getUserPosts
+ * Types of posts to be included in the response to {@link Bot#getUserPosts}
+ * @enum
  */
 export const GetUserPostsFilter = {
 	/** All posts */
@@ -1052,7 +1071,7 @@ export const GetUserPostsFilter = {
 export type GetUserPostsFilter = typeof GetUserPostsFilter[keyof typeof GetUserPostsFilter];
 
 /**
- * Options for the Bot#getUserPosts method
+ * Options for the {@link Bot#getUserPosts} method
  */
 export interface BotGetUserPostsOptions extends Omit<BaseBotGetMethodOptions, "skipCache"> {
 	/**
@@ -1074,7 +1093,7 @@ export interface BotGetUserPostsOptions extends Omit<BaseBotGetMethodOptions, "s
 }
 
 /**
- * Options for the Bot#getUserLikes method
+ * Options for the {@link Bot#getUserLikes} method
  */
 export interface BotGetUserLikesOptions extends Omit<BaseBotGetMethodOptions, "skipCache"> {
 	/**
@@ -1090,17 +1109,17 @@ export interface BotGetUserLikesOptions extends Omit<BaseBotGetMethodOptions, "s
 }
 
 /**
- * Options for the Bot#getProfile method
+ * Options for the {@link Bot#getProfile} method
  */
 export interface BotGetProfileOptions extends BaseBotGetMethodOptions {}
 
 /**
- * Options for the Bot#getList method
+ * Options for the {@link Bot#getList} method
  */
 export interface BotGetListOptions extends BaseBotGetMethodOptions {}
 
 /**
- * Options for the Bot#getUserLists method
+ * Options for the {@link Bot#getUserLists} method
  */
 export interface BotGetUserListsOptions extends Omit<BaseBotGetMethodOptions, "skipCache"> {
 	/**
@@ -1116,17 +1135,17 @@ export interface BotGetUserListsOptions extends Omit<BaseBotGetMethodOptions, "s
 }
 
 /**
- * Options for the Bot#getFeedGenerator method
+ * Options for the {@link Bot#getFeedGenerator} method
  */
 export interface BotGetFeedGeneratorOptions extends BaseBotGetMethodOptions {}
 
 /**
- * Options for the Bot#getFeedGenerators method
+ * Options for the {@link Bot#getFeedGenerators} method
  */
 export interface BotGetFeedGeneratorsOptions extends BaseBotGetMethodOptions {}
 
 /**
- * Options for the Bot#getTimeline method
+ * Options for the {@link Bot#getTimeline} method
  */
 export interface BotGetTimelineOptions extends BaseBotGetMethodOptions {
 	/**
@@ -1142,7 +1161,7 @@ export interface BotGetTimelineOptions extends BaseBotGetMethodOptions {
 }
 
 /**
- * Options for the Bot#post method
+ * Options for the {@link Bot#post} method
  */
 export interface BotPostOptions {
 	/**

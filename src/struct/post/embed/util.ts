@@ -12,27 +12,30 @@ import { RecordEmbed } from "./RecordEmbed.js";
 import { RecordWithMediaEmbed } from "./RecordWithMediaEmbed.js";
 
 /**
- * Constructs the appropriate embed type from an embed view and record
- * @param options The options for constructing the embed
- * @param view The embed view
- * @param record The embed record
- * @param bot The active Bot instance (needed to create Post instance for RecordEmbed and RecordWithMediaEmbed)
+ * Options for constructing a PostEmbed from an embed view.
  */
-export function postEmbedFromView(
-	{ view, record, bot }: {
-		view:
-			| AppBskyEmbedImages.View
-			| AppBskyEmbedExternal.View
-			| AppBskyEmbedRecord.View
-			| AppBskyEmbedRecordWithMedia.View;
-		record?:
-			| AppBskyEmbedImages.Main
-			| AppBskyEmbedExternal.Main
-			| AppBskyEmbedRecord.Main
-			| AppBskyEmbedRecordWithMedia.Main;
-		bot?: Bot;
-	},
-): PostEmbed {
+export interface PostEmbedFromViewOptions {
+	/** The embed view. */
+	view:
+		| AppBskyEmbedImages.View
+		| AppBskyEmbedExternal.View
+		| AppBskyEmbedRecord.View
+		| AppBskyEmbedRecordWithMedia.View;
+	/** The embed record. */
+	record?:
+		| AppBskyEmbedImages.Main
+		| AppBskyEmbedExternal.Main
+		| AppBskyEmbedRecord.Main
+		| AppBskyEmbedRecordWithMedia.Main;
+	/** The active Bot instance (needed to create Post instance for RecordEmbed and RecordWithMediaEmbed). */
+	bot?: Bot;
+}
+
+/**
+ * Constructs the appropriate embed type from an embed view and record.
+ * @param options The options for constructing the embed.
+ */
+export function postEmbedFromView({ view, record, bot }: PostEmbedFromViewOptions): PostEmbed {
 	if (AppBskyEmbedImages.isView(view)) {
 		if (!record || !AppBskyEmbedImages.isMain(record)) {
 			throw new Error("Cannot construct ImagesEmbed from view without valid embed record");
@@ -57,8 +60,8 @@ export function postEmbedFromView(
 }
 
 /**
- * Determines if the provided value is an embed record
- * @param embed The embed to check
+ * Determines if the provided value is an embed record.
+ * @param embed The embed to check.
  */
 export function isEmbedMainRecord(
 	embed: unknown,
@@ -75,8 +78,8 @@ export function isEmbedMainRecord(
 }
 
 /**
- * Determines if the provided value is an embed view
- * @param view The view to check
+ * Determines if the provided value is an embed view.
+ * @param view The view to check.
  */
 export function isEmbedView(
 	view: unknown,

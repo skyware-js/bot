@@ -7,18 +7,22 @@ import type { RecordWithMediaEmbed } from "./RecordWithMediaEmbed.js";
  * A post embed.
  */
 export class PostEmbed {
+	/** Whether this embed contains images. */
 	isImages(): this is ImagesEmbed {
 		return false;
 	}
 
+	/** Whether this embed is an external link. */
 	isExternal(): this is ExternalEmbed {
 		return false;
 	}
 
+	/** Whether this embed contains a record. */
 	isRecord(): this is RecordEmbed {
 		return false;
 	}
 
+	/** Whether this embed contains a record with media. */
 	isRecordWithMedia(): this is RecordWithMediaEmbed {
 		return false;
 	}

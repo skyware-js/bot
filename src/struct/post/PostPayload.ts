@@ -5,7 +5,7 @@ import type { List } from "../List.js";
 import type { Post } from "./Post.js";
 
 /**
- * Data that can be used to create a post
+ * Data that can be used to create a post.
  */
 export interface PostPayload {
 	/** The post text. Can be a string or a RichText instance containing facets. */
@@ -67,10 +67,10 @@ export interface PostPayload {
 
 /** Data for an image to be attached to a post. */
 export interface ImagePayload {
-	/** Alt text for the image, */
+	/** Alt text for the image. */
 	alt?: string;
 
-	/** The image's aspect ratio, */
+	/** The image's aspect ratio. */
 	aspectRatio?: { width: number; height: number };
 
 	/** The image's data. */
@@ -98,10 +98,15 @@ type SelfLabelValue = Exclude<
  * @enum
  */
 export const PostSelfLabels = {
+	/** Post media is not safe for life (e.g. graphic violence). */
 	Nsfl: "nsfl",
+	/** Post media contains gore. */
 	Gore: "gore",
+	/** Post media contains non-sexual nudity. */
 	Nudity: "nudity",
+	/** Post media contains sexual content. */
 	Sexual: "sexual",
+	/** Post media contains pornographic content. */
 	Porn: "porn",
 } as const satisfies Record<Capitalize<SelfLabelValue>, SelfLabelValue>;
 export type PostSelfLabels = typeof PostSelfLabels[keyof typeof PostSelfLabels];

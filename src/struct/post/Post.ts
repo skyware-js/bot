@@ -142,9 +142,11 @@ export class Post {
 	}
 
 	private async fetchThreadView(): Promise<AppBskyFeedDefs.ThreadViewPost> {
-		const response = await this.bot.agent.getPostThread({ uri: this.uri }).catch((e) => {
-			throw new Error("Failed to fetch post like count", { cause: e });
-		});
+		const response = await this.bot.api.app.bsky.feed.getPostThread({ uri: this.uri }).catch(
+			(e) => {
+				throw new Error("Failed to fetch post like count", { cause: e });
+			},
+		);
 		if (!AppBskyFeedDefs.isThreadViewPost(response.data.thread)) {
 			throw new Error(
 				`Could not fetch post ${this.uri}. `
@@ -237,9 +239,8 @@ export class Post {
 	async getLikes(
 		cursor?: string,
 	): Promise<{ cursor: string | undefined; likes: Array<Profile> }> {
-		const response = await this.bot.agent.getLikes({
+		const response = await this.bot.api.app.bsky.feed.getLikes({
 			uri: this.uri,
-			cid: this.cid,
 			limit: 100,
 			cursor: cursor ?? "",
 		}).catch((e) => {
@@ -259,9 +260,8 @@ export class Post {
 	async getReposts(
 		cursor?: string,
 	): Promise<{ cursor: string | undefined; reposts: Array<Profile> }> {
-		const response = await this.bot.agent.getRepostedBy({
+		const response = await this.bot.api.app.bsky.feed.getRepostedBy({
 			uri: this.uri,
-			cid: this.cid,
 			limit: 100,
 			cursor: cursor ?? "",
 		}).catch((e) => {
@@ -299,7 +299,7 @@ export class Post {
 	/**
 	 * Unrepost the post.
 	 */
-	async unrepost(): Promise<void> {
+	async deleteRepost(): Promise<void> {
 		if (this.repostUri) return this.bot.deleteRepost(this.uri);
 	}
 

@@ -1,4 +1,9 @@
-import { AppBskyActorDefs, type AppBskyGraphDefs, type AppBskyRichtextFacet } from "@atproto/api";
+import {
+	AppBskyActorDefs,
+	type AppBskyGraphDefs,
+	type AppBskyRichtextFacet,
+	AtUri,
+} from "@atproto/api";
 import type { Bot } from "../bot/Bot.js";
 import { Post } from "./post/Post.js";
 import { Profile } from "./Profile.js";
@@ -8,7 +13,9 @@ import { Profile } from "./Profile.js";
  * @enum
  */
 export const ListPurpose = {
+	/** A moderation list. */
 	ModList: "app.bsky.graph.defs#modlist",
+	/** A user list. */
 	CurateList: "app.bsky.graph.defs#curatelist",
 };
 export type ListPurpose = typeof ListPurpose[keyof typeof ListPurpose];
@@ -17,17 +24,40 @@ export type ListPurpose = typeof ListPurpose[keyof typeof ListPurpose];
  * Data used to construct a List class.
  */
 export interface ListData {
+	/** The list's name. */
 	name: string;
+
+	/** The list's AT URI. */
 	uri: string;
+
+	/** The list's CID. */
 	cid: string;
+
+	/** The list's purpose. */
 	purpose: ListPurpose;
+
+	/** The list's creator. */
 	creator?: Profile | undefined;
+
+	/** The list's description. */
 	description?: string | undefined;
+
+	/** Any facets associated with the list's description. */
 	descriptionFacets?: Array<AppBskyRichtextFacet.Main> | undefined;
+
+	/** The list's avatar. */
 	avatar?: string | undefined;
+
+	/** The list's members. */
 	items?: Array<Profile>;
+
+	/** The AT URI of the list block record, if the logged in user has the list blocked. */
 	blockUri?: string | undefined;
+
+	/** Whether the logged in user has the list muted. */
 	muted?: boolean | undefined;
+
+	/** The time the list was indexed by the App View. */
 	indexedAt?: Date | undefined;
 }
 
@@ -127,7 +157,7 @@ export class List {
 	 * Mute all accounts on the list.
 	 */
 	async mute(): Promise<void> {
-		await this.bot.agent.muteModList(this.uri).catch((e) => {
+		await this.bot.api.app.bsky.graph.muteActorList({ list: this.uri }).catch((e) => {
 			throw new Error(`Failed to mute list ${this.uri}`, { cause: e });
 		});
 	}
@@ -136,7 +166,7 @@ export class List {
 	 * Unmute all accounts on the list.
 	 */
 	async unmute(): Promise<void> {
-		await this.bot.agent.unmuteModList(this.uri).catch((e) => {
+		await this.bot.api.app.bsky.graph.unmuteActorList({ list: this.uri }).catch((e) => {
 			throw new Error(`Failed to unmute list ${this.uri}`, { cause: e });
 		});
 	}
@@ -146,7 +176,9 @@ export class List {
 	 * @returns The AT URI of the list block record.
 	 */
 	async block(): Promise<string> {
-		const block = await this.bot.agent.blockModList(this.uri).catch((e) => {
+		const block = await this.bot.api.app.bsky.graph.listblock.create({
+			repo: this.bot.profile.did,
+		}, { subject: this.uri, createdAt: new Date().toISOString() }).catch((e) => {
 			throw new Error("Failed to block list " + this.uri, { cause: e });
 		});
 		this.blockUri = block.uri;
@@ -158,7 +190,8 @@ export class List {
 	 */
 	async unblock(): Promise<void> {
 		if (this.blockUri) {
-			await this.bot.agent.unblockModList(this.uri).catch((e) => {
+			const { host: repo, rkey } = new AtUri(this.blockUri);
+			await this.bot.api.app.bsky.graph.listblock.delete({ repo, rkey }, {}).catch((e) => {
 				throw new Error("Failed to unblock list " + this.uri, { cause: e });
 			});
 		}

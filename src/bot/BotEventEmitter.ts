@@ -11,7 +11,6 @@ import {
 import type { Firehose, FirehoseOptions } from "@skyware/firehose";
 import { EventEmitter } from "node:events";
 import { setInterval } from "node:timers/promises";
-import type { Post } from "../struct/post/Post.js";
 import { Profile } from "../struct/Profile.js";
 import type { Bot } from "./Bot.js";
 
@@ -138,30 +137,32 @@ export class BotEventEmitter extends EventEmitter {
 		this.firehose?.on("close", () => this.firehose?.start());
 
 		this.firehose?.on("commit", (message) => {
-			if (!this.bot?.agent?.hasSession || !this.bot.profile) return;
+			if (!this.bot?.hasSession || !this.bot.profile) return;
 			(async () => {
 				for (const op of message.ops) {
 					if (op.action !== "create") continue;
 					const uri = `at://${message.repo}/${op.path}`;
 					if (AppBskyFeedPost.isRecord(op.record)) {
-						let post: Post;
 						// Direct reply
 						if (
 							op.record.reply?.parent.uri.includes(this.bot.profile.did)
 							&& this.listenerCount("reply") >= 1
 						) {
-							post ??= await this.bot.getPost(uri);
+							const post = await this.bot.getPost(uri);
 							this.emit("reply", post);
 						}
+
 						// Quote post
 						const isQuote = AppBskyEmbedRecord.isMain(op.record.embed)
 							&& op.record.embed.record.uri.includes(this.bot.profile.did);
 						const isQuoteWithMedia = AppBskyEmbedRecordWithMedia.isMain(op.record.embed)
 							&& op.record.embed.record.record.uri.includes(this.bot.profile.did);
+
 						if ((isQuote || isQuoteWithMedia) && this.listenerCount("quote") >= 1) {
-							post ??= await this.bot.getPost(uri);
+							const post = await this.bot.getPost(uri);
 							this.emit("quote", post);
 						}
+
 						// Mention
 						if (
 							op.record.facets?.some((facet) =>
@@ -170,7 +171,7 @@ export class BotEventEmitter extends EventEmitter {
 								)
 							) && this.listenerCount("mention") >= 1
 						) {
-							post ??= await this.bot.getPost(uri);
+							const post = await this.bot.getPost(uri);
 							this.emit("mention", post);
 						}
 					} else if (AppBskyFeedRepost.isRecord(op.record)) {
@@ -225,7 +226,7 @@ export class BotEventEmitter extends EventEmitter {
 
 	/** Poll the notifications endpoint. */
 	async poll() {
-		const response = await this.bot.agent.api.app.bsky.notification.listNotifications().catch(
+		const response = await this.bot.api.app.bsky.notification.listNotifications().catch(
 			(error) => {
 				this.emit("error", error);
 				return { success: false } as const;

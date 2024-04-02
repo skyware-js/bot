@@ -68,13 +68,13 @@ export interface BotOptions {
  */
 export class Bot extends EventEmitter {
 	/** The agent used to communicate with the Bluesky API. */
-	readonly agent: BskyAgent;
+	private readonly agent: BskyAgent;
 
 	/** A limiter to rate limit API requests. */
 	private readonly limiter: RateLimiter;
 
 	/** A cache to store API responses. */
-	readonly cache: BotCache;
+	private readonly cache: BotCache;
 
 	/** Receives and emits events.. */
 	private readonly eventEmitter?: BotEventEmitter;
@@ -134,6 +134,11 @@ export class Bot extends EventEmitter {
 		}
 
 		this.api = this.agent.api = wrapApiWithLimiter(this.agent.api, this.limiter);
+	}
+
+	/** Whether the bot has an active session. */
+	get hasSession() {
+		return this.agent.hasSession;
 	}
 
 	/**
@@ -448,7 +453,7 @@ export class Bot extends EventEmitter {
 	async post(payload: PostPayload, options: BotPostOptions = {}): Promise<StrongRef | Post> {
 		options = { resolveFacets: true, ...options };
 
-		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
+		if (!this.hasSession) throw new Error(NO_SESSION_ERROR);
 
 		// Use default langs if none are provided (an explicit empty array will be ignored)
 		payload.langs ??= this.langs;
@@ -654,7 +659,7 @@ export class Bot extends EventEmitter {
 	 * @param uri The post's AT URI.
 	 */
 	async deletePost(uri: string): Promise<void> {
-		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
+		if (!this.hasSession) throw new Error(NO_SESSION_ERROR);
 
 		await this.deleteRecord(uri).catch((e) => {
 			throw new Error(`Failed to delete post ${uri}.`, { cause: e });
@@ -667,7 +672,7 @@ export class Bot extends EventEmitter {
 	 * @returns The like record's AT URI and CID.
 	 */
 	async like({ uri, cid }: StrongRef): Promise<StrongRef> {
-		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
+		if (!this.hasSession) throw new Error(NO_SESSION_ERROR);
 
 		return this.agent.like(uri, cid).catch((e) => {
 			throw new Error(`Failed to like post ${uri}.`, { cause: e });
@@ -678,8 +683,8 @@ export class Bot extends EventEmitter {
 	 * Delete a like.
 	 * @param uri The liked record's AT URI or the like record's AT URI.
 	 */
-	async deleteLike(uri: string): Promise<void> {
-		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
+	async unlike(uri: string): Promise<void> {
+		if (!this.hasSession) throw new Error(NO_SESSION_ERROR);
 
 		const likeUri = uri.includes("app.bsky.feed.like")
 			? uri
@@ -695,8 +700,6 @@ export class Bot extends EventEmitter {
 			);
 		});
 	}
-	/** @see Bot#deleteLike */
-	unlike = this.deleteLike.bind(this);
 
 	/**
 	 * Repost a post.
@@ -704,7 +707,7 @@ export class Bot extends EventEmitter {
 	 * @returns The repost record's AT URI and CID.
 	 */
 	async repost({ uri, cid }: StrongRef): Promise<StrongRef> {
-		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
+		if (!this.hasSession) throw new Error(NO_SESSION_ERROR);
 
 		return this.agent.repost(uri, cid).catch((e) => {
 			throw new Error(`Failed to repost post ${uri}.`, { cause: e });
@@ -716,7 +719,7 @@ export class Bot extends EventEmitter {
 	 * @param uri The post's AT URI or the repost record's AT URI.
 	 */
 	async deleteRepost(uri: string): Promise<void> {
-		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
+		if (!this.hasSession) throw new Error(NO_SESSION_ERROR);
 
 		const repostUri = uri.includes("app.bsky.feed.repost")
 			? uri
@@ -739,7 +742,7 @@ export class Bot extends EventEmitter {
 	 * @returns The follow record's AT URI and CID.
 	 */
 	async follow(did: string): Promise<StrongRef> {
-		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
+		if (!this.hasSession) throw new Error(NO_SESSION_ERROR);
 
 		return this.agent.follow(did).catch((e) => {
 			throw new Error(`Failed to follow user ${did}.`, { cause: e });
@@ -750,8 +753,8 @@ export class Bot extends EventEmitter {
 	 * Delete a follow.
 	 * @param didOrUri The user's DID or the follow record's AT URI.
 	 */
-	async deleteFollow(didOrUri: string): Promise<void> {
-		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
+	async unfollow(didOrUri: string): Promise<void> {
+		if (!this.hasSession) throw new Error(NO_SESSION_ERROR);
 
 		let followUri: string;
 
@@ -772,15 +775,13 @@ export class Bot extends EventEmitter {
 			);
 		});
 	}
-	/** @see Bot#deleteFollow */
-	unfollow = this.deleteFollow.bind(this);
 
 	/**
 	 * Mute a user.
 	 * @param did The user's DID.
 	 */
 	async mute(did: string): Promise<void> {
-		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
+		if (!this.hasSession) throw new Error(NO_SESSION_ERROR);
 		await this.agent.mute(did).catch((e) => {
 			throw new Error(`Failed to mute user ${did}.`, { cause: e });
 		});
@@ -790,14 +791,12 @@ export class Bot extends EventEmitter {
 	 * Delete a mute.
 	 * @param did The user's DID.
 	 */
-	async deleteMute(did: string): Promise<void> {
-		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
+	async unmute(did: string): Promise<void> {
+		if (!this.hasSession) throw new Error(NO_SESSION_ERROR);
 		await this.agent.unmute(did).catch((e) => {
 			throw new Error(`Failed to delete mute for user ${did}.`, { cause: e });
 		});
 	}
-	/** @see Bot#deleteMute */
-	unmute = this.deleteMute.bind(this);
 
 	/**
 	 * Block a user.
@@ -805,7 +804,7 @@ export class Bot extends EventEmitter {
 	 * @returns The block record's AT URI and CID.
 	 */
 	async block(did: string): Promise<StrongRef> {
-		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
+		if (!this.hasSession) throw new Error(NO_SESSION_ERROR);
 		return this.createRecord("app.bsky.graph.block", { subject: did }).catch((e) => {
 			throw new Error(`Failed to block user ${did}.`, { cause: e });
 		});
@@ -815,8 +814,8 @@ export class Bot extends EventEmitter {
 	 * Delete a block.
 	 * @param didOrUri The user's DID or the block record's AT URI.
 	 */
-	async deleteBlock(didOrUri: string): Promise<void> {
-		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
+	async unblock(didOrUri: string): Promise<void> {
+		if (!this.hasSession) throw new Error(NO_SESSION_ERROR);
 
 		let blockUri: string;
 
@@ -855,7 +854,7 @@ export class Bot extends EventEmitter {
 	 * @param handle The new handle.
 	 */
 	async updateHandle(handle: string): Promise<void> {
-		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
+		if (!this.hasSession) throw new Error(NO_SESSION_ERROR);
 		await this.agent.updateHandle({ handle }).catch((e) => {
 			throw new Error("Failed to update handle.", { cause: e });
 		});
@@ -870,7 +869,7 @@ export class Bot extends EventEmitter {
 	 * @returns The record's AT URI and CID.
 	 */
 	async createRecord(nsid: string, record: object, rkey?: string): Promise<StrongRef> {
-		if (!this.agent.hasSession) throw new Error(NO_SESSION_ERROR);
+		if (!this.hasSession) throw new Error(NO_SESSION_ERROR);
 		const response = await this.api.com.atproto.repo.createRecord({
 			collection: nsid,
 			record: { $type: nsid, createdAt: new Date().toISOString(), ...record },
@@ -890,21 +889,43 @@ export class Bot extends EventEmitter {
 		await this.api.com.atproto.repo.deleteRecord({ collection, repo, rkey });
 	}
 
+	/** Emitted when the bot begins listening for events. */
 	override on(event: "open", listener: () => void): this;
+	/** Emitted when an error occurs while listening for events. */
 	override on(event: "error", listener: (error: unknown) => void): this;
+	/** Emitted when the bot stops listening for events. */
 	override on(event: "close", listener: () => void): this;
+	/** Emitted when the bot receives a reply. */
 	override on(event: "reply", listener: (post: Post) => void): this;
+	/** Emitted when the bot receives a quote post. */
 	override on(event: "quote", listener: (post: Post) => void): this;
+	/** Emitted when the bot is mentioned. */
 	override on(event: "mention", listener: (post: Post) => void): this;
+	/**
+	 * Emitted when one of the bot's posts is reposted.
+	 * @param listener A callback function that receives the post that was reposted, the user who reposted it, and the repost's AT URI.
+	 */
 	override on(
 		event: "repost",
 		listener: (event: { post: Post; user: Profile; uri: string }) => void,
 	): this;
+	/**
+	 * Emitted when one of the bot's posts is liked.
+	 * @param listener A callback function that receives the post that was liked, the user who liked it, and the like's AT URI.
+	 */
 	override on(
 		event: "like",
 		listener: (event: { post: Post; user: Profile; uri: string }) => void,
 	): this;
+	/**
+	 * Emitted when the bot is followed.
+	 * @param listener A callback function that receives the user who followed the bot and the follow's AT URI.
+	 */
 	override on(event: "follow", listener: (event: { user: Profile; uri: string }) => void): this;
+	/**
+	 * @param event The event to listen for.
+	 * @param listener The callback function, called when the event is emitted.
+	 */
 	override on(event: string | symbol, listener: (...args: any[]) => void): this {
 		if (!this.eventEmitter) throw new Error("Events are not enabled.");
 		if (!this.eventEmitter.emitting) this.eventEmitter.start();
@@ -930,20 +951,31 @@ export class Bot extends EventEmitter {
 		event: "follow",
 		listener: (event: { user: Profile; uri: string }) => void,
 	): this;
+	/** Alias for {@link Bot#on}. */
 	override addListener(event: string | symbol, listener: (...args: any[]) => void): this {
 		return this.on(event as never, listener);
 	}
 
+	/**
+	 * Remove an event listener.
+	 * @param event The event to remove the listener for.
+	 * @param listener The listener callback to remove.
+	 */
 	override off(event: string, listener: (...args: any[]) => void): this {
 		super.off(event, listener);
 		if (!this.listenerCount(event)) this.eventEmitter?.stop();
 		return this;
 	}
 
+	/** Alias for {@link Bot#off}. */
 	override removeListener(event: string, listener: (...args: any[]) => void): this {
 		return this.off(event, listener);
 	}
 
+	/**
+	 * Remove all event listeners, or those of the specified event.
+	 * @param event The event to remove listeners for.
+	 */
 	override removeAllListeners(event?: string): this {
 		if (!this.eventEmitter) throw new Error("Events are not enabled.");
 		super.removeAllListeners(event);
@@ -964,7 +996,7 @@ function wrapApiWithLimiter(client: AtpServiceClient, limiter: RateLimiter) {
 }
 
 /**
- * The bot's cache
+ * The bot's cache.
  */
 export interface BotCache {
 	profiles: QuickLRU<string, Profile>;
@@ -974,7 +1006,7 @@ export interface BotCache {
 }
 
 /**
- * Options for the built-in rate limiter
+ * Options for the built-in rate limiter.
  */
 export interface RateLimitOptions {
 	/**
@@ -994,13 +1026,13 @@ export interface RateLimitOptions {
 }
 
 /**
- * Options for the {@link Bot#login} method
+ * Options for the {@link Bot#login} method.
  */
 export interface BotLoginOptions {
-	/** The bot account's email, handle, or DID */
+	/** The bot account's email, handle, or DID. */
 	identifier: string;
 
-	/** The bot account's password */
+	/** The bot account's password. */
 	password: string;
 }
 
@@ -1008,184 +1040,186 @@ export interface BotLoginOptions {
  * A reference to a record.
  */
 export interface StrongRef {
-	/** The record's AT URI */
+	/** The record's AT URI. */
 	uri: string;
 
-	/** The record's CID */
+	/** The record's CID. */
 	cid: string;
 }
 
 /**
- * Base options for any Bot method that fetches data
+ * Base options for any Bot method that fetches data.
  */
 export interface BaseBotGetMethodOptions {
 	/**
-	 * Whether to skip checking the cache
+	 * Whether to skip checking the cache.
 	 * @default false
 	 */
 	skipCache?: boolean;
 
 	/**
-	 * Whether to skip caching the response
+	 * Whether to skip caching the response.
 	 * @default false
 	 */
 	noCacheResponse?: boolean;
 }
 
 /**
- * Options for the {@link Bot#getPost} method
+ * Options for the {@link Bot#getPost} method.
  */
 export interface BotGetPostOptions extends BaseBotGetMethodOptions {
 	/**
-	 * How many levels of parent posts to fetch
+	 * How many levels of parent posts to fetch.
 	 * @default 1
 	 */
 	parentHeight?: number;
 
 	/**
-	 * How many levels of child posts to fetch
+	 * How many levels of child posts to fetch.
 	 * @default 1
 	 */
 	depth?: number;
 }
 
 /**
- * Options for the {@link Bot#getPosts} method
+ * Options for the {@link Bot#getPosts} method.
  */
 export interface BotGetPostsOptions extends BaseBotGetMethodOptions {}
 
 /**
- * Types of posts to be included in the response to {@link Bot#getUserPosts}
+ * Types of posts to be included in the response to {@link Bot#getUserPosts}.
  * @enum
  */
 export const GetUserPostsFilter = {
-	/** All posts */
+	/** All posts. */
 	PostsWithReplies: "posts_with_replies",
-	/** Top-level posts only */
+	/** Top-level posts only. */
 	PostsNoReplies: "posts_no_replies",
-	/** Posts with media */
+	/** Posts with media. */
 	PostsWithMedia: "posts_with_media",
-	/** Top-level posts and threads where the only author is the user */
+	/** Top-level posts and threads where the only author is the user. */
 	PostsAndAuthorThreads: "posts_and_author_threads",
 } as const;
 export type GetUserPostsFilter = typeof GetUserPostsFilter[keyof typeof GetUserPostsFilter];
 
 /**
- * Options for the {@link Bot#getUserPosts} method
+ * Options for the {@link Bot#getUserPosts} method.
  */
 export interface BotGetUserPostsOptions extends Omit<BaseBotGetMethodOptions, "skipCache"> {
 	/**
-	 * The maximum number of posts to fetch (up to 100, inclusive)
+	 * The maximum number of posts to fetch (up to 100, inclusive).
 	 * @default 100
 	 */
 	limit?: number;
 
 	/**
-	 * The offset at which to start fetching posts
+	 * The offset at which to start fetching posts.
 	 */
 	cursor?: string;
 
 	/**
-	 * Post type to include in the response
+	 * Post type to include in the response.
 	 * @default GetUserPostsFilter.PostsWithReplies
 	 */
 	filter?: GetUserPostsFilter;
 }
 
 /**
- * Options for the {@link Bot#getUserLikes} method
+ * Options for the {@link Bot#getUserLikes} method.
  */
 export interface BotGetUserLikesOptions extends Omit<BaseBotGetMethodOptions, "skipCache"> {
 	/**
-	 * The maximum number of posts to fetch (up to 100, inclusive)
+	 * The maximum number of posts to fetch (up to 100, inclusive).
 	 * @default 100
 	 */
 	limit?: number;
 
 	/**
-	 * The offset at which to start fetching posts
+	 * The offset at which to start fetching posts.
 	 */
 	cursor?: string;
 }
 
 /**
- * Options for the {@link Bot#getProfile} method
+ * Options for the {@link Bot#getProfile} method.
  */
 export interface BotGetProfileOptions extends BaseBotGetMethodOptions {}
 
 /**
- * Options for the {@link Bot#getList} method
+ * Options for the {@link Bot#getList} method.
  */
 export interface BotGetListOptions extends BaseBotGetMethodOptions {}
 
 /**
- * Options for the {@link Bot#getUserLists} method
+ * Options for the {@link Bot#getUserLists} method.
  */
 export interface BotGetUserListsOptions extends Omit<BaseBotGetMethodOptions, "skipCache"> {
 	/**
-	 * The maximum number of lists to fetch (up to 100, inclusive)
+	 * The maximum number of lists to fetch (up to 100, inclusive).
 	 * @default 100
 	 */
 	limit?: number;
 
 	/**
-	 * The offset at which to start fetching lists
+	 * The offset at which to start fetching lists.
 	 */
 	cursor?: string;
 }
 
 /**
- * Options for the {@link Bot#getFeedGenerator} method
+ * Options for the {@link Bot#getFeedGenerator} method.
  */
 export interface BotGetFeedGeneratorOptions extends BaseBotGetMethodOptions {}
 
 /**
- * Options for the {@link Bot#getFeedGenerators} method
+ * Options for the {@link Bot#getFeedGenerators} method.
  */
 export interface BotGetFeedGeneratorsOptions extends BaseBotGetMethodOptions {}
 
 /**
- * Options for the {@link Bot#getTimeline} method
+ * Options for the {@link Bot#getTimeline} method.
  */
 export interface BotGetTimelineOptions extends BaseBotGetMethodOptions {
 	/**
-	 * The maximum number of posts to fetch (up to 100, inclusive)
+	 * The maximum number of posts to fetch (up to 100, inclusive).
 	 * @default 100
 	 */
 	limit?: number;
 
 	/**
-	 * The offset at which to start fetching posts
+	 * The offset at which to start fetching posts.
 	 */
 	cursor?: string;
 }
 
 /**
- * Options for the {@link Bot#post} method
+ * Options for the {@link Bot#post} method.
  */
 export interface BotPostOptions {
 	/**
 	 * Whether to automatically resolve facets in the post's text.
-	 * This will be ignored if the provided post data already has facets attached
+	 *
+	 * This will be ignored if the provided post data already has facets attached.
 	 * @default true
 	 */
 	resolveFacets?: boolean;
 
 	/**
 	 * Whether to fetch the post after creating it.
+	 *
 	 * If set to true, this method will return a Post class. Otherwise, it will only return the post's URI and CID.
 	 * @default false
 	 */
 	fetchAfterCreate?: boolean;
 
 	/**
-	 * Whether to split the post into multiple posts if it exceeds the character limit
+	 * Whether to split the post into multiple posts if it exceeds the character limit.
 	 * @default false
 	 */
 	splitLongPost?: boolean;
 
 	/**
-	 * Whether to skip caching the response
+	 * Whether to skip caching the response.
 	 * @default false
 	 */
 	noCacheResponse?: boolean;

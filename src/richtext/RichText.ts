@@ -91,13 +91,11 @@ export class RichText {
 	/**
 	 * Append a link.
 	 * You can use the `uri` parameter to specify a different URI than the `substr`.
-	 * @example
-	 * To make a link clickable as is:
+	 * @example Create a hyperlink
 	 * ```ts
 	 * new RichText().text("Go to ").link("https://bsky.app").build();
 	 * ```
-	 * @example
-	 * To make a link clickable with different text:
+	 * @example Create a hyperlink with custom text
 	 * ```ts
 	 * new RichText().text("Go to ").link("Bluesky", "https://bsky.app").build();
 	 * ```
@@ -141,7 +139,7 @@ export class RichText {
 	/**
 	 * Detects rich text facets in a string (mentions, links, tags, etc).
 	 * Will produce invalid facets! For instance, mentions will not have their DIDs set.
-	 * Use `RichText.detectFacets` to produce valid facets that can be attached to a post.
+	 * Use {@link detectFacets} to produce valid facets that can be attached to a post.
 	 */
 	static detectFacetsWithoutResolution = (text: string): Array<AppBskyRichtextFacet.Main> => {
 		return (detectFacets(text) || []).sort(facetSort);

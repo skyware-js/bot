@@ -42,6 +42,11 @@ export class Facet {
 		};
 	}
 
+	/**
+	 * Creates a new facet.
+	 * @param text The full source text.
+	 * @param facet The facet data.
+	 */
 	constructor(text: string, facet: AppBskyRichtextFacet.Main) {
 		this.sourceText = text;
 		this.byteIndex = { ...facet.index };
@@ -54,21 +59,26 @@ export class Facet {
 	}
 }
 
-/** Represents a specific decoration applied to a span of text. */
+/** Represents a decoration applied to a span of text. */
 export class FacetFeature {
+	/** Whether this facet is a mention. */
 	isMention(): this is MentionFeature {
 		return this.$type === "app.bsky.richtext.facet#mention";
 	}
 
+	/** Whether this facet is a link. */
 	isLink(): this is LinkFeature {
 		return this.$type === "app.bsky.richtext.facet#link";
 	}
 
+	/** Whether this facet is an in-text hashtag. */
 	isTag(): this is TagFeature {
 		return this.$type === "app.bsky.richtext.facet#tag";
 	}
+	/** Represents a specific decoration applied to a span of text. */
 
-	constructor(/** The facet type. */ public $type: string) {}
+	/** @internal */
+	constructor(/** The facet type. */ public $type: `app.bsky.richtext.facet#${string}`) {}
 }
 
 /** Represents a user mention. */

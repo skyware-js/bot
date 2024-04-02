@@ -4,10 +4,14 @@ import { PostEmbed } from "./PostEmbed.js";
 /**
  * Data used to construct an ExternalEmbed class.
  */
-interface ExternalEmbedData {
+export interface ExternalEmbedData {
+	/** The URI the embed links to. */
 	uri: string;
+	/** The title of the embed. */
 	title: string;
+	/** The description of the embed. */
 	description: string;
+	/** The URL for the embed's thumbnail. */
 	thumb?: string;
 }
 

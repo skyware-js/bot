@@ -12,21 +12,52 @@ import type { Post } from "./post/Post.js";
  * Data used to construct a Profile class.
  */
 export interface ProfileData {
+	/** The user's DID. */
 	did: string;
+
+	/** The user's handle. */
 	handle: string;
+
+	/** The user's display name. */
 	displayName?: string | undefined;
+
+	/** The user's profile description. */
 	description?: string | undefined;
+
+	/** The user's avatar URL. */
 	avatar?: string | undefined;
+
+	/** The user's banner URL. */
 	banner?: string | undefined;
+
+	/** The number of followers the user has. */
 	followerCount?: number | undefined;
+
+	/** The number of users the user is following. */
 	followingCount?: number | undefined;
+
+	/** The number of posts the user has made. */
 	postsCount?: number | undefined;
+
+	/** Labels on the user's profile. */
 	labels?: Array<ComAtprotoLabelDefs.Label> | undefined;
+
+	/** The time when the user's profile was indexed by the App View. */
 	indexedAt?: Date | undefined;
+
+	/** The AT URI of the follow relationship between the bot and the user. */
 	followUri?: string | undefined;
+
+	/** The AT URI of the follow relationship between the bot and the user. */
 	followedByUri?: string | undefined;
+
+	/** Whether the user is muted by the bot. */
 	isMuted?: boolean | undefined;
+
+	/** The AT URI of the block relationship between the bot and the user. */
 	blockUri?: string | undefined;
+
+	/** Whether the bot is blocked by the user. */
 	isBlockedBy?: boolean | undefined;
 }
 
@@ -179,7 +210,7 @@ export class Profile {
 	 * Unblock the user.
 	 */
 	async unblock(): Promise<void> {
-		return this.bot.deleteBlock(this.did);
+		return this.bot.unblock(this.did);
 	}
 
 	/**

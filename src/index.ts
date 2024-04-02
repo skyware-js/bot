@@ -38,7 +38,7 @@ export {
 	ListPurpose,
 } from "./struct/List.js";
 export { EmbedImage, type ImageData } from "./struct/post/embed/EmbedImage.js";
-export { ExternalEmbed } from "./struct/post/embed/ExternalEmbed.js";
+export { ExternalEmbed, type ExternalEmbedData } from "./struct/post/embed/ExternalEmbed.js";
 export { ImagesEmbed } from "./struct/post/embed/ImagesEmbed.js";
 export { PostEmbed } from "./struct/post/embed/PostEmbed.js";
 export { RecordEmbed } from "./struct/post/embed/RecordEmbed.js";

@@ -5,16 +5,16 @@ import {
 	type AppBskyEmbedRecordWithMedia,
 	AppBskyFeedDefs,
 	AppBskyFeedPost,
-	AppBskyFeedThreadgate,
-	AppBskyRichtextFacet,
+	type AppBskyFeedThreadgate,
+	type AppBskyRichtextFacet,
 	type AtpServiceClient,
 	type AtpSessionData,
 	AtUri,
-	BlobRef,
+	type BlobRef,
 	BskyAgent,
-	ComAtprotoLabelDefs,
+	type ComAtprotoLabelDefs,
 	type ComAtprotoServerCreateSession,
-	ComAtprotoServerGetSession,
+	type ComAtprotoServerGetSession,
 } from "@atproto/api";
 import { RateLimiter } from "limiter";
 import { EventEmitter } from "node:events";

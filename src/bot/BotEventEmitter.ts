@@ -5,7 +5,7 @@ import {
 	AppBskyFeedPost,
 	AppBskyFeedRepost,
 	AppBskyGraphFollow,
-	AppBskyNotificationListNotifications,
+	type AppBskyNotificationListNotifications,
 	AtUri,
 } from "@atproto/api";
 import type { Firehose, FirehoseOptions } from "@skyware/firehose";

@@ -1,19 +1,24 @@
 {
 	"extends": ["plugin:@typescript-eslint/strict-type-checked", "plugin:import/recommended"],
-	"plugins": ["@typescript-eslint", "import"],
+	"plugins": ["@typescript-eslint", "import", "unused-imports"],
 	"parser": "@typescript-eslint/parser",
 	"parserOptions": {
 		"project": "./tsconfig.json"
 	},
 	"rules": {
+		"@typescript-eslint/consistent-type-imports": ["error", {
+			"fixStyle": "inline-type-imports"
+		}],
 		"@typescript-eslint/no-unused-vars": "off",
 		"@typescript-eslint/restrict-plus-operands": "off",
 		"@typescript-eslint/no-non-null-assertion": "off",
 		"@typescript-eslint/no-unnecessary-condition": "off",
 		"@typescript-eslint/unified-signatures": "off",
 		"@typescript-eslint/no-explicit-any": "off",
+		"unused-imports/no-unused-imports": "error",
 		"import/no-unresolved": "off",
 		"import/extensions": ["error", "ignorePackages"]
 	},
+	"ignorePatterns": ["dist", "node_modules"],
 	"root": true
 }

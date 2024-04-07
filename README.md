@@ -8,11 +8,13 @@
 
 A framework for building bots on Bluesky.
 
+[Documentation](https://skyware.js.org/docs/bot)
+
 ## Features
 
 - **Events**: Receive and respond to events in real time with zero setup.
 - **Rate Limiting**: Automatically handle rate limits and caching.
-- **High-level API**: A simple, high-level API for building bots.
+- **High-level API**: A simple, high-level API designed for ease of use.
 
 ## Installation
 
@@ -20,8 +22,7 @@ A framework for building bots on Bluesky.
 npm install @skyware/bot
 ```
 
-## Usage
-*(Documentation coming soon)*
+## Example Usage
 
 ```js
 import { Bot } from "@skyware/bot";
@@ -36,5 +37,3 @@ bot.on("reply", async (post) => {
 })
 
 ```
-
-**Events:** `reply`, `quote`, `mention`, `repost`, `like`, `follow`, `open`, `close`, `error`.

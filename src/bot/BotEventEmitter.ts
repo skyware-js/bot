@@ -40,7 +40,7 @@ export interface BotEventEmitterOptions {
 	 * How the bot will receive and emit events.
 	 * @default EventStrategy.Polling
 	 */
-	strategy: EventStrategy;
+	strategy?: EventStrategy;
 
 	/**
 	 * The interval in seconds at which the bot will poll the notifications endpoint. Only used if `strategy` is `EventStrategy.Polling`.
@@ -92,7 +92,7 @@ export class BotEventEmitter extends EventEmitter {
 	 */
 	constructor(options: BotEventEmitterOptions, private bot: Bot) {
 		super();
-		this.strategy = options.strategy;
+		this.strategy = options.strategy ?? EventStrategy.Polling;
 		this.pollingInterval = options.pollingInterval ?? 5;
 		this.lastSeen = options.processFrom ?? new Date();
 		if (this.strategy === EventStrategy.Firehose) {

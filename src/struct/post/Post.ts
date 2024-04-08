@@ -1,51 +1,43 @@
 import { AppBskyFeedDefs, AppBskyFeedPost, type ComAtprotoLabelDefs } from "@atproto/api";
-import type { Bot, BotPostOptions, StrongRef } from "../../bot/Bot.js";
+import type { Bot, BotGetPostOptions } from "../../bot/Bot.js";
 import { Profile } from "../Profile.js";
 import type { PostEmbed } from "./embed/PostEmbed.js";
 import { isEmbedMainRecord, isEmbedView, postEmbedFromView } from "./embed/util.js";
 import { Facet } from "./Facet.js";
-import type { PostPayload } from "./PostPayload.js";
+import { PostReference, type PostReferenceData } from "./PostReference.js";
 import { Threadgate } from "./Threadgate.js";
 
 /**
  * Data used to construct a Post class.
+ * @see Post
  */
-export interface PostData {
+export interface PostData extends PostReferenceData {
 	text: string;
-	uri: string;
-	cid: string;
 	author: Profile;
 	facets?: Array<Facet> | undefined;
-	replyRef?: AppBskyFeedPost.ReplyRef | undefined;
 	langs?: Array<string> | undefined;
 	embed?: PostEmbed | undefined;
 	labels?: Array<ComAtprotoLabelDefs.Label> | undefined;
 	tags?: Array<string> | undefined;
+	threadgate?: Threadgate | undefined;
+	root?: Post | undefined;
+	parent?: Post | undefined;
+	children?: Array<Post> | undefined;
+	createdAt?: Date | undefined;
+	indexedAt?: Date | undefined;
 	likeUri?: string | undefined;
 	repostUri?: string | undefined;
 	likeCount?: number | undefined;
 	repostCount?: number | undefined;
 	replyCount?: number | undefined;
-	threadgate?: Threadgate | undefined;
-	createdAt?: Date | undefined;
-	indexedAt?: Date | undefined;
-	parent?: Post | undefined;
-	root?: Post | undefined;
-	children?: Array<Post> | undefined;
 }
 
 /**
  * Represents a post on Bluesky.
  */
-export class Post {
-	/**  The text of the post. */
+export class Post extends PostReference {
+	/** The post text. */
 	text: string;
-
-	/** The post's AT URI. */
-	uri: string;
-
-	/** The post's CID. */
-	cid: string;
 
 	/** The post's author. */
 	author: Profile;
@@ -55,9 +47,6 @@ export class Post {
 	 * @see [Links, mentions, and rich text | Bluesky](https://www.docs.bsky.app/docs/advanced-guides/post-richtext#rich-text-facets)
 	 */
 	facets?: Array<Facet>;
-
-	/** A reference to the post's parent and root post. */
-	replyRef?: AppBskyFeedPost.ReplyRef;
 
 	/** A list of two-letter language codes that the post is written in. */
 	langs?: Array<string>;
@@ -111,14 +100,13 @@ export class Post {
 	constructor(
 		// dprint-ignore
 		{ text, uri, cid, author, facets, replyRef, langs, embed, labels, tags, likeUri, repostUri, likeCount, replyCount, repostCount, threadgate, createdAt = new Date(), indexedAt, parent, root, children, }: PostData,
-		public bot: Bot,
+		bot: Bot,
 	) {
+		super({ uri, cid, replyRef }, bot);
+
 		this.text = text;
-		this.uri = uri;
-		this.cid = cid;
 		this.author = author;
 		if (facets) this.facets = facets;
-		if (replyRef) this.replyRef = replyRef;
 		if (langs) this.langs = langs;
 		if (embed) this.embed = embed;
 		if (labels) this.labels = labels;
@@ -156,6 +144,17 @@ export class Post {
 			);
 		}
 		return response.data.thread;
+	}
+
+	/**
+	 * Refetch the post.
+	 * @param options Optional configuration.
+	 */
+	override async fetch(options: BotGetPostOptions = {}) {
+		return Object.assign(
+			this,
+			await this.bot.getPost(this.uri, { skipCache: true, ...options }),
+		);
 	}
 
 	/**
@@ -271,115 +270,6 @@ export class Post {
 			cursor: response.data.cursor,
 			reposts: response.data.repostedBy.map((actor) => Profile.fromView(actor, this.bot)),
 		};
-	}
-
-	/**
-	 * Like the post.
-	 * @returns The like's AT URI.
-	 */
-	async like(): Promise<string> {
-		return this.likeUri = (await this.bot.like(this)).uri;
-	}
-
-	/**
-	 * Unlike the post.
-	 */
-	async unlike(): Promise<void> {
-		if (this.likeUri) return this.bot.unlike(this.likeUri);
-	}
-
-	/**
-	 * Repost the post.
-	 * @returns The repost's AT URI.
-	 */
-	async repost(): Promise<string> {
-		return this.repostUri = (await this.bot.repost(this)).uri;
-	}
-
-	/**
-	 * Unrepost the post.
-	 */
-	async deleteRepost(): Promise<void> {
-		if (this.repostUri) return this.bot.deleteRepost(this.uri);
-	}
-
-	/**
-	 * Delete the post.
-	 */
-	async delete(): Promise<void> {
-		return this.bot.deletePost(this.uri);
-	}
-
-	/**
-	 * Reply to the post.
-	 * @param payload The post payload.
-	 * @param options Optional configuration. Will return post URI and CID when {@link BotPostOptions.fetchAfterCreate fetchAfterCreate} is not set (see {@link Bot#post}).
-	 * @returns The new post's AT URI and CID.
-	 * @overload
-	 */
-	async reply(
-		payload: PostPayload,
-		options: BotPostOptions & { fetchAfterCreate?: false },
-	): Promise<StrongRef>;
-	/**
-	 * Reply to the post.
-	 * @param payload The post payload.
-	 * @param options Optional configuration. Will return a {@link Post} instance when {@link BotPostOptions.fetchAfterCreate fetchAfterCreate} is set (see {@link Bot#post}).
-	 * @returns A {@link Post} instance.
-	 * @overload
-	 */
-	async reply(
-		payload: PostPayload,
-		options: BotPostOptions & { fetchAfterCreate: true },
-	): Promise<Post>;
-	/**
-	 * Reply to the post.
-	 * @param payload The post payload.
-	 * @param options Optional configuration (see {@link Bot#post}).
-	 * @returns The new post's AT URI and CID, or a {@link Post} instance if {@link BotPostOptions.fetchAfterCreate options.fetchAfterCreate} is true.
-	 */
-	async reply(payload: PostPayload, options?: BotPostOptions): Promise<Post | StrongRef>;
-	async reply(payload: PostPayload, options?: BotPostOptions): Promise<Post | StrongRef> {
-		return this.bot.post({
-			...payload,
-			replyRef: {
-				parent: { uri: this.uri, cid: this.cid },
-				root: this.replyRef?.root ?? { uri: this.uri, cid: this.cid },
-			},
-		}, options);
-	}
-
-	/**
-	 * Create a new post with this post quoted.
-	 * @param payload The post payload.
-	 * @param options Optional configuration. Will return post URI and CID when {@link BotPostOptions.fetchAfterCreate fetchAfterCreate} is not set (see {@link Bot#post}).
-	 * @returns The new post's AT URI and CID.
-	 * @overload
-	 */
-	async quote(
-		payload: PostPayload,
-		options?: BotPostOptions & { fetchAfterCreate?: false },
-	): Promise<StrongRef>;
-	/**
-	 * Create a new post with this post quoted..
-	 * @param payload The post payload.
-	 * @param options Optional configuration. Will return a {@link Post} instance when {@link BotPostOptions.fetchAfterCreate fetchAfterCreate} is set (see {@link Bot#post}).
-	 * @returns A {@link Post} instance.
-	 * @overload
-	 */
-	async quote(
-		payload: PostPayload,
-		options?: BotPostOptions & { fetchAfterCreate: true },
-	): Promise<Post>;
-	/**
-	 * Create a new post with this post quoted.
-	 * @param payload The post payload.
-	 * @param options Optional configuration (see {@link Bot#post}).
-	 * @returns The new post's AT URI and CID, or a {@link Post} instance if {@link BotPostOptions.fetchAfterCreate options.fetchAfterCreate} is true.
-	 */
-	async quote(payload: PostPayload, options?: BotPostOptions): Promise<Post | StrongRef>;
-	async quote(payload: PostPayload, options?: BotPostOptions): Promise<Post | StrongRef> {
-		return this.bot.post({ ...payload, quoted: this }, options);
 	}
 
 	/**

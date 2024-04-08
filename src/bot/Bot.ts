@@ -25,6 +25,7 @@ import { FeedGenerator } from "../struct/FeedGenerator.js";
 import { List } from "../struct/List.js";
 import { Post } from "../struct/post/Post.js";
 import type { PostPayload } from "../struct/post/PostPayload.js";
+import { PostReference } from "../struct/post/PostReference.js";
 import { Profile } from "../struct/Profile.js";
 import { BotEventEmitter, type BotEventEmitterOptions, EventStrategy } from "./BotEventEmitter.js";
 import { type CacheOptions, makeCache } from "./cache.js";
@@ -424,34 +425,11 @@ export class Bot extends EventEmitter {
 	/**
 	 * Create a post.
 	 * @param payload The post payload.
-	 * @param options Optional configuration. Will return post URI and CID when {@link BotPostOptions.fetchAfterCreate fetchAfterCreate} is not set.
-	 * @returns The new post's AT URI and CID.
-	 * @overload
+	 * @param options Optional configuration.
+	 * @returns A reference to the created post.
 	 */
-	async post(
-		payload: PostPayload,
-		options: BotPostOptions & { fetchAfterCreate?: false },
-	): Promise<StrongRef>;
-	/**
-	 * Create a post.
-	 * @param payload The post payload.
-	 * @param options Optional configuration. Will return a {@link Post} instance when {@link BotPostOptions.fetchAfterCreate fetchAfterCreate} is set.
-	 * @returns A {@link Post} instance.
-	 * @overload
-	 */
-	async post(
-		payload: PostPayload,
-		options: BotPostOptions & { fetchAfterCreate: true },
-	): Promise<Post>;
-	/**
-	 * Create a post.
-	 * @param payload The post payload.
-	 * @param options Optional configuration (see {@link Bot#post}).
-	 * @returns The new post's AT URI and CID, or a {@link Post} instance if {@link BotPostOptions.fetchAfterCreate options.fetchAfterCreate} is true.
-	 */
-	async post(payload: PostPayload, options?: BotPostOptions): Promise<StrongRef | Post>;
-	async post(payload: PostPayload, options: BotPostOptions = {}): Promise<StrongRef | Post> {
-		options = { resolveFacets: true, ...options };
+	async post(payload: PostPayload, options: BotPostOptions = {}): Promise<PostReference> {
+		options.resolveFacets ??= true;
 
 		if (!this.hasSession) throw new Error(NO_SESSION_ERROR);
 
@@ -472,45 +450,40 @@ export class Bot extends EventEmitter {
 		}
 
 		if (graphemeLength(text) > 300) {
-			if (options.splitLongPost) {
-				const segments = facetAwareSegment(text, 300, facets);
-				if (segments.length <= 1) {
-					throw new Error("Post is too long and could not be split into shorter posts.");
-				}
-				const { text: postText, facets: postFacets } = segments.shift()!;
-				const firstPost = await this.post({
-					...payload,
-					text: postText,
-					facets: postFacets,
-				}, options);
-
-				let previousPost = firstPost;
-
-				while (segments.length) {
-					const { text: replyText, facets: replyFacets } = segments.shift()!;
-
-					const root = payload.replyRef?.root
-						?? { uri: firstPost.uri, cid: firstPost.cid };
-
-					// We don't want to copy over the entire payload; for instance, images, tags, embed, threadgate should only be on the first post
-					previousPost = await this.post({
-						text: replyText,
-						facets: replyFacets,
-						labels: payload.labels,
-						langs: payload.langs,
-						createdAt: payload.createdAt,
-
-						replyRef: {
-							parent: { uri: previousPost.uri, cid: previousPost.cid },
-							root,
-						},
-					}, { ...options, fetchAfterCreate: false });
-				}
-
-				return firstPost;
-			} else {
+			if (!options.splitLongPost) {
 				throw new Error("Post exceeds maximum length of 300 graphemes.");
 			}
+
+			const segments = facetAwareSegment(text, 300, facets);
+			if (segments.length <= 1) {
+				throw new Error("Post is too long and could not be split into shorter posts.");
+			}
+			const { text: postText, facets: postFacets } = segments.shift()!;
+			const firstPost = await this.post(
+				{ ...payload, text: postText, facets: postFacets },
+				options,
+			);
+
+			let previousPost = firstPost;
+
+			while (segments.length) {
+				const { text: replyText, facets: replyFacets } = segments.shift()!;
+
+				const root = payload.replyRef?.root ?? { uri: firstPost.uri, cid: firstPost.cid };
+
+				// We don't want to copy over the entire payload; for instance, images, tags, embed, threadgate should only be on the first post
+				previousPost = await this.post({
+					text: replyText,
+					facets: replyFacets,
+					labels: payload.labels,
+					langs: payload.langs,
+					createdAt: payload.createdAt,
+
+					replyRef: { parent: { uri: previousPost.uri, cid: previousPost.cid }, root },
+				}, { ...options });
+			}
+
+			return firstPost;
 		}
 
 		// Create post labels
@@ -598,6 +571,7 @@ export class Bot extends EventEmitter {
 			createdAt: payload.createdAt.toISOString(),
 			langs: payload.langs,
 		};
+		// @ts-expect-error — AppBskyFeedPopst.ReplyRef has a string index signature
 		if (payload.replyRef) postRecord.reply = payload.replyRef;
 		if (embed) postRecord.embed = embed;
 		if (labels) postRecord.labels = labels;
@@ -645,13 +619,7 @@ export class Bot extends EventEmitter {
 			);
 		}
 
-		if (!options.fetchAfterCreate) {
-			return { uri: postUri, cid: postCid };
-		}
-
-		const createdPost = await this.getPost(postUri);
-		if (!options.noCacheResponse) this.cache.posts.set(createdPost.uri, createdPost);
-		return createdPost;
+		return new PostReference({ uri: postUri, cid: postCid, replyRef: payload.replyRef }, this);
 	}
 
 	/**
@@ -1205,22 +1173,8 @@ export interface BotPostOptions {
 	resolveFacets?: boolean;
 
 	/**
-	 * Whether to fetch the post after creating it.
-	 *
-	 * If set to true, this method will return a Post class. Otherwise, it will only return the post's URI and CID.
-	 * @default false
-	 */
-	fetchAfterCreate?: boolean;
-
-	/**
 	 * Whether to split the post into multiple posts if it exceeds the character limit.
 	 * @default false
 	 */
 	splitLongPost?: boolean;
-
-	/**
-	 * Whether to skip caching the response.
-	 * @default false
-	 */
-	noCacheResponse?: boolean;
 }

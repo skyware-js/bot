@@ -63,6 +63,13 @@ export {
 	type PostFetchParentOptions,
 	type PostFetchRootOptions,
 } from "./struct/post/Post.js";
-export { type ImagePayload, type PostPayload, PostSelfLabels } from "./struct/post/PostPayload.js";
+export { PostReference, type PostReferenceData } from "./struct/post/PostReference.js";
+
+export {
+	type ImagePayload,
+	type PostPayload,
+	PostSelfLabels,
+	type ReplyRef,
+} from "./struct/post/PostPayload.js";
 export { Threadgate, type ThreadgateData } from "./struct/post/Threadgate.js";
 export { Profile, type ProfileData } from "./struct/Profile.js";

@@ -1,8 +1,18 @@
-import type { AppBskyFeedPost, AppBskyRichtextFacet, ComAtprotoLabelDefs } from "@atproto/api";
+import type { AppBskyRichtextFacet, ComAtprotoLabelDefs } from "@atproto/api";
+import type { StrongRef } from "../../bot/Bot";
 import type { RichText } from "../../richtext/RichText";
-import type { FeedGenerator } from "../FeedGenerator.js";
 import type { List } from "../List.js";
-import type { Post } from "./Post.js";
+
+/**
+ * A reference to a post's parent and root posts.
+ */
+export interface ReplyRef {
+	/** A reference to the parent post. */
+	parent: StrongRef;
+
+	/** A reference to the root post. */
+	root?: StrongRef;
+}
 
 /**
  * Data that can be used to create a post.
@@ -19,13 +29,13 @@ export interface PostPayload {
 	facets?: Array<AppBskyRichtextFacet.Main> | undefined;
 
 	/**  A reference to the post's parent and root posts. */
-	replyRef?: AppBskyFeedPost.ReplyRef | undefined;
+	replyRef?: ReplyRef | undefined;
 
 	/** 1-4 images to attach to the post. */
 	images?: [ImagePayload?, ImagePayload?, ImagePayload?, ImagePayload?] | undefined;
 
 	/** A link to a post, list, or feed generator to be embedded within the post. */
-	quoted?: Post | List | FeedGenerator | undefined;
+	quoted?: StrongRef | undefined;
 
 	/** An external embed to attach to the post. */
 	external?: {

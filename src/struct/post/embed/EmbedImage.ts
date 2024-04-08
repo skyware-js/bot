@@ -2,27 +2,19 @@ import type { AppBskyEmbedImages } from "@atproto/api";
 
 /**
  * Data used to construct an EmbedImage class.
+ * @see EmbedImage
  */
 export interface ImageData {
-	/** The image's CID. */
 	cid: string;
-
-	/** The image's alt text. */
 	alt?: string;
-
-	/** The image's MIME type. */
 	mimeType: string;
-
-	/** Image size in bytes. */
 	size: number;
-
-	/** The image's aspect ratio. */
 	aspectRatio?: AppBskyEmbedImages.AspectRatio;
 
-	/** The URL of the image's thumbnail located at the Bluesky CDN. */
+	/** The URL of the image's thumbnail. */
 	thumb?: string;
 
-	/** The URL of the full-size image located at the Bluesky CDN. */
+	/** The URL of the full-size image. */
 	fullsize?: string;
 }
 

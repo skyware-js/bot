@@ -6,39 +6,19 @@ import { Profile } from "./Profile.js";
 
 /**
  * Data used to construct a FeedGenerator class.
+ * @see FeedGenerator
  */
 export interface FeedGeneratorData {
-	/** The feed generator's name. */
 	displayName: string;
-
-	/** The feed generator's AT URI. */
 	uri: string;
-
-	/** The feed generator's CID. */
 	cid: string;
-
-	/** The feed generator's DID. */
 	did: string;
-
-	/** The feed generator's creator. */
 	creator: Profile;
-
-	/** The feed generator's description. */
 	description?: string;
-
-	/** Any facets associated with the feed generator's description. */
 	descriptionFacets?: Array<Facet>;
-
-	/** The feed generator's avatar. */
 	avatar?: string;
-
-	/** Whether the feed generator is currently online. */
 	isOnline?: boolean;
-
-	/** The URI of the feed generator's like record associated with the logged in user. */
 	likeUri?: string;
-
-	/** The time the feed generator was indexed by the App View. */
 	indexedAt: Date;
 }
 

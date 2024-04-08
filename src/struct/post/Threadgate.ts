@@ -5,27 +5,15 @@ import type { Post } from "./Post.js";
 
 /**
  * Data used to construct a Threadgate class.
+ * @see Threadgate
  */
 export interface ThreadgateData {
-	/** The threadgate's CID. */
 	cid: string;
-
-	/** The threadgate's AT URI. */
 	uri: string;
-
-	/** When the threadgate was created. */
 	createdAt: Date;
-
-	/** The post this threadgate is attached to. */
 	post: Post;
-
-	/** Whether users followed by the threadgate author are allowed to reply. */
 	allowsFollowing?: boolean | undefined;
-
-	/** Whether users mentioned in the post are allowed to reply. */
 	allowsMentioned?: boolean | undefined;
-
-	/** Lists whose members are allowed to reply. */
 	allowedLists?: Array<List> | undefined;
 }
 

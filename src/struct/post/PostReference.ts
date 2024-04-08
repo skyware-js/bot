@@ -29,7 +29,7 @@ export class PostReference implements StrongRef {
 	 * @param data Data used to construct the reference.
 	 * @param bot The active Bot instance.
 	 */
-	constructor({ uri, cid, replyRef }: PostReferenceData, public bot: Bot) {
+	constructor({ uri, cid, replyRef }: PostReferenceData, protected bot: Bot) {
 		this.uri = uri;
 		this.cid = cid;
 		if (replyRef) {

@@ -90,7 +90,7 @@ export class BotEventEmitter extends EventEmitter {
 	 * @param options The options for the event emitter.
 	 * @param bot The active Bot instance.
 	 */
-	constructor(options: BotEventEmitterOptions, private bot: Bot) {
+	constructor(options: BotEventEmitterOptions, protected bot: Bot) {
 		super();
 		this.strategy = options.strategy ?? EventStrategy.Polling;
 		this.pollingInterval = options.pollingInterval ?? 5;

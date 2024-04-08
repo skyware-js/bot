@@ -67,7 +67,7 @@ export class FeedGenerator {
 		// dprint-ignore
 		{ displayName, uri, cid, did, creator, description, descriptionFacets, avatar, isOnline, likeUri, indexedAt }:
 			FeedGeneratorData,
-		public bot: Bot,
+		protected bot: Bot,
 	) {
 		this.displayName = displayName;
 		this.uri = uri;

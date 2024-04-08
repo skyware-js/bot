@@ -128,7 +128,7 @@ export class List {
 			items,
 			indexedAt,
 		}: ListData,
-		public bot: Bot,
+		protected bot: Bot,
 	) {
 		this.name = name;
 		this.uri = uri;

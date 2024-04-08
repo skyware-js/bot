@@ -149,7 +149,7 @@ export class Profile {
 	constructor(
 		// dprint-ignore
 		{ did, handle, displayName, description, avatar, banner, followerCount, followingCount, postsCount, labels, indexedAt, followUri, followedByUri, isMuted, blockUri, isBlockedBy }: ProfileData,
-		public bot: Bot,
+		protected bot: Bot,
 	) {
 		this.did = did;
 		this.handle = handle;

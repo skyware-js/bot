@@ -18,7 +18,7 @@
 // SOFTWARE.
 
 import { AppBskyRichtextFacet } from "@atproto/api";
-import type { Bot } from "../bot/Bot";
+import type { Bot } from "../bot/Bot.js";
 import { detectFacets } from "./detectFacets.js";
 
 type FacetFeature = AppBskyRichtextFacet.Main["features"][number];
@@ -120,7 +120,9 @@ export class RichText {
 		for (const facet of facets) {
 			for (const feature of facet.features) {
 				if (AppBskyRichtextFacet.isMention(feature)) {
-					const did = await bot.resolveHandle(feature.did).catch((_) => undefined);
+					const did = await bot.resolveHandle(feature.did).catch((_: unknown) =>
+						undefined
+					);
 					if (!did) {
 						// Remove facet if mention could not be resolved
 						facet.features.splice(facet.features.indexOf(feature), 1);

@@ -1,6 +1,6 @@
-import type { Bot, BotPostOptions, StrongRef } from "../../bot/Bot";
-import type { Post } from "./Post";
-import type { PostPayload, ReplyRef } from "./PostPayload";
+import type { Bot, BotPostOptions, StrongRef } from "../../bot/Bot.js";
+import type { Post } from "./Post.js";
+import type { PostPayload, ReplyRef } from "./PostPayload.js";
 
 /**
  * Data used to construct a PostReference class.

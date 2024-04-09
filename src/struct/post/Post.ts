@@ -263,7 +263,7 @@ export class Post extends PostReference {
 			uri: this.uri,
 			limit: 100,
 			cursor: cursor ?? "",
-		}).catch((e) => {
+		}).catch((e: unknown) => {
 			throw new Error("Failed to fetch reposts.", { cause: e });
 		});
 		return {

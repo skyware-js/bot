@@ -8,12 +8,12 @@ dependencies:
   '@atproto/api':
     specifier: ^0.12.2
     version: 0.12.2
-  limiter:
-    specifier: 2.0.1
-    version: 2.0.1
   quick-lru:
     specifier: ^7.0.0
     version: 7.0.0
+  rate-limit-threshold:
+    specifier: ^0.1.5
+    version: 0.1.5
 
 optionalDependencies:
   '@skyware/firehose':
@@ -1859,10 +1859,6 @@ packages:
       minimist: 1.2.8
     dev: true
 
-  /just-performance@4.2.0:
-    resolution: {integrity: sha512-4TikKSf+Gb+Et5SnA4ppyrxLSf9qWFq+SqfdDdrgHE1KLwSch/Zi1AQB0TrE4ppYjZdUrHnwdx+6dyx0cx/HyA==}
-    dev: false
-
   /keyv@4.5.4:
     resolution: {integrity: sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw==}
     dependencies:
@@ -1876,12 +1872,6 @@ packages:
       prelude-ls: 1.2.1
       type-check: 0.4.0
     dev: true
-
-  /limiter@2.0.1:
-    resolution: {integrity: sha512-OhORJ29edCj2WVLYEou3AVRYZmobyTOy2A9yvDuwL68teu+vWLLlnJxEBMH4gDXIKlkyCTBL9JDEygSPOiwfMg==}
-    dependencies:
-      just-performance: 4.2.0
-    dev: false
 
   /locate-path@6.0.0:
     resolution: {integrity: sha512-iPZK6eYjbxRu3uB4/WZ3EsEIMJFMqAoopl3R+zuq0UjcAm/MO6KCweDgPfP3elTztoKP3KtnVHxTn2NHBSDVUw==}
@@ -2239,6 +2229,11 @@ packages:
     engines: {node: '>= 0.6'}
     dev: false
     optional: true
+
+  /rate-limit-threshold@0.1.5:
+    resolution: {integrity: sha512-75vpvXC/ZqQJrFDp0dVtfoXZi8kxQP2eBuxVYFvGDfnHhcgE+ZG870u4ItQhWQh54Y6nNwOaaq5g3AL9n27lTg==}
+    engines: {node: ^14.13.1 || >=16.0.0}
+    dev: false
 
   /rate-limiter-flexible@2.4.2:
     resolution: {integrity: sha512-rMATGGOdO1suFyf/mI5LYhts71g1sbdhmd6YvdiXO2gJnd42Tt6QS4JUKJKSWVVkMtBacm6l40FR7Trjo6Iruw==}

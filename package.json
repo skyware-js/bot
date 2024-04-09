@@ -22,8 +22,8 @@
 	},
 	"dependencies": {
 		"@atproto/api": "^0.12.2",
-		"limiter": "2.0.1",
-		"quick-lru": "^7.0.0"
+		"quick-lru": "^7.0.0",
+		"rate-limit-threshold": "^0.1.5"
 	},
 	"devDependencies": {
 		"@types/node": "^20.11.26",

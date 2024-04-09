@@ -16,9 +16,9 @@ import {
 	type ComAtprotoServerCreateSession,
 	type ComAtprotoServerGetSession,
 } from "@atproto/api";
-import { RateLimiter } from "limiter";
 import { EventEmitter } from "node:events";
 import type QuickLRU from "quick-lru";
+import { RateLimitThreshold } from "rate-limit-threshold";
 import { facetAwareSegment } from "../richtext/facetAwareSegment.js";
 import { graphemeLength, RichText } from "../richtext/RichText.js";
 import { FeedGenerator } from "../struct/FeedGenerator.js";
@@ -72,7 +72,7 @@ export class Bot extends EventEmitter {
 	private readonly agent: BskyAgent;
 
 	/** A limiter to rate limit API requests. */
-	private readonly limiter: RateLimiter;
+	private readonly limiter: RateLimitThreshold;
 
 	/** A cache to store API responses. */
 	private readonly cache: BotCache;
@@ -109,10 +109,10 @@ export class Bot extends EventEmitter {
 
 		this.langs = langs;
 
-		this.limiter = new RateLimiter({
-			tokensPerInterval: rateLimitOptions?.rateLimit ?? 3000,
-			interval: (rateLimitOptions?.rateLimitInterval ?? 300) * 1000,
-		});
+		this.limiter = new RateLimitThreshold(
+			3000,
+			(rateLimitOptions?.rateLimitInterval ?? 300) * 1000,
+		);
 
 		this.cache = {
 			profiles: makeCache(cacheOptions),
@@ -134,7 +134,7 @@ export class Bot extends EventEmitter {
 			this.eventEmitter.on("follow", (event) => this.emit("follow", event));
 		}
 
-		this.api = this.agent.api = wrapApiWithLimiter(this.agent.api, this.limiter);
+		this.api = this.agent.api = rateLimitApi(this.agent.api, this.limiter);
 	}
 
 	/** Whether the bot has an active session. */
@@ -954,10 +954,10 @@ export class Bot extends EventEmitter {
 
 const NOT_LIMITED_METHODS = ["com.atproto.server.createSession", "com.atproto.server.getSession"];
 
-function wrapApiWithLimiter(client: AtpServiceClient, limiter: RateLimiter) {
+function rateLimitApi(client: AtpServiceClient, limiter: RateLimitThreshold) {
 	const call = client.xrpc.call.bind(client.xrpc);
 	client.xrpc.call = async (nsid, ...params) => {
-		if (!NOT_LIMITED_METHODS.includes(nsid)) await limiter.removeTokens(1);
+		if (!NOT_LIMITED_METHODS.includes(nsid)) await limiter.limit();
 		return call(nsid, ...params);
 	};
 	return client;

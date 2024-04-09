@@ -1,6 +1,6 @@
 import type { AppBskyRichtextFacet, ComAtprotoLabelDefs } from "@atproto/api";
-import type { StrongRef } from "../../bot/Bot";
-import type { RichText } from "../../richtext/RichText";
+import type { StrongRef } from "../../bot/Bot.js";
+import type { RichText } from "../../richtext/RichText.js";
 import type { List } from "../List.js";
 
 /**

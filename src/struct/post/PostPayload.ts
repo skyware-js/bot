@@ -96,8 +96,8 @@ export interface ImagePayload {
 	/** The image's aspect ratio. */
 	aspectRatio?: { width: number; height: number };
 
-	/** The image's data. */
-	data: Blob;
+	/** The image's data, or a URL leading to an image. */
+	data: Blob | string;
 }
 
 // Filter out `(string & {})` from LabelValue by distributing with `T extends T` then removing values to which `string` is assignable

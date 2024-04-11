@@ -96,6 +96,21 @@ export function isEmbedView(
 		|| AppBskyEmbedRecordWithMedia.isView(view));
 }
 
+export async function fetchImageForBlob(
+	url: string,
+): Promise<{ type: string; data: Uint8Array } | null> {
+	const res = await fetch(url);
+	if (!res || !res.ok) return null;
+
+	const blob = await res.blob();
+	if (!blob) return null;
+
+	const { type } = blob;
+	if (!type?.startsWith("image/")) return null;
+
+	return { type, data: new Uint8Array(await blob.arrayBuffer()) };
+}
+
 export async function fetchExternalEmbedData(
 	this: Bot,
 	url: string,
@@ -117,15 +132,10 @@ export async function fetchExternalEmbedData(
 
 	let thumb: BlobRef | undefined;
 	if ("image" in extractedEmbedData && typeof extractedEmbedData.image === "string") {
-		const imageBlob = await fetch(extractedEmbedData.image).then((res) => res.blob()).catch(
-			() => null
-		);
+		const { type, data: image } = await fetchImageForBlob(extractedEmbedData.image) ?? {};
 
-		if (imageBlob && imageBlob.type.startsWith("image/")) {
-			const imageBuffer = await imageBlob.arrayBuffer();
-			const blob = await this.api.com.atproto.repo.uploadBlob(new Uint8Array(imageBuffer), {
-				encoding: imageBlob.type,
-			});
+		if (image && type) {
+			const blob = await this.api.com.atproto.repo.uploadBlob(image, { encoding: type });
 			if (blob.success) {
 				thumb = blob.data.blob;
 			}

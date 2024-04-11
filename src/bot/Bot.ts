@@ -23,7 +23,7 @@ import { facetAwareSegment } from "../richtext/facetAwareSegment.js";
 import { graphemeLength, RichText } from "../richtext/RichText.js";
 import { FeedGenerator } from "../struct/FeedGenerator.js";
 import { List } from "../struct/List.js";
-import { fetchExternalEmbedData } from "../struct/post/embed/util.js";
+import { fetchExternalEmbedData, fetchImageForBlob } from "../struct/post/embed/util.js";
 import { Post } from "../struct/post/Post.js";
 import type { PostPayload } from "../struct/post/PostPayload.js";
 import { PostReference } from "../struct/post/PostReference.js";
@@ -503,23 +503,37 @@ export class Bot extends EventEmitter {
 		const images: Array<AppBskyEmbedImages.Image> = [];
 		if (payload.images?.length) {
 			for (const image of payload.images) {
-				if (!image?.data.size) throw new Error("Can't upload an empty image");
-				if (!image.data.type.startsWith("image/")) {
-					throw new Error("Image blob is not an image");
+				if (!image) continue;
+				if (image?.data instanceof Blob) {
+					if (!image?.data.size) throw new Error("Can't upload an empty image");
+					if (!image.data.type.startsWith("image/")) {
+						throw new Error("Image blob is not an image");
+					}
 				}
 
 				image.alt ??= "";
 
-				const blobContents = new Uint8Array(await image.data.arrayBuffer());
-				const imageResponse = await this.agent.uploadBlob(blobContents, {
-					encoding: image.data.type,
-				}).catch((e) => {
-					throw new Error("Failed to upload image\n" + e);
-				});
+				let type: string | undefined, blob: Uint8Array | undefined;
+				if (typeof image.data === "string") {
+					({ type, data: blob } = await fetchImageForBlob(image.data).catch((e) => {
+						throw new Error(`Failed to fetch image at ${image.data}\n` + e);
+					}) ?? {});
+				} else {
+					type = image.data.type;
+					blob = new Uint8Array(await image.data.arrayBuffer());
+				}
 
-				const { blob } = imageResponse.data;
+				if (!blob || !type) throw new Error("Invalid image provided.");
 
-				images.push({ ...image, alt: image.alt, image: blob });
+				const imageResponse = await this.agent.uploadBlob(blob, { encoding: type }).catch(
+					(e) => {
+						throw new Error("Failed to upload image\n" + e);
+					},
+				);
+
+				const { blob: imageBlob } = imageResponse.data;
+
+				images.push({ ...image, alt: image.alt, image: imageBlob });
 			}
 		}
 
@@ -554,19 +568,31 @@ export class Bot extends EventEmitter {
 			} else {
 				let thumbBlob: BlobRef | undefined;
 
-				if (payload.external.thumb?.data.size) {
-					if (!payload.external.thumb.data.type.startsWith("image/")) {
+				const image = payload.external.thumb?.data;
+
+				if (image) {
+					if (image instanceof Blob && !image.type.startsWith("image/")) {
 						throw new Error("Image blob is not an image");
 					}
 
-					const blobContents = new Uint8Array(
-						await payload.external.thumb.data.arrayBuffer(),
-					);
-					const thumbResponse = await this.agent.uploadBlob(blobContents, {
-						encoding: payload.external.thumb.data.type,
-					}).catch((e) => {
-						throw new Error("Failed to upload thumbnail\n" + e);
-					});
+					let type: string | undefined, blob: Uint8Array | undefined;
+					if (typeof image === "string") {
+						({ type, data: blob } = await fetchImageForBlob(image).catch((e) => {
+							throw new Error(
+								`Failed to fetch payload.external.thumb at ${image}\n` + e,
+							);
+						}) ?? {});
+					} else {
+						type = image.type;
+						blob = new Uint8Array(await image.arrayBuffer());
+					}
+
+					if (!blob || !type) throw new Error("Invalid image provided.");
+
+					const thumbResponse = await this.agent.uploadBlob(blob, { encoding: type })
+						.catch((e) => {
+							throw new Error("Failed to upload thumbnail\n" + e);
+						});
 
 					thumbBlob = thumbResponse.data.blob;
 				}

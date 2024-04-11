@@ -66,6 +66,7 @@ export {
 export { PostReference, type PostReferenceData } from "./struct/post/PostReference.js";
 
 export {
+	type ExternalEmbedPayload,
 	type ImagePayload,
 	type PostPayload,
 	PostSelfLabels,

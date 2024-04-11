@@ -23,6 +23,7 @@ import { facetAwareSegment } from "../richtext/facetAwareSegment.js";
 import { graphemeLength, RichText } from "../richtext/RichText.js";
 import { FeedGenerator } from "../struct/FeedGenerator.js";
 import { List } from "../struct/List.js";
+import { fetchExternalEmbedData } from "../struct/post/embed/util.js";
 import { Post } from "../struct/post/Post.js";
 import type { PostPayload } from "../struct/post/PostPayload.js";
 import { PostReference } from "../struct/post/PostReference.js";
@@ -536,29 +537,43 @@ export class Bot extends EventEmitter {
 				} satisfies AppBskyEmbedRecordWithMedia.Main
 				: record;
 		} else if (payload.external) {
-			let thumbBlob: BlobRef | undefined;
-
-			if (payload.external.thumb?.data.byteLength) {
-				const thumbResponse = await this.agent.uploadBlob(payload.external.thumb.data)
-					.catch((e) => {
-						throw new Error("Failed to upload thumbnail\n" + e);
-					});
-				thumbBlob = thumbResponse.data.blob;
-
-				if (!thumbBlob?.mimeType.startsWith("image/")) {
-					throw new Error("Uploaded blob is not an image");
+			if (typeof payload.external === "string") {
+				const external = await fetchExternalEmbedData.call(this, payload.external).catch(
+					(e) => {
+						throw new Error("Failed to resolve external embed\n" + e);
+					},
+				);
+				if (external) {
+					embed = {
+						$type: "app.bsky.embed.external",
+						external,
+					} satisfies AppBskyEmbedExternal.Main;
 				}
-			}
+			} else {
+				let thumbBlob: BlobRef | undefined;
 
-			embed = {
-				$type: "app.bsky.embed.external",
-				external: {
-					title: payload.external.title,
-					uri: payload.external.uri,
-					description: payload.external.description,
-					...(thumbBlob ? { thumb: thumbBlob } : {}),
-				},
-			} satisfies AppBskyEmbedExternal.Main;
+				if (payload.external.thumb?.data.byteLength) {
+					const thumbResponse = await this.agent.uploadBlob(payload.external.thumb.data)
+						.catch((e) => {
+							throw new Error("Failed to upload thumbnail\n" + e);
+						});
+					thumbBlob = thumbResponse.data.blob;
+
+					if (!thumbBlob?.mimeType.startsWith("image/")) {
+						throw new Error("Uploaded blob is not an image");
+					}
+				}
+
+				embed = {
+					$type: "app.bsky.embed.external",
+					external: {
+						title: payload.external.title,
+						uri: payload.external.uri,
+						description: payload.external.description,
+						...(thumbBlob ? { thumb: thumbBlob } : {}),
+					},
+				} satisfies AppBskyEmbedExternal.Main;
+			}
 		} else if (images.length) {
 			embed = { $type: "app.bsky.embed.images", images } satisfies AppBskyEmbedImages.Main;
 		}

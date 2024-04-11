@@ -3,6 +3,7 @@ import {
 	AppBskyEmbedImages,
 	AppBskyEmbedRecord,
 	AppBskyEmbedRecordWithMedia,
+	type BlobRef,
 } from "@atproto/api";
 import type { Bot } from "../../../bot/Bot.js";
 import { ExternalEmbed } from "./ExternalEmbed.js";
@@ -93,4 +94,43 @@ export function isEmbedView(
 		|| AppBskyEmbedExternal.isView(view)
 		|| AppBskyEmbedRecord.isView(view)
 		|| AppBskyEmbedRecordWithMedia.isView(view));
+}
+
+export async function fetchExternalEmbedData(
+	this: Bot,
+	url: string,
+): Promise<AppBskyEmbedExternal.External | null> {
+	const res = await fetch(`https://cardyb.bsky.app/v1/extract?url=${encodeURIComponent(url)}`);
+	if (!res || !res.ok) return null;
+
+	const extractedEmbedData = await res.json();
+	if (!extractedEmbedData || typeof extractedEmbedData !== "object") return null;
+	if ("error" in extractedEmbedData && extractedEmbedData.error) return null;
+	if (
+		!("url" in extractedEmbedData) || typeof extractedEmbedData.url !== "string"
+		|| !("title" in extractedEmbedData) || typeof extractedEmbedData.title !== "string"
+		|| !("description" in extractedEmbedData)
+		|| typeof extractedEmbedData.description !== "string"
+	) return null;
+
+	const { url: extractedUrl, title, description } = extractedEmbedData;
+
+	let thumb: BlobRef | undefined;
+	if ("image" in extractedEmbedData && typeof extractedEmbedData.image === "string") {
+		const imageBlob = await fetch(extractedEmbedData.image).then((res) => res.blob()).catch(
+			() => null
+		);
+
+		if (imageBlob && imageBlob.type.startsWith("image/")) {
+			const imageBuffer = await imageBlob.arrayBuffer();
+			const blob = await this.api.com.atproto.repo.uploadBlob(new Uint8Array(imageBuffer), {
+				encoding: imageBlob.type,
+			});
+			if (blob.success) {
+				thumb = blob.data.blob;
+			}
+		}
+	}
+
+	return { uri: extractedUrl, title, description, ...(thumb ? { thumb } : {}) };
 }

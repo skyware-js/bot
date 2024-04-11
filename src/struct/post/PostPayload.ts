@@ -15,6 +15,23 @@ export interface ReplyRef {
 }
 
 /**
+ * Data for an external embed to be attached to a post.
+ */
+export interface ExternalEmbedPayload {
+	/** The URI of the external content. */
+	uri: string;
+
+	/** The title of the external content. */
+	title: string;
+
+	/** The description of the external content. */
+	description: string;
+
+	/** The thumbnail image associated with the external content. */
+	thumb?: ImagePayload;
+}
+
+/**
  * Data that can be used to create a post.
  */
 export interface PostPayload {
@@ -37,17 +54,11 @@ export interface PostPayload {
 	/** A link to a post, list, or feed generator to be embedded within the post. */
 	quoted?: StrongRef | undefined;
 
-	/** An external embed to attach to the post. */
-	external?: {
-		/** The URI of the external content. */
-		uri: string;
-		/** The title of the external content. */
-		title: string;
-		/** The description of the external content. */
-		description: string;
-		/** The thumbnail image associated with the external content. */
-		thumb?: ImagePayload;
-	} | undefined;
+	/**
+	 * An external embed to attach to the post.
+	 * Can either be a link to resolve the embed preview from, or an object for more fine-grained control.
+	 */
+	external?: string | ExternalEmbedPayload | undefined;
 
 	/** A list of two-letter language codes that the post is written in. */
 	langs?: Array<string> | undefined;

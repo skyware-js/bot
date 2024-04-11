@@ -503,19 +503,21 @@ export class Bot extends EventEmitter {
 		const images: Array<AppBskyEmbedImages.Image> = [];
 		if (payload.images?.length) {
 			for (const image of payload.images) {
-				if (!image?.data.byteLength) throw new Error("Can't upload an empty image");
+				if (!image?.data.size) throw new Error("Can't upload an empty image");
+				if (!image.data.type.startsWith("image/")) {
+					throw new Error("Image blob is not an image");
+				}
 
 				image.alt ??= "";
 
-				const imageResponse = await this.agent.uploadBlob(image.data).catch((e) => {
+				const blobContents = new Uint8Array(await image.data.arrayBuffer());
+				const imageResponse = await this.agent.uploadBlob(blobContents, {
+					encoding: image.data.type,
+				}).catch((e) => {
 					throw new Error("Failed to upload image\n" + e);
 				});
 
 				const { blob } = imageResponse.data;
-
-				if (!blob.mimeType.startsWith("image/")) {
-					throw new Error("Uploaded blob is not an image");
-				}
 
 				images.push({ ...image, alt: image.alt, image: blob });
 			}
@@ -552,16 +554,21 @@ export class Bot extends EventEmitter {
 			} else {
 				let thumbBlob: BlobRef | undefined;
 
-				if (payload.external.thumb?.data.byteLength) {
-					const thumbResponse = await this.agent.uploadBlob(payload.external.thumb.data)
-						.catch((e) => {
-							throw new Error("Failed to upload thumbnail\n" + e);
-						});
-					thumbBlob = thumbResponse.data.blob;
-
-					if (!thumbBlob?.mimeType.startsWith("image/")) {
-						throw new Error("Uploaded blob is not an image");
+				if (payload.external.thumb?.data.size) {
+					if (!payload.external.thumb.data.type.startsWith("image/")) {
+						throw new Error("Image blob is not an image");
 					}
+
+					const blobContents = new Uint8Array(
+						await payload.external.thumb.data.arrayBuffer(),
+					);
+					const thumbResponse = await this.agent.uploadBlob(blobContents, {
+						encoding: payload.external.thumb.data.type,
+					}).catch((e) => {
+						throw new Error("Failed to upload thumbnail\n" + e);
+					});
+
+					thumbBlob = thumbResponse.data.blob;
 				}
 
 				embed = {

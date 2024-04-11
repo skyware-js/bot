@@ -4,34 +4,6 @@ import type { RichText } from "../../richtext/RichText.js";
 import type { List } from "../List.js";
 
 /**
- * A reference to a post's parent and root posts.
- */
-export interface ReplyRef {
-	/** A reference to the parent post. */
-	parent: StrongRef;
-
-	/** A reference to the root post. */
-	root?: StrongRef;
-}
-
-/**
- * Data for an external embed to be attached to a post.
- */
-export interface ExternalEmbedPayload {
-	/** The URI of the external content. */
-	uri: string;
-
-	/** The title of the external content. */
-	title: string;
-
-	/** The description of the external content. */
-	description: string;
-
-	/** The thumbnail image associated with the external content. */
-	thumb?: ImagePayload;
-}
-
-/**
  * Data that can be used to create a post.
  */
 export interface PostPayload {
@@ -86,7 +58,37 @@ export interface PostPayload {
 	createdAt?: Date | undefined;
 }
 
-/** Data for an image to be attached to a post. */
+/**
+ * A reference to a post's parent and root posts.
+ */
+export interface ReplyRef {
+	/** A reference to the parent post. */
+	parent: StrongRef;
+
+	/** A reference to the root post. */
+	root?: StrongRef;
+}
+
+/**
+ * Data for an external embed to be attached to a post.
+ */
+export interface ExternalEmbedPayload {
+	/** The URI of the external content. */
+	uri: string;
+
+	/** The title of the external content. */
+	title: string;
+
+	/** The description of the external content. */
+	description: string;
+
+	/** The thumbnail image associated with the external content. */
+	thumb?: ImagePayload;
+}
+
+/**
+ * Data for an image to be attached to a post.
+ */
 export interface ImagePayload {
 	/** Alt text for the image. */
 	alt?: string;
@@ -95,7 +97,7 @@ export interface ImagePayload {
 	aspectRatio?: { width: number; height: number };
 
 	/** The image's data. */
-	data: Uint8Array;
+	data: Blob;
 }
 
 // Filter out `(string & {})` from LabelValue by distributing with `T extends T` then removing values to which `string` is assignable

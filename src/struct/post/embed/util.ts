@@ -104,8 +104,8 @@ export async function fetchImageForBlob(
 
 	const blob = await res.blob();
 	if (!blob) return null;
-
-	const { type } = blob;
+	
+	const type = res.headers.get("content-type");
 	if (!type?.startsWith("image/")) return null;
 
 	return { type, data: new Uint8Array(await blob.arrayBuffer()) };

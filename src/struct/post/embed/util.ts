@@ -104,7 +104,7 @@ export async function fetchImageForBlob(
 
 	const blob = await res.blob();
 	if (!blob) return null;
-	
+
 	const type = res.headers.get("content-type");
 	if (!type?.startsWith("image/")) return null;
 
@@ -128,7 +128,7 @@ export async function fetchExternalEmbedData(
 		|| typeof extractedEmbedData.description !== "string"
 	) return null;
 
-	const { url: extractedUrl, title, description } = extractedEmbedData;
+	const { title, description } = extractedEmbedData;
 
 	let thumb: BlobRef | undefined;
 	if ("image" in extractedEmbedData && typeof extractedEmbedData.image === "string") {
@@ -142,5 +142,5 @@ export async function fetchExternalEmbedData(
 		}
 	}
 
-	return { uri: extractedUrl, title, description, ...(thumb ? { thumb } : {}) };
+	return { uri: url, title, description, ...(thumb ? { thumb } : {}) };
 }

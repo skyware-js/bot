@@ -85,7 +85,8 @@ export class RichText {
 
 	/** Append a mention. */
 	mention(handle: string, did: string): this {
-		return this.feature(handle, { $type: "app.bsky.richtext.facet#mention", did });
+		if (handle.startsWith("@")) handle = handle.slice(1);
+		return this.feature(`@${handle}`, { $type: "app.bsky.richtext.facet#mention", did });
 	}
 
 	/**

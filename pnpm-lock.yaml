@@ -6,8 +6,8 @@ settings:
 
 dependencies:
   '@atproto/api':
-    specifier: ^0.12.2
-    version: 0.12.2
+    specifier: ^0.12.10
+    version: 0.12.10
   quick-lru:
     specifier: ^7.0.0
     version: 7.0.0
@@ -56,8 +56,8 @@ packages:
     engines: {node: '>=0.10.0'}
     dev: true
 
-  /@atproto/api@0.12.2:
-    resolution: {integrity: sha512-UVzCiDZH2j0wrr/O8nb1edD5cYLVqB5iujueXUCbHS3rAwIxgmyLtA3Hzm2QYsGPo/+xsIg1fNvpq9rNT6KWUA==}
+  /@atproto/api@0.12.10:
+    resolution: {integrity: sha512-WhZXvtVENdWSqfiPKiVIjX84r1zFnpEKApyh8rBjxBzGstWfabiz7bKW2eybZNHMty1IyFHwMHaLXPruoSJlHQ==}
     dependencies:
       '@atproto/common-web': 0.3.0
       '@atproto/lexicon': 0.4.0

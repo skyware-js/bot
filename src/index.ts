@@ -73,4 +73,4 @@ export {
 	type ReplyRef,
 } from "./struct/post/PostPayload.js";
 export { Threadgate, type ThreadgateData } from "./struct/post/Threadgate.js";
-export { Profile, type ProfileData } from "./struct/Profile.js";
+export { IncomingChatPreference, Profile, type ProfileData } from "./struct/Profile.js";

@@ -59,6 +59,12 @@ export interface ProfileData {
 
 	/** Whether the bot is blocked by the user. */
 	isBlockedBy?: boolean | undefined;
+
+	/** Whether the user account is a labeler. */
+	isLabeler?: boolean | undefined;
+
+	/** The user's preference for who can initiate a chat conversation. */
+	incomingChatPreference?: IncomingChatPreference | undefined;
 }
 
 /**
@@ -122,6 +128,12 @@ export class Profile {
 	/** Whether the bot is blocked by the user. */
 	blockedBy?: boolean;
 
+	/** Whether the user account is a labeler. */
+	isLabeler?: boolean;
+
+	/** The user's preference for who can initiate a chat conversation. */
+	incomingChatPreference?: IncomingChatPreference;
+
 	/** Whether the bot is following the user. */
 	get isFollowing() {
 		return this.followUri != undefined;
@@ -148,7 +160,7 @@ export class Profile {
 	 */
 	constructor(
 		// dprint-ignore
-		{ did, handle, displayName, description, avatar, banner, followerCount, followingCount, postsCount, labels, indexedAt, followUri, followedByUri, isMuted, blockUri, isBlockedBy }: ProfileData,
+		{ did, handle, displayName, description, avatar, banner, followerCount, followingCount, postsCount, labels, indexedAt, followUri, followedByUri, isMuted, blockUri, isBlockedBy, isLabeler, incomingChatPreference }: ProfileData,
 		protected bot: Bot,
 	) {
 		this.did = did;
@@ -167,6 +179,8 @@ export class Profile {
 		if (isMuted != undefined) this.isMuted = isMuted;
 		if (blockUri != undefined) this.blockUri = blockUri;
 		if (isBlockedBy != undefined) this.blockedBy = isBlockedBy;
+		if (isLabeler != undefined) this.isLabeler = isLabeler;
+		if (incomingChatPreference) this.incomingChatPreference = incomingChatPreference;
 	}
 
 	/**
@@ -271,6 +285,25 @@ export class Profile {
 			isMuted: view.viewer?.muted,
 			blockUri: view.viewer?.blocking,
 			isBlockedBy: view.viewer?.blockedBy,
+			isLabeler: view.associated?.labeler,
+			incomingChatPreference: view.associated?.chat?.allowIncoming,
 		}, bot);
 	}
 }
+
+/**
+ * A user's preference for who can initiate a chat conversation.
+ * @enum
+ */
+export const IncomingChatPreference = {
+	/** Receive messages from everyone. */
+	All: "all",
+
+	/** Receive messages from nobody. */
+	None: "none",
+
+	/** Receive messages from users the user follows. */
+	Following: "following",
+};
+export type IncomingChatPreference =
+	typeof IncomingChatPreference[keyof typeof IncomingChatPreference];

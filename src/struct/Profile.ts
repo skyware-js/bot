@@ -261,6 +261,15 @@ export class Profile {
 	}
 
 	/**
+	 * Fetch the labeler associated with this user, if there is any.
+	 * Check the {@link isLabeler} property before calling this method!
+	 * @returns The labeler associated with this user.
+	 */
+	async getLabeler() {
+		return this.bot.getLabeler(this.did);
+	}
+
+	/**
 	 * Constructs an instance from a ProfileView.
 	 * @param view The ProfileView to construct from.
 	 * @param bot The active Bot instance.

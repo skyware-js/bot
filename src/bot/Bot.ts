@@ -6,6 +6,7 @@ import {
 	AppBskyFeedDefs,
 	AppBskyFeedPost,
 	type AppBskyFeedThreadgate,
+	AppBskyLabelerDefs,
 	type AppBskyRichtextFacet,
 	type AtpServiceClient,
 	type AtpSessionData,
@@ -22,6 +23,7 @@ import { RateLimitThreshold } from "rate-limit-threshold";
 import { facetAwareSegment } from "../richtext/facetAwareSegment.js";
 import { graphemeLength, RichText } from "../richtext/RichText.js";
 import { FeedGenerator } from "../struct/FeedGenerator.js";
+import { Labeler } from "../struct/Labeler.js";
 import { List } from "../struct/List.js";
 import { fetchExternalEmbedData, fetchImageForBlob } from "../struct/post/embed/util.js";
 import { Post } from "../struct/post/Post.js";
@@ -420,6 +422,36 @@ export class Bot extends EventEmitter {
 			const post = Post.fromView(feedViewPost.post, this);
 			if (!options.noCacheResponse) this.cache.posts.set(post.uri, post);
 			return post;
+		});
+	}
+
+	/**
+	 * Fetch a labeler by its account DID.
+	 * @param did The DID of the labeler to fetch.
+	 */
+	async getLabeler(did: string): Promise<Labeler> {
+		const labelers = await this.getLabelers([did]);
+		if (!labelers[0]) throw new Error(`Labeler not found for DID ${did}.`);
+		return labelers[0];
+	}
+
+	/**
+	 * 	Fetch a list of labelers by their account DIDs.
+	 * 	@param dids The DIDs of the labelers to fetch.
+	 */
+	async getLabelers(dids: Array<string>): Promise<Array<Labeler>> {
+		const response = await this.agent.getLabelers({ dids, detailed: true }).catch((e) => {
+			throw new Error("Failed to fetch labelers.", { cause: e });
+		});
+
+		return response.data.views.map((labelerView) => {
+			if (
+				!AppBskyLabelerDefs.isLabelerView(labelerView)
+				&& !AppBskyLabelerDefs.isLabelerViewDetailed(labelerView)
+			) {
+				throw new Error(`Received invalid labeler view: ${JSON.stringify(labelerView)}`);
+			}
+			return Labeler.fromView(labelerView, this);
 		});
 	}
 
@@ -850,6 +882,30 @@ export class Bot extends EventEmitter {
 					: ` for user ${didOrUri}.`,
 				{ cause: e },
 			);
+		});
+	}
+
+	/**
+	 * Subscribe to a labeler.
+	 * @param did The labeler's DID.
+	 */
+	async addLabeler(did: string): Promise<void> {
+		if (!this.hasSession) throw new Error(NO_SESSION_ERROR);
+
+		return this.agent.addLabeler(did).catch((e) => {
+			throw new Error(`Failed to subscribe to labeler ${did}.`, { cause: e });
+		});
+	}
+
+	/**
+	 * Unsubscribe from a labeler.
+	 * @param did The labeler's DID.
+	 */
+	async removeLabeler(did: string): Promise<void> {
+		if (!this.hasSession) throw new Error(NO_SESSION_ERROR);
+
+		return this.agent.removeLabeler(did).catch((e) => {
+			throw new Error(`Failed to unsubscribe from labeler ${did}.`, { cause: e });
 		});
 	}
 

@@ -1,4 +1,4 @@
-import type { AppBskyRichtextFacet, ComAtprotoLabelDefs } from "@atproto/api";
+import type { AppBskyRichtextFacet, LabelDefinitionMap } from "@atproto/api";
 import type { StrongRef } from "../../bot/Bot.js";
 import type { RichText } from "../../richtext/RichText.js";
 import type { List } from "../List.js";
@@ -100,36 +100,21 @@ export interface ImagePayload {
 	data: Blob | string;
 }
 
-// Filter out `(string & {})` from LabelValue by distributing with `T extends T` then removing values to which `string` is assignable
-// dprint-ignore
-type LabelValues = ComAtprotoLabelDefs.LabelValue extends infer T extends string
-	? T extends T
-		? string extends T
-			? never
-			: T
-		: never
-	: never;
-type SelfLabelValue = Exclude<
-	LabelValues,
-	| `!${string}` /* imperative labels */
-	| "dmca-violation"
-	| "doxxing" /* wouldn't want to self apply these */
->;
+type KnownLabelValue = keyof LabelDefinitionMap;
+type SelfLabelValue = Exclude<KnownLabelValue, `!${string}` /* imperative labels */>;
 
 /**
  * Labels that can be self-applied when creating a post.
  * @enum
  */
 export const PostSelfLabels = {
-	/** Post media is not safe for life (e.g. graphic violence). */
-	Nsfl: "nsfl",
-	/** Post media contains gore. */
-	Gore: "gore",
+	/** Post media contains graphic content. */
+	GraphicMedia: "graphic-media",
 	/** Post media contains non-sexual nudity. */
 	Nudity: "nudity",
 	/** Post media contains sexual content. */
 	Sexual: "sexual",
 	/** Post media contains pornographic content. */
 	Porn: "porn",
-} as const satisfies Record<Capitalize<SelfLabelValue>, SelfLabelValue>;
+} as const satisfies Record<string, SelfLabelValue>;
 export type PostSelfLabels = typeof PostSelfLabels[keyof typeof PostSelfLabels];

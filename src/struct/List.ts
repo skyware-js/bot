@@ -218,6 +218,24 @@ export class List {
 	}
 
 	/**
+	 * Apply labels to the list.
+	 * @param labels The labels to apply.
+	 * @param comment An optional comment.
+	 */
+	async label(labels: Array<string>, comment?: string) {
+		return this.bot.label({ reference: this, labels, comment });
+	}
+
+	/**
+	 * Negate labels previously applied to the list.
+	 * @param labels The labels to negate.
+	 * @param comment An optional comment.
+	 */
+	async negateLabels(labels: Array<string>, comment?: string) {
+		return this.bot.negateLabels({ reference: this, labels, comment });
+	}
+
+	/**
 	 * Constructs an instance from a ListView.
 	 * @param view The ListView to construct from.
 	 * @param bot The active Bot instance.

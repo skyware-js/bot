@@ -16,6 +16,8 @@ import {
 	type ComAtprotoLabelDefs,
 	type ComAtprotoServerCreateSession,
 	type ComAtprotoServerGetSession,
+	type ToolsOzoneModerationDefs,
+	type ToolsOzoneModerationEmitEvent,
 } from "@atproto/api";
 import { EventEmitter } from "node:events";
 import type QuickLRU from "quick-lru";
@@ -548,6 +550,7 @@ export class Bot extends EventEmitter {
 				let type: string | undefined, blob: Uint8Array | undefined;
 				if (typeof image.data === "string") {
 					({ type, data: blob } = await fetchImageForBlob(image.data).catch((e) => {
+						// eslint-disable-next-line @typescript-eslint/no-base-to-string, @typescript-eslint/restrict-template-expressions
 						throw new Error(`Failed to fetch image at ${image.data}\n` + e);
 					}) ?? {});
 				} else {
@@ -886,6 +889,71 @@ export class Bot extends EventEmitter {
 	}
 
 	/**
+	 * Label a user or record. Note that you need a running Ozone instance on this DID to publish labels!
+	 * @param options Information on the label to apply.
+	 * @see [Self-hosting Ozone](https://github.com/bluesky-social/ozone/blob/main/HOSTING.md)
+	 */
+	async label(
+		{ reference, labels, blobCids = [], comment }: BotLabelRecordOptions,
+	): Promise<void> {
+		const response = await this.emitLabelEvent(reference, {
+			createLabelVals: labels,
+			negateLabelVals: [],
+			...(comment ? { comment } : {}),
+		}, blobCids);
+		if (!response.success) {
+			throw new Error(
+				`Failed to label record ${"did" in reference ? reference.did : reference.uri}.`,
+			);
+		}
+	}
+
+	/**
+	 * Negate labels previously applied to a record by the bot.
+	 * @param options Information on the record to negate labels on.
+	 */
+	async negateLabels(
+		{ reference, labels, blobCids = [], comment }: BotLabelRecordOptions,
+	): Promise<void> {
+		const response = await this.emitLabelEvent(reference, {
+			createLabelVals: [],
+			negateLabelVals: labels,
+			...(comment ? { comment } : {}),
+		}, blobCids);
+		if (!response.success) {
+			throw new Error(
+				`Failed to negate label on record ${
+					"did" in reference ? reference.did : reference.uri
+				}.`,
+			);
+		}
+	}
+
+	private async emitLabelEvent(
+		reference: RepoRef | StrongRef,
+		event: ToolsOzoneModerationDefs.ModEventLabel,
+		subjectBlobCids: Array<string>,
+	): Promise<ToolsOzoneModerationEmitEvent.Response> {
+		if (!this.profile.isLabeler) {
+			throw new Error("The bot doesn't seem to have a labeler service declared. Make sure to use the Bot#declareLabeler method before trying to publish labels!")
+		}
+		const subject = "did" in reference
+			? { $type: "com.atproto.admin.defs#repoRef", did: reference.did }
+			: { $type: "com.atproto.repo.strongRef", uri: reference.uri, cid: reference.cid };
+		return this.api.tools.ozone.moderation
+			.emitEvent({
+				event: {
+					$type: "tools.ozone.moderation.defs#modEventLabel",
+					...event,
+				} satisfies ToolsOzoneModerationDefs.ModEventLabel,
+				subject,
+				createdBy: this.profile.did,
+				createdAt: new Date().toISOString(),
+				subjectBlobCids,
+			});
+	}
+
+	/**
 	 * Subscribe to a labeler.
 	 * @param did The labeler's DID.
 	 */
@@ -931,6 +999,32 @@ export class Bot extends EventEmitter {
 			throw new Error("Failed to update handle.", { cause: e });
 		});
 		this.profile.handle = handle;
+	}
+
+	/**
+	 * Declare that the bot account is a labeler. This will allow the bot to publish labels,
+	 * and allow other users to subscribe to the bot as a labeler. Note that you need an active [Ozone](https://github.com/bluesky-social/ozone)
+	 * instance running on this DID to be able to publish labels!
+	 * @param policies The labeler's policies; a description of the labels the bot will publish.
+	 * @see [Labeler declarations](https://docs.bsky.app/docs/advanced-guides/moderation#labeler-declarations)
+	 * @see [Self-hosting Ozone](https://github.com/bluesky-social/ozone/blob/main/HOSTING.md)
+	 */
+	async declareLabeler(policies: AppBskyLabelerDefs.LabelerPolicies): Promise<void> {
+		if (!this.hasSession) throw new Error(NO_SESSION_ERROR);
+		await this.api.app.bsky.labeler.service.create({ repo: this.profile.did }, {
+			createdAt: new Date().toISOString(),
+			policies,
+		});
+		this.profile.isLabeler = true;
+	}
+
+	/**
+	 * Delete the bot's labeler declaration record.
+	 */
+	async deleteLabelerDeclaration(): Promise<void> {
+		if (!this.hasSession) throw new Error(NO_SESSION_ERROR);
+		await this.api.app.bsky.labeler.service.delete({ repo: this.profile.did, rkey: "self" });
+		this.profile.isLabeler = false;
 	}
 
 	/**
@@ -1109,6 +1203,14 @@ export interface BotLoginOptions {
 }
 
 /**
+ * A reference to a user repository.
+ */
+export interface RepoRef {
+	/** The user's DID. */
+	did: string;
+}
+
+/**
  * A reference to a record.
  */
 export interface StrongRef {
@@ -1281,4 +1383,26 @@ export interface BotPostOptions {
 	 * @default false
 	 */
 	splitLongPost?: boolean;
+}
+
+export interface BotLabelRecordOptions {
+	/**
+	 * A reference to the record to label.
+	 */
+	reference: RepoRef | StrongRef;
+
+	/**
+	 * The labels to apply.
+	 */
+	labels: Array<string>;
+
+	/**
+	 * The CIDs of specific blobs within the record that the labels apply to, if any.
+	 */
+	blobCids?: Array<string> | undefined;
+
+	/**
+	 * An optional comment.
+	 */
+	comment?: string | undefined;
 }

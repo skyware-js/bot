@@ -17,6 +17,7 @@ export {
 	type BotPostOptions,
 	GetUserPostsFilter,
 	type RateLimitOptions,
+	type RepoRef,
 	type StrongRef,
 } from "./bot/Bot.js";
 export { type BotEventEmitterOptions, EventStrategy } from "./bot/BotEventEmitter.js";

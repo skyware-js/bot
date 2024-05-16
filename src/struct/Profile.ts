@@ -261,12 +261,74 @@ export class Profile {
 	}
 
 	/**
-	 * Fetch the labeler associated with this user, if there is any.
+	 * Fetch the labeler associated with the user, if there is any.
 	 * Check the {@link isLabeler} property before calling this method!
-	 * @returns The labeler associated with this user.
+	 * @returns The labeler associated with the user.
 	 */
 	async getLabeler() {
 		return this.bot.getLabeler(this.did);
+	}
+
+	/**
+	 * Apply labels to the user's account. Note that this will label the user's profile and all posts they create!
+	 * If you only want to label their profile, use the {@link labelProfile} method.
+	 * @param labels The labels to apply.
+	 * @param comment An optional comment to attach to the label.
+	 */
+	async labelAccount(labels: Array<string>, comment?: string) {
+		return this.bot.label({ reference: { did: this.did }, labels, comment });
+	}
+
+	/**
+	 * Negate labels previously applied to the user's account.
+	 * @param labels The labels to negate.
+	 * @param comment An optional comment to attach.
+	 */
+	async negateAccountLabels(labels: Array<string>, comment?: string) {
+		return this.bot.negateLabels({ reference: { did: this.did }, labels, comment });
+	}
+
+	/**
+	 * Apply labels to the user's profile only. If you wish to apply an account-level label that will also appear on all
+	 * posts the user creates, use the {@link labelAccount} method. Note that you need a running Ozone instance to publish labels!
+	 * @param labels The labels to apply.
+	 * @param comment An optional comment to attach to the label.
+	 */
+	async labelProfile(labels: Array<string>, comment?: string) {
+		const profileRecordResponse = await this.bot.api.com.atproto.repo.getRecord({
+			repo: this.did,
+			collection: "app.bsky.actor.profile",
+			rkey: "self",
+		}).catch(() => null);
+
+		if (!profileRecordResponse?.success || !profileRecordResponse.data.cid) {
+			throw new Error(`Could not find profile record for user ${this.did}.`);
+		}
+
+		const { uri, cid } = profileRecordResponse.data;
+
+		return this.bot.label({ reference: { uri, cid }, labels, comment });
+	}
+
+	/**
+	 * Negate labels previously applied to the user's profile.
+	 * @param labels The labels to negate.
+	 * @param comment An optional comment to attach.
+	 */
+	async negateProfileLabels(labels: Array<string>, comment?: string) {
+		const profileRecordResponse = await this.bot.api.com.atproto.repo.getRecord({
+			repo: this.did,
+			collection: "app.bsky.actor.profile",
+			rkey: "self",
+		}).catch(() => null);
+
+		if (!profileRecordResponse?.success || !profileRecordResponse.data.cid) {
+			throw new Error(`Could not find profile record for user ${this.did}.`);
+		}
+
+		const { uri, cid } = profileRecordResponse.data;
+
+		return this.bot.negateLabels({ reference: { uri, cid }, labels, comment });
 	}
 
 	/**

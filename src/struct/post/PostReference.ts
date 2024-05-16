@@ -107,4 +107,22 @@ export class PostReference implements StrongRef {
 	async delete() {
 		return this.bot.deletePost(this.uri);
 	}
+
+	/**
+	 * Apply labels to the post.
+	 * @param labels The labels to apply.
+	 * @param comment An optional comment.
+	 */
+	async label(labels: Array<string>, comment?: string) {
+		return this.bot.label({ reference: this, labels, comment });
+	}
+
+	/**
+	 * Negate labels previously applied to the post.
+	 * @param labels The labels to negate.
+	 * @param comment An optional comment.
+	 */
+	async negateLabels(labels: Array<string>, comment?: string) {
+		return this.bot.negateLabels({ reference: this, labels, comment });
+	}
 }

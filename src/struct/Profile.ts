@@ -283,6 +283,16 @@ export class Profile {
 	}
 
 	/**
+	 * Fetch the message history between the bot and this user.
+	 * @param cursor The cursor to begin fetching from.
+	 * @returns An array of messages and a cursor for pagination.
+	 */
+	async getMessages(cursor?: string | undefined) {
+		const convo = this.conversation ?? await this.getConversation();
+		return convo.getMessages(cursor);
+	}
+
+	/**
 	 * Send the user a direct message.
 	 * @param payload The message to send.
 	 */

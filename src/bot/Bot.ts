@@ -543,6 +543,7 @@ export class Bot extends EventEmitter {
 	 * Fetch the message history for a conversation.
 	 * @param conversationId The ID of the conversation to fetch messages for.
 	 * @param options Optional configuration.
+	 * @returns An array of messages and a cursor for pagination.
 	 */
 	async getConversationMessages(
 		conversationId: string,
@@ -1003,6 +1004,7 @@ export class Bot extends EventEmitter {
 	 * Send a message in a DM conversation.
 	 * @param payload The message payload.
 	 * @param options Optional configuration.
+	 * @returns The sent message.
 	 */
 	async sendMessage(
 		payload: ChatMessagePayload,
@@ -1044,6 +1046,7 @@ export class Bot extends EventEmitter {
 	 * Send up to 100 private messages at once.
 	 * @param payload The messages payload.
 	 * @param options Optional configuration.
+	 * @returns The sent messages.
 	 */
 	async sendMessages(
 		payload: Array<ChatMessagePayload>,

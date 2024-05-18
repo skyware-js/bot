@@ -54,6 +54,7 @@ export class Conversation {
 	 * Fetch a list of messages in this conversation.
 	 * This method returns 100 messages at a time, beginning from the latest message, alongside a cursor to fetch the next 100.
 	 * @param cursor The cursor to begin fetching from.
+	 * @returns An array of messages and a cursor for pagination.
 	 */
 	async getMessages(
 		cursor?: string,
@@ -65,6 +66,7 @@ export class Conversation {
 	 * Send a message in the conversation.
 	 * @param payload The message to send.
 	 * @param options Additional options for sending the message.
+	 * @returns The sent message.
 	 */
 	async sendMessage(
 		payload: Omit<ChatMessagePayload, "conversationId">,

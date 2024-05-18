@@ -37,6 +37,7 @@ import { Post } from "../struct/post/Post.js";
 import type { PostPayload } from "../struct/post/PostPayload.js";
 import { PostReference } from "../struct/post/PostReference.js";
 import { Profile } from "../struct/Profile.js";
+import { BotChatEmitter } from "./BotChatEmitter.js";
 import { BotEventEmitter, type BotEventEmitterOptions, EventStrategy } from "./BotEventEmitter.js";
 import { type CacheOptions, makeCache } from "./cache.js";
 
@@ -64,6 +65,12 @@ export interface BotOptions {
 	 */
 	emitEvents?: boolean;
 
+	/**
+	 * Whether to emit chatMessage events (this is independent of {@link emitEvents}).
+	 * @default false
+	 */
+	emitChatEvents?: boolean;
+
 	/** Options for the built-in rate limiter. */
 	rateLimitOptions?: RateLimitOptions;
 
@@ -87,8 +94,11 @@ export class Bot extends EventEmitter {
 	/** A cache to store API responses. */
 	private readonly cache: BotCache;
 
-	/** Receives and emits events.. */
+	/** Receives and emits events. */
 	private readonly eventEmitter?: BotEventEmitter;
+
+	/** Receives and emits chat events. */
+	private readonly chatEventEmitter?: BotChatEmitter;
 
 	/** The Bluesky API client, with rate-limited methods. */
 	readonly api: AtpServiceClient;
@@ -111,6 +121,7 @@ export class Bot extends EventEmitter {
 			service = "https://bsky.social",
 			langs = ["en"],
 			emitEvents = true,
+			emitChatEvents = false,
 			rateLimitOptions,
 			cacheOptions,
 			eventEmitterOptions = { strategy: EventStrategy.Polling },
@@ -147,6 +158,12 @@ export class Bot extends EventEmitter {
 			this.eventEmitter.on("repost", (event) => this.emit("repost", event));
 			this.eventEmitter.on("like", (event) => this.emit("like", event));
 			this.eventEmitter.on("follow", (event) => this.emit("follow", event));
+		}
+
+		if (emitChatEvents) {
+			this.chatEventEmitter = new BotChatEmitter(eventEmitterOptions, this);
+			this.chatEventEmitter.on("message", (event) => this.emit("message", event));
+			this.chatEventEmitter.on("error", (error) => this.emit("error", error));
 		}
 
 		this.api = this.agent.api = rateLimitApi(this.agent.api, this.limiter);
@@ -1310,6 +1327,11 @@ export class Bot extends EventEmitter {
 	 */
 	override on(event: "follow", listener: (event: { user: Profile; uri: string }) => void): this;
 	/**
+	 * Emitted when the bot receives a message in a DM conversation.
+	 * @param listener A callback function that receives the message.
+	 */
+	override on(event: "message", listener: (message: ChatMessage) => void): this;
+	/**
 	 * @param event The event to listen for.
 	 * @param listener The callback function, called when the event is emitted.
 	 */
@@ -1338,6 +1360,7 @@ export class Bot extends EventEmitter {
 		event: "follow",
 		listener: (event: { user: Profile; uri: string }) => void,
 	): this;
+	override addListener(event: "message", listener: (message: ChatMessage) => void): this;
 	/** Alias for {@link Bot#on}. */
 	override addListener(event: string | symbol, listener: (...args: any[]) => void): this {
 		return this.on(event as never, listener);

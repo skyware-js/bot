@@ -123,7 +123,6 @@ export class BotEventEmitter extends EventEmitter {
 
 	/** Stop emitting events. */
 	stop() {
-		if (!this.emitting) return;
 		if (this.firehose) this.firehose.close();
 		this.pollingController?.abort();
 		this.emitting = false;
@@ -213,6 +212,8 @@ export class BotEventEmitter extends EventEmitter {
 
 	/** Start polling the notifications endpoint. */
 	startPolling() {
+		if (this.pollingController) this.pollingController.abort();
+
 		this.pollingController = new AbortController();
 		const interval = setInterval(this.pollingInterval * 1000, undefined, {
 			signal: this.pollingController.signal,

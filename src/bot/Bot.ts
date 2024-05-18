@@ -13,6 +13,7 @@ import {
 	AtUri,
 	type BlobRef,
 	BskyAgent,
+	ChatBskyConvoDefs,
 	type ComAtprotoLabelDefs,
 	type ComAtprotoServerCreateSession,
 	type ComAtprotoServerGetSession,
@@ -24,6 +25,9 @@ import type QuickLRU from "quick-lru";
 import { RateLimitThreshold } from "rate-limit-threshold";
 import { facetAwareSegment } from "../richtext/facetAwareSegment.js";
 import { graphemeLength, RichText } from "../richtext/RichText.js";
+import { ChatMessage, type ChatMessagePayload } from "../struct/chat/ChatMessage.js";
+import { Conversation } from "../struct/chat/Conversation.js";
+import { DeletedChatMessage } from "../struct/chat/DeletedChatMessage.js";
 import { FeedGenerator } from "../struct/FeedGenerator.js";
 import { Labeler } from "../struct/Labeler.js";
 import { List } from "../struct/List.js";
@@ -124,6 +128,8 @@ export class Bot extends EventEmitter {
 			posts: makeCache(cacheOptions),
 			lists: makeCache({ maxEntries: 100, ...cacheOptions }),
 			feeds: makeCache({ maxEntries: 50, ...cacheOptions }),
+			labelers: makeCache({ maxEntries: 10, ...cacheOptions }),
+			conversations: makeCache({ maxEntries: 50, ...cacheOptions }),
 		};
 
 		if (emitEvents) {
@@ -430,18 +436,30 @@ export class Bot extends EventEmitter {
 	/**
 	 * Fetch a labeler by its account DID.
 	 * @param did The DID of the labeler to fetch.
+	 * @param options Optional configuration.
 	 */
-	async getLabeler(did: string): Promise<Labeler> {
+	async getLabeler(did: string, options: BotGetLabelerOptions = {}): Promise<Labeler> {
+		if (!options.skipCache && this.cache.labelers.has(did)) {
+			return this.cache.labelers.get(did)!;
+		}
+
 		const labelers = await this.getLabelers([did]);
 		if (!labelers[0]) throw new Error(`Labeler not found for DID ${did}.`);
+
+		if (!options.noCacheResponse) this.cache.labelers.set(labelers[0].uri, labelers[0]);
+
 		return labelers[0];
 	}
 
 	/**
 	 * 	Fetch a list of labelers by their account DIDs.
 	 * 	@param dids The DIDs of the labelers to fetch.
+	 * 	@param options Optional configuration.
 	 */
-	async getLabelers(dids: Array<string>): Promise<Array<Labeler>> {
+	async getLabelers(
+		dids: Array<string>,
+		options: BotGetLabelersOptions = {},
+	): Promise<Array<Labeler>> {
 		const response = await this.agent.getLabelers({ dids, detailed: true }).catch((e) => {
 			throw new Error("Failed to fetch labelers.", { cause: e });
 		});
@@ -453,8 +471,101 @@ export class Bot extends EventEmitter {
 			) {
 				throw new Error(`Received invalid labeler view: ${JSON.stringify(labelerView)}`);
 			}
-			return Labeler.fromView(labelerView, this);
+			const labeler = Labeler.fromView(labelerView, this);
+			if (!options.noCacheResponse) this.cache.labelers.set(labeler.uri, labeler);
+			return labeler;
 		});
+	}
+
+	/**
+	 * Fetch a conversation containing 1-10 members. If a conversation doesn't exist, it will be created.
+	 * @param members The DIDs of the conversation members.
+	 * @param options Optional configuration.
+	 */
+	async getConversationForMembers(
+		members: Array<string>,
+		options: BotGetConversationForMembersOptions = {},
+	): Promise<Conversation> {
+		const response = await this.api.chat.bsky.convo.getConvoForMembers({ members }).catch(
+			(e) => {
+				throw new Error("Failed to create conversation.", { cause: e });
+			},
+		);
+
+		const convo = Conversation.fromView(response.data.convo, this);
+
+		if (!options.noCacheResponse) this.cache.conversations.set(convo.id, convo);
+
+		return convo;
+	}
+
+	/**
+	 * Fetch a conversation by its ID.
+	 * @param id The conversation's ID.
+	 * @param options Optional configuration.
+	 */
+	async getConversation(
+		id: string,
+		options: BotGetConversationOptions = {},
+	): Promise<Conversation> {
+		if (!options.skipCache && this.cache.conversations.has(id)) {
+			return this.cache.conversations.get(id)!;
+		}
+
+		const response = await this.api.chat.bsky.convo.getConvo({ convoId: id }).catch((e) => {
+			throw new Error(`Failed to fetch conversation ${id}.`, { cause: e });
+		});
+
+		const convo = Conversation.fromView(response.data.convo, this);
+		if (!options.noCacheResponse) this.cache.conversations.set(convo.id, convo);
+		return convo;
+	}
+
+	/**
+	 * Fetch all conversations the bot is a member of.
+	 * @param options Optional configuration.
+	 */
+	async listConversations(
+		options: BotListConversationsOptions = {},
+	): Promise<Array<Conversation>> {
+		const response = await this.api.chat.bsky.convo.listConvos().catch((e) => {
+			throw new Error("Failed to list conversations.", { cause: e });
+		});
+
+		return response.data.convos.map((convoView) => {
+			const convo = Conversation.fromView(convoView, this);
+			if (!options.noCacheResponse) this.cache.conversations.set(convo.id, convo);
+			return convo;
+		});
+	}
+
+	/**
+	 * Fetch the message history for a conversation.
+	 * @param conversationId The ID of the conversation to fetch messages for.
+	 * @param options Optional configuration.
+	 */
+	async getConversationMessages(
+		conversationId: string,
+		options: BotGetConversationMessagesOptions = {},
+	): Promise<{ cursor: string | undefined; messages: Array<ChatMessage | DeletedChatMessage> }> {
+		const response = await this.api.chat.bsky.convo.getMessages({
+			convoId: conversationId,
+			...options,
+		}).catch((e) => {
+			throw new Error(`Failed to fetch messages for conversation ${conversationId}.`, {
+				cause: e,
+			});
+		});
+
+		const messages = response.data.messages.map((view) => {
+			if (ChatBskyConvoDefs.isMessageView(view)) return ChatMessage.fromView(view, this);
+			if (ChatBskyConvoDefs.isDeletedMessageView(view)) {
+				return DeletedChatMessage.fromView(view, this);
+			}
+			throw new Error(`Invalid message view: ${JSON.stringify(view)}`);
+		});
+
+		return { cursor: response.data.cursor, messages };
 	}
 
 	/**
@@ -889,6 +1000,104 @@ export class Bot extends EventEmitter {
 	}
 
 	/**
+	 * Send a message in a DM conversation.
+	 * @param payload The message payload.
+	 * @param options Optional configuration.
+	 */
+	async sendMessage(
+		payload: ChatMessagePayload,
+		options: BotSendMessageOptions = {},
+	): Promise<ChatMessage> {
+		options.resolveFacets ??= true;
+
+		let text: string, facets: Array<AppBskyRichtextFacet.Main> = [];
+		if (payload.text instanceof RichText) {
+			({ text, facets } = payload.text.build());
+		} else if (options.resolveFacets) {
+			text = payload.text;
+			facets = await RichText.detectFacets(text, this);
+		} else {
+			text = payload.text;
+		}
+
+		if (graphemeLength(text) > 1000) {
+			throw new Error("Message exceeds maximum length of 1000 graphemes.");
+		}
+
+		const response = await this.api.chat.bsky.convo.sendMessage({
+			convoId: payload.conversationId,
+			message: {
+				text,
+				facets,
+				...(payload.embed
+					? { embed: { $type: "app.bsky.embed.record#main", record: payload.embed } }
+					: {}),
+			},
+		}).catch((e) => {
+			throw new Error("Failed to send message.", { cause: e });
+		});
+
+		return ChatMessage.fromView(response.data, this);
+	}
+
+	/**
+	 * Send up to 100 private messages at once.
+	 * @param payload The messages payload.
+	 * @param options Optional configuration.
+	 */
+	async sendMessages(
+		payload: Array<ChatMessagePayload>,
+		options: BotSendMessageOptions = {},
+	): Promise<Array<ChatMessage>> {
+		options.resolveFacets ??= true;
+
+		const messages = await Promise.all(payload.map(async (message) => {
+			let text: string, facets: Array<AppBskyRichtextFacet.Main> = [];
+			if (message.text instanceof RichText) {
+				({ text, facets } = message.text.build());
+			} else if (options.resolveFacets) {
+				text = message.text;
+				facets = await RichText.detectFacets(text, this);
+			} else {
+				text = message.text;
+			}
+
+			if (graphemeLength(text) > 1000) {
+				throw new Error("Message exceeds maximum length of 1000 graphemes.");
+			}
+
+			return {
+				convoId: message.conversationId,
+				message: {
+					text,
+					facets,
+					...(message.embed
+						? { embed: { $type: "app.bsky.embed.record#main", record: message.embed } }
+						: {}),
+				},
+			};
+		}));
+
+		const response = await this.api.chat.bsky.convo.sendMessageBatch({ items: messages }).catch(
+			(e) => {
+				throw new Error("Failed to send messages.", { cause: e });
+			},
+		);
+
+		return response.data.items.map((view) => ChatMessage.fromView(view, this));
+	}
+
+	/**
+	 * Leave a DM conversation.
+	 * @param id The conversation's ID.
+	 */
+	async leaveConversation(id: string): Promise<void> {
+		await this.api.chat.bsky.convo.leaveConvo({ convoId: id }).catch((e) => {
+			throw new Error(`Failed to leave conversation ${id}.`, { cause: e });
+		});
+	}
+
+	/**
 	 * Label a user or record. Note that you need a running Ozone instance on this DID to publish labels!
 	 * @param options Information on the label to apply.
 	 * @see [Self-hosting Ozone](https://github.com/bluesky-social/ozone/blob/main/HOSTING.md)
@@ -935,22 +1144,23 @@ export class Bot extends EventEmitter {
 		subjectBlobCids: Array<string>,
 	): Promise<ToolsOzoneModerationEmitEvent.Response> {
 		if (!this.profile.isLabeler) {
-			throw new Error("The bot doesn't seem to have a labeler service declared. Make sure to use the Bot#declareLabeler method before trying to publish labels!")
+			throw new Error(
+				"The bot doesn't seem to have a labeler service declared. Make sure to use the Bot#declareLabeler method before trying to publish labels!",
+			);
 		}
 		const subject = "did" in reference
 			? { $type: "com.atproto.admin.defs#repoRef", did: reference.did }
 			: { $type: "com.atproto.repo.strongRef", uri: reference.uri, cid: reference.cid };
-		return this.api.tools.ozone.moderation
-			.emitEvent({
-				event: {
-					$type: "tools.ozone.moderation.defs#modEventLabel",
-					...event,
-				} satisfies ToolsOzoneModerationDefs.ModEventLabel,
-				subject,
-				createdBy: this.profile.did,
-				createdAt: new Date().toISOString(),
-				subjectBlobCids,
-			});
+		return this.api.tools.ozone.moderation.emitEvent({
+			event: {
+				$type: "tools.ozone.moderation.defs#modEventLabel",
+				...event,
+			} satisfies ToolsOzoneModerationDefs.ModEventLabel,
+			subject,
+			createdBy: this.profile.did,
+			createdAt: new Date().toISOString(),
+			subjectBlobCids,
+		});
 	}
 
 	/**
@@ -1169,6 +1379,8 @@ export interface BotCache {
 	posts: QuickLRU<string, Post>;
 	lists: QuickLRU<string, List>;
 	feeds: QuickLRU<string, FeedGenerator>;
+	labelers: QuickLRU<string, Labeler>;
+	conversations: QuickLRU<string, Conversation>;
 }
 
 /**
@@ -1367,6 +1579,47 @@ export interface BotGetTimelineOptions extends BaseBotGetMethodOptions {
 }
 
 /**
+ * Options for the {@link Bot#getLabeler} method.
+ */
+export interface BotGetLabelerOptions extends BaseBotGetMethodOptions {}
+
+/**
+ * Options for the {@link Bot#getLabelers} method.
+ */
+export interface BotGetLabelersOptions extends BaseBotGetMethodOptions {}
+
+/**
+ * Options for the {@link Bot#getConversationForMembers} method.
+ */
+export interface BotGetConversationForMembersOptions extends BaseBotGetMethodOptions {}
+
+/**
+ * Options for the {@link Bot#getConversation} method.
+ */
+export interface BotGetConversationOptions extends BaseBotGetMethodOptions {}
+
+/**
+ * Options for the {@link Bot#listConversations} method.
+ */
+export interface BotListConversationsOptions extends BaseBotGetMethodOptions {}
+
+/**
+ * Options for the {@link Bot#getConversationMessages} method.
+ */
+export interface BotGetConversationMessagesOptions {
+	/**
+	 * The maximum number of messages to fetch (up to 100, inclusive).
+	 * @default 50
+	 */
+	limit?: number;
+
+	/**
+	 * The offset at which to start fetching messages.
+	 */
+	cursor?: string;
+}
+
+/**
  * Options for the {@link Bot#post} method.
  */
 export interface BotPostOptions {
@@ -1383,6 +1636,32 @@ export interface BotPostOptions {
 	 * @default false
 	 */
 	splitLongPost?: boolean;
+}
+
+/**
+ * Options for the {@link Bot#sendMessage} method.
+ */
+export interface BotSendMessageOptions {
+	/**
+	 * Whether to automatically resolve facets in the message's text.
+	 *
+	 * This will be ignored if the provided message data already has facets attached.
+	 * @default true
+	 */
+	resolveFacets?: boolean;
+}
+
+/**
+ * Options for the {@link Bot#sendMessages} method.
+ */
+export interface BotSendMessagesOptions {
+	/**
+	 * Whether to automatically resolve facets in the message's text.
+	 *
+	 * This will be ignored if the provided message data already has facets attached.
+	 * @default true
+	 */
+	resolveFacets?: boolean;
 }
 
 export interface BotLabelRecordOptions {

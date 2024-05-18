@@ -5,6 +5,7 @@ import type {
 	BotGetUserListsOptions,
 	BotGetUserPostsOptions,
 } from "../bot/Bot.js";
+import type { Conversation } from "./chat/Conversation.js";
 import type { List } from "./List.js";
 import type { Post } from "./post/Post.js";
 
@@ -267,6 +268,13 @@ export class Profile {
 	 */
 	async getLabeler() {
 		return this.bot.getLabeler(this.did);
+	}
+
+	/**
+	 * Get the DM conversation between the user and the bot.
+	 */
+	async getConversation(): Promise<Conversation> {
+		return this.bot.getConversation(this.did);
 	}
 
 	/**

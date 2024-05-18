@@ -8,6 +8,7 @@ import {
 	type AppBskyFeedThreadgate,
 	AppBskyLabelerDefs,
 	type AppBskyRichtextFacet,
+	type AtpAgent,
 	type AtpServiceClient,
 	type AtpSessionData,
 	AtUri,
@@ -92,6 +93,9 @@ export class Bot extends EventEmitter {
 	/** The Bluesky API client, with rate-limited methods. */
 	readonly api: AtpServiceClient;
 
+	/** The proxy agent for chat-related requests. */
+	private chatProxy!: AtpAgent;
+
 	/** The default list of languages to attach to posts. */
 	langs: Array<string> = [];
 
@@ -168,6 +172,9 @@ export class Bot extends EventEmitter {
 				cause: e,
 			});
 		});
+
+		// @ts-expect-error - only valid serviceType is atproto_labeler for now
+		this.chatProxy = this.agent.withProxy("bsky_chat", "did:web:api.bsky.chat");
 
 		this.profile = await this.getProfile(response.data.did).catch((e) => {
 			throw new Error("Failed to fetch bot profile. Error:\n" + e);
@@ -486,11 +493,10 @@ export class Bot extends EventEmitter {
 		members: Array<string>,
 		options: BotGetConversationForMembersOptions = {},
 	): Promise<Conversation> {
-		const response = await this.api.chat.bsky.convo.getConvoForMembers({ members }).catch(
-			(e) => {
+		const response = await this.chatProxy.api.chat.bsky.convo.getConvoForMembers({ members })
+			.catch((e) => {
 				throw new Error("Failed to create conversation.", { cause: e });
-			},
-		);
+			});
 
 		const convo = Conversation.fromView(response.data.convo, this);
 
@@ -512,9 +518,11 @@ export class Bot extends EventEmitter {
 			return this.cache.conversations.get(id)!;
 		}
 
-		const response = await this.api.chat.bsky.convo.getConvo({ convoId: id }).catch((e) => {
-			throw new Error(`Failed to fetch conversation ${id}.`, { cause: e });
-		});
+		const response = await this.chatProxy.api.chat.bsky.convo.getConvo({ convoId: id }).catch(
+			(e) => {
+				throw new Error(`Failed to fetch conversation ${id}.`, { cause: e });
+			},
+		);
 
 		const convo = Conversation.fromView(response.data.convo, this);
 		if (!options.noCacheResponse) this.cache.conversations.set(convo.id, convo);
@@ -528,7 +536,7 @@ export class Bot extends EventEmitter {
 	async listConversations(
 		options: BotListConversationsOptions = {},
 	): Promise<Array<Conversation>> {
-		const response = await this.api.chat.bsky.convo.listConvos().catch((e) => {
+		const response = await this.chatProxy.api.chat.bsky.convo.listConvos().catch((e) => {
 			throw new Error("Failed to list conversations.", { cause: e });
 		});
 
@@ -549,7 +557,7 @@ export class Bot extends EventEmitter {
 		conversationId: string,
 		options: BotGetConversationMessagesOptions = {},
 	): Promise<{ cursor: string | undefined; messages: Array<ChatMessage | DeletedChatMessage> }> {
-		const response = await this.api.chat.bsky.convo.getMessages({
+		const response = await this.chatProxy.api.chat.bsky.convo.getMessages({
 			convoId: conversationId,
 			...options,
 		}).catch((e) => {
@@ -1026,7 +1034,7 @@ export class Bot extends EventEmitter {
 			throw new Error("Message exceeds maximum length of 1000 graphemes.");
 		}
 
-		const response = await this.api.chat.bsky.convo.sendMessage({
+		const response = await this.chatProxy.api.chat.bsky.convo.sendMessage({
 			convoId: payload.conversationId,
 			message: {
 				text,
@@ -1081,11 +1089,11 @@ export class Bot extends EventEmitter {
 			};
 		}));
 
-		const response = await this.api.chat.bsky.convo.sendMessageBatch({ items: messages }).catch(
-			(e) => {
-				throw new Error("Failed to send messages.", { cause: e });
-			},
-		);
+		const response = await this.chatProxy.api.chat.bsky.convo.sendMessageBatch({
+			items: messages,
+		}).catch((e) => {
+			throw new Error("Failed to send messages.", { cause: e });
+		});
 
 		return response.data.items.map((view) => ChatMessage.fromView(view, this));
 	}
@@ -1095,7 +1103,7 @@ export class Bot extends EventEmitter {
 	 * @param id The conversation's ID.
 	 */
 	async leaveConversation(id: string): Promise<void> {
-		await this.api.chat.bsky.convo.leaveConvo({ convoId: id }).catch((e) => {
+		await this.chatProxy.api.chat.bsky.convo.leaveConvo({ convoId: id }).catch((e) => {
 			throw new Error(`Failed to leave conversation ${id}.`, { cause: e });
 		});
 	}

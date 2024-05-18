@@ -271,10 +271,10 @@ export class Profile {
 	}
 
 	/**
-	 * Get the DM conversation between the user and the bot.
+	 * Get the DM conversation between the bot and this user.
 	 */
 	async getConversation(): Promise<Conversation> {
-		return this.bot.getConversation(this.did);
+		return this.bot.getConversationForMembers([this.did]);
 	}
 
 	/**

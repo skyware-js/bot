@@ -249,7 +249,10 @@ export class Bot extends EventEmitter {
 	 * @param uris The URIs of the posts to fetch.
 	 * @param options Optional configuration.
 	 */
-	async getPosts(uris: Array<string>, options: BotGetPostsOptions = {}): Promise<Array<Post>> {
+	async getPosts(
+		uris: Array<string>,
+		options: BaseBotGetMethodOptions = {},
+	): Promise<Array<Post>> {
 		if (!uris.length) return [];
 		if (uris.length > 25) throw new Error("You can only fetch up to 25 posts at a time.");
 
@@ -331,7 +334,7 @@ export class Bot extends EventEmitter {
 	 * @param didOrHandle The user's DID or handle.
 	 * @param options Optional configuration.
 	 */
-	async getProfile(didOrHandle: string, options: BotGetProfileOptions = {}): Promise<Profile> {
+	async getProfile(didOrHandle: string, options: BaseBotGetMethodOptions = {}): Promise<Profile> {
 		if (!options.skipCache && this.cache.profiles.has(didOrHandle)) {
 			return this.cache.profiles.get(didOrHandle)!;
 		}
@@ -350,7 +353,7 @@ export class Bot extends EventEmitter {
 	 * @param uri The list's AT URI.
 	 * @param options Optional configuration.
 	 */
-	async getList(uri: string, options: BotGetListOptions = {}): Promise<List> {
+	async getList(uri: string, options: BaseBotGetMethodOptions = {}): Promise<List> {
 		if (!options.skipCache && this.cache.lists.has(uri)) {
 			return this.cache.lists.get(uri)!;
 		}
@@ -397,7 +400,7 @@ export class Bot extends EventEmitter {
 	 */
 	async getFeedGenerator(
 		uri: string,
-		options: BotGetFeedGeneratorOptions = {},
+		options: BaseBotGetMethodOptions = {},
 	): Promise<FeedGenerator> {
 		if (!options.skipCache && this.cache.feeds.has(uri)) {
 			return this.cache.feeds.get(uri)!;
@@ -420,7 +423,7 @@ export class Bot extends EventEmitter {
 	 */
 	async getFeedGenerators(
 		uris: Array<string>,
-		options: BotGetFeedGeneratorsOptions = {},
+		options: BaseBotGetMethodOptions = {},
 	): Promise<Array<FeedGenerator>> {
 		if (!uris.length) return [];
 
@@ -462,7 +465,7 @@ export class Bot extends EventEmitter {
 	 * @param did The DID of the labeler to fetch.
 	 * @param options Optional configuration.
 	 */
-	async getLabeler(did: string, options: BotGetLabelerOptions = {}): Promise<Labeler> {
+	async getLabeler(did: string, options: BaseBotGetMethodOptions = {}): Promise<Labeler> {
 		if (!options.skipCache && this.cache.labelers.has(did)) {
 			return this.cache.labelers.get(did)!;
 		}
@@ -482,7 +485,7 @@ export class Bot extends EventEmitter {
 	 */
 	async getLabelers(
 		dids: Array<string>,
-		options: BotGetLabelersOptions = {},
+		options: BaseBotGetMethodOptions = {},
 	): Promise<Array<Labeler>> {
 		const response = await this.agent.getLabelers({ dids, detailed: true }).catch((e) => {
 			throw new Error("Failed to fetch labelers.", { cause: e });
@@ -508,7 +511,7 @@ export class Bot extends EventEmitter {
 	 */
 	async getConversationForMembers(
 		members: Array<string>,
-		options: BotGetConversationForMembersOptions = {},
+		options: BaseBotGetMethodOptions = {},
 	): Promise<Conversation> {
 		const response = await this.chatProxy.api.chat.bsky.convo.getConvoForMembers({ members })
 			.catch((e) => {
@@ -529,7 +532,7 @@ export class Bot extends EventEmitter {
 	 */
 	async getConversation(
 		id: string,
-		options: BotGetConversationOptions = {},
+		options: BaseBotGetMethodOptions = {},
 	): Promise<Conversation> {
 		if (!options.skipCache && this.cache.conversations.has(id)) {
 			return this.cache.conversations.get(id)!;
@@ -550,9 +553,7 @@ export class Bot extends EventEmitter {
 	 * Fetch all conversations the bot is a member of.
 	 * @param options Optional configuration.
 	 */
-	async listConversations(
-		options: BotListConversationsOptions = {},
-	): Promise<Array<Conversation>> {
+	async listConversations(options: BaseBotGetMethodOptions = {}): Promise<Array<Conversation>> {
 		const response = await this.chatProxy.api.chat.bsky.convo.listConvos().catch((e) => {
 			throw new Error("Failed to list conversations.", { cause: e });
 		});
@@ -1502,11 +1503,6 @@ export interface BotGetPostOptions extends BaseBotGetMethodOptions {
 }
 
 /**
- * Options for the {@link Bot#getPosts} method.
- */
-export interface BotGetPostsOptions extends BaseBotGetMethodOptions {}
-
-/**
  * Types of posts to be included in the response to {@link Bot#getUserPosts}.
  * @enum
  */
@@ -1561,16 +1557,6 @@ export interface BotGetUserLikesOptions extends Omit<BaseBotGetMethodOptions, "s
 }
 
 /**
- * Options for the {@link Bot#getProfile} method.
- */
-export interface BotGetProfileOptions extends BaseBotGetMethodOptions {}
-
-/**
- * Options for the {@link Bot#getList} method.
- */
-export interface BotGetListOptions extends BaseBotGetMethodOptions {}
-
-/**
  * Options for the {@link Bot#getUserLists} method.
  */
 export interface BotGetUserListsOptions extends Omit<BaseBotGetMethodOptions, "skipCache"> {
@@ -1587,16 +1573,6 @@ export interface BotGetUserListsOptions extends Omit<BaseBotGetMethodOptions, "s
 }
 
 /**
- * Options for the {@link Bot#getFeedGenerator} method.
- */
-export interface BotGetFeedGeneratorOptions extends BaseBotGetMethodOptions {}
-
-/**
- * Options for the {@link Bot#getFeedGenerators} method.
- */
-export interface BotGetFeedGeneratorsOptions extends BaseBotGetMethodOptions {}
-
-/**
  * Options for the {@link Bot#getTimeline} method.
  */
 export interface BotGetTimelineOptions extends BaseBotGetMethodOptions {
@@ -1611,31 +1587,6 @@ export interface BotGetTimelineOptions extends BaseBotGetMethodOptions {
 	 */
 	cursor?: string;
 }
-
-/**
- * Options for the {@link Bot#getLabeler} method.
- */
-export interface BotGetLabelerOptions extends BaseBotGetMethodOptions {}
-
-/**
- * Options for the {@link Bot#getLabelers} method.
- */
-export interface BotGetLabelersOptions extends BaseBotGetMethodOptions {}
-
-/**
- * Options for the {@link Bot#getConversationForMembers} method.
- */
-export interface BotGetConversationForMembersOptions extends BaseBotGetMethodOptions {}
-
-/**
- * Options for the {@link Bot#getConversation} method.
- */
-export interface BotGetConversationOptions extends BaseBotGetMethodOptions {}
-
-/**
- * Options for the {@link Bot#listConversations} method.
- */
-export interface BotListConversationsOptions extends BaseBotGetMethodOptions {}
 
 /**
  * Options for the {@link Bot#getConversationMessages} method.
@@ -1676,19 +1627,6 @@ export interface BotPostOptions {
  * Options for the {@link Bot#sendMessage} method.
  */
 export interface BotSendMessageOptions {
-	/**
-	 * Whether to automatically resolve facets in the message's text.
-	 *
-	 * This will be ignored if the provided message data already has facets attached.
-	 * @default true
-	 */
-	resolveFacets?: boolean;
-}
-
-/**
- * Options for the {@link Bot#sendMessages} method.
- */
-export interface BotSendMessagesOptions {
 	/**
 	 * Whether to automatically resolve facets in the message's text.
 	 *

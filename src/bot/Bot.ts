@@ -104,7 +104,7 @@ export class Bot extends EventEmitter {
 	readonly api: AtpServiceClient;
 
 	/** The proxy agent for chat-related requests. */
-	private chatProxy!: AtpAgent;
+	chatProxy?: AtpAgent;
 
 	/** The default list of languages to attach to posts. */
 	langs: Array<string> = [];
@@ -513,6 +513,10 @@ export class Bot extends EventEmitter {
 		members: Array<string>,
 		options: BaseBotGetMethodOptions = {},
 	): Promise<Conversation> {
+		if (!this.chatProxy) {
+			throw new Error("Chat proxy does not exist. Make sure to log in first.");
+		}
+
 		const response = await this.chatProxy.api.chat.bsky.convo.getConvoForMembers({ members })
 			.catch((e) => {
 				throw new Error("Failed to create conversation.", { cause: e });
@@ -538,6 +542,10 @@ export class Bot extends EventEmitter {
 			return this.cache.conversations.get(id)!;
 		}
 
+		if (!this.chatProxy) {
+			throw new Error("Chat proxy does not exist. Make sure to log in first.");
+		}
+
 		const response = await this.chatProxy.api.chat.bsky.convo.getConvo({ convoId: id }).catch(
 			(e) => {
 				throw new Error(`Failed to fetch conversation ${id}.`, { cause: e });
@@ -554,6 +562,10 @@ export class Bot extends EventEmitter {
 	 * @param options Optional configuration.
 	 */
 	async listConversations(options: BaseBotGetMethodOptions = {}): Promise<Array<Conversation>> {
+		if (!this.chatProxy) {
+			throw new Error("Chat proxy does not exist. Make sure to log in first.");
+		}
+
 		const response = await this.chatProxy.api.chat.bsky.convo.listConvos().catch((e) => {
 			throw new Error("Failed to list conversations.", { cause: e });
 		});
@@ -575,6 +587,10 @@ export class Bot extends EventEmitter {
 		conversationId: string,
 		options: BotGetConversationMessagesOptions = {},
 	): Promise<{ cursor: string | undefined; messages: Array<ChatMessage | DeletedChatMessage> }> {
+		if (!this.chatProxy) {
+			throw new Error("Chat proxy does not exist. Make sure to log in first.");
+		}
+
 		const response = await this.chatProxy.api.chat.bsky.convo.getMessages({
 			convoId: conversationId,
 			...options,
@@ -1038,6 +1054,10 @@ export class Bot extends EventEmitter {
 	): Promise<ChatMessage> {
 		options.resolveFacets ??= true;
 
+		if (!this.chatProxy) {
+			throw new Error("Chat proxy does not exist. Make sure to log in first.");
+		}
+
 		let text: string, facets: Array<AppBskyRichtextFacet.Main> = [];
 		if (payload.text instanceof RichText) {
 			({ text, facets } = payload.text.build());
@@ -1080,6 +1100,10 @@ export class Bot extends EventEmitter {
 	): Promise<Array<ChatMessage>> {
 		options.resolveFacets ??= true;
 
+		if (!this.chatProxy) {
+			throw new Error("Chat proxy does not exist. Make sure to log in first.");
+		}
+
 		const messages = await Promise.all(payload.map(async (message) => {
 			let text: string, facets: Array<AppBskyRichtextFacet.Main> = [];
 			if (message.text instanceof RichText) {
@@ -1121,6 +1145,10 @@ export class Bot extends EventEmitter {
 	 * @param id The conversation's ID.
 	 */
 	async leaveConversation(id: string): Promise<void> {
+		if (!this.chatProxy) {
+			throw new Error("Chat proxy does not exist. Make sure to log in first.");
+		}
+
 		await this.chatProxy.api.chat.bsky.convo.leaveConvo({ convoId: id }).catch((e) => {
 			throw new Error(`Failed to leave conversation ${id}.`, { cause: e });
 		});

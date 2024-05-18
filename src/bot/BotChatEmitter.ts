@@ -65,11 +65,14 @@ export class BotChatEmitter extends EventEmitter {
 
 	/** Poll the chat log endpoint. */
 	async poll() {
-		const response = await this.bot.api.chat.bsky.convo.getLog({ cursor: this.cursor ?? "" })
-			.catch((error) => {
-				this.emit("error", error);
-				return { success: false } as const;
-			});
+		if (!this.bot.chatProxy) return;
+
+		const response = await this.bot.chatProxy.api.chat.bsky.convo.getLog({
+			cursor: this.cursor ?? "",
+		}).catch((error) => {
+			this.emit("error", error);
+			return { success: false } as const;
+		});
 		if (!response.success) {
 			this.emit("error", response);
 			return;

@@ -379,7 +379,7 @@ export class Profile {
 			blockUri: view.viewer?.blocking,
 			isBlockedBy: view.viewer?.blockedBy,
 			isLabeler: view.associated?.labeler,
-			incomingChatPreference: view.associated?.chat?.allowIncoming,
+			incomingChatPreference: view.associated?.chat?.allowIncoming as IncomingChatPreference,
 		}, bot);
 	}
 }
@@ -397,6 +397,6 @@ export const IncomingChatPreference = {
 
 	/** Receive messages from users the user follows. */
 	Following: "following",
-};
+} as const;
 export type IncomingChatPreference =
 	typeof IncomingChatPreference[keyof typeof IncomingChatPreference];

@@ -36,7 +36,7 @@ import { fetchExternalEmbedData, fetchImageForBlob } from "../struct/post/embed/
 import { Post } from "../struct/post/Post.js";
 import type { PostPayload } from "../struct/post/PostPayload.js";
 import { PostReference } from "../struct/post/PostReference.js";
-import { Profile } from "../struct/Profile.js";
+import { type IncomingChatPreference, Profile } from "../struct/Profile.js";
 import { BotChatEmitter } from "./BotChatEmitter.js";
 import { BotEventEmitter, type BotEventEmitterOptions, EventStrategy } from "./BotEventEmitter.js";
 import { type CacheOptions, makeCache } from "./cache.js";
@@ -1267,6 +1267,15 @@ export class Bot extends EventEmitter {
 	}
 
 	/**
+	 * Set the bot's preference for who can initiate a new chat conversation. This does not affect existing conversations.
+	 * @param preference The new preference.
+	 */
+	async setChatPreference(preference: IncomingChatPreference): Promise<void> {
+		if (!this.hasSession) throw new Error(NO_SESSION_ERROR);
+		await this.putRecord("chat.bsky.actor.declaration", { allowIncoming: preference }, "self");
+	}
+
+	/**
 	 * Create a record.
 	 * @param nsid The collection's NSID.
 	 * @param record The record to create.
@@ -1280,6 +1289,24 @@ export class Bot extends EventEmitter {
 			record: { $type: nsid, createdAt: new Date().toISOString(), ...record },
 			repo: this.profile.did,
 			...(rkey ? { rkey } : {}),
+		});
+		return response.data;
+	}
+
+	/**
+	 * Put a record in place of an existing record.
+	 * @param nsid The collection's NSID.
+	 * @param record The record to put.
+	 * @param rkey The rkey to use.
+	 * @returns The record's AT URI and CID.
+	 */
+	async putRecord(nsid: string, record: object, rkey: string): Promise<StrongRef> {
+		if (!this.hasSession) throw new Error(NO_SESSION_ERROR);
+		const response = await this.api.com.atproto.repo.putRecord({
+			collection: nsid,
+			record: { $type: nsid, createdAt: new Date().toISOString(), ...record },
+			repo: this.profile.did,
+			rkey,
 		});
 		return response.data;
 	}

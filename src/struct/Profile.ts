@@ -5,6 +5,7 @@ import type {
 	BotGetUserListsOptions,
 	BotGetUserPostsOptions,
 } from "../bot/Bot.js";
+import type { ChatMessagePayload } from "./chat/ChatMessage.js";
 import type { Conversation } from "./chat/Conversation.js";
 import type { List } from "./List.js";
 import type { Post } from "./post/Post.js";
@@ -134,6 +135,9 @@ export class Profile {
 
 	/** The user's preference for who can initiate a chat conversation. */
 	incomingChatPreference?: IncomingChatPreference;
+
+	/** The DM conversation between the bot and this user. */
+	private conversation?: Conversation;
 
 	/** Whether the bot is following the user. */
 	get isFollowing() {
@@ -274,7 +278,17 @@ export class Profile {
 	 * Get the DM conversation between the bot and this user.
 	 */
 	async getConversation(): Promise<Conversation> {
-		return this.bot.getConversationForMembers([this.did]);
+		return this.conversation
+			|| (this.conversation = await this.bot.getConversationForMembers([this.did]));
+	}
+
+	/**
+	 * Send the user a direct message.
+	 * @param payload The message to send.
+	 */
+	async sendMessage(payload: Omit<ChatMessagePayload, "conversationId">) {
+		const convo = this.conversation ?? await this.getConversation();
+		return convo.sendMessage(payload);
 	}
 
 	/**

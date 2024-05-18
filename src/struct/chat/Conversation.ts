@@ -1,8 +1,8 @@
-import { ChatBskyConvoDefs } from "@atproto/api";
+import { type ChatBskyConvoDefs } from "@atproto/api";
 import type { Bot, BotSendMessageOptions } from "../../bot/Bot.js";
 import { Profile } from "../Profile.js";
-import { ChatMessage, type ChatMessagePayload } from "./ChatMessage.js";
-import { DeletedChatMessage } from "./DeletedChatMessage.js";
+import { type ChatMessage, type ChatMessagePayload } from "./ChatMessage.js";
+import { type DeletedChatMessage } from "./DeletedChatMessage.js";
 
 /**
  * Data used to construct a Conversation class.
@@ -13,7 +13,6 @@ export interface ConversationData {
 	muted: boolean;
 	unreadCount: number;
 	members: Array<Profile>;
-	lastMessage?: ChatMessage | DeletedChatMessage | undefined;
 }
 
 /**
@@ -32,22 +31,15 @@ export class Conversation {
 	/** The users that are members in this conversation. */
 	members: Array<Profile>;
 
-	/** The last message in the conversation, if any. */
-	lastMessage?: ChatMessage | DeletedChatMessage;
-
 	/**
 	 * @param data Data used to construct the conversation.
 	 * @param bot The active Bot instance.
 	 */
-	constructor(
-		{ id, muted, unreadCount, members, lastMessage }: ConversationData,
-		protected bot: Bot,
-	) {
+	constructor({ id, muted, unreadCount, members }: ConversationData, protected bot: Bot) {
 		this.id = id;
 		this.muted = muted;
 		this.unreadCount = unreadCount;
 		this.members = members;
-		if (lastMessage) this.lastMessage = lastMessage;
 	}
 
 	/**
@@ -91,12 +83,6 @@ export class Conversation {
 			muted: view.muted,
 			unreadCount: view.unreadCount,
 			members: view.members.map((member) => Profile.fromView(member, bot)),
-			lastMessage: view.lastMessage
-				&& (ChatBskyConvoDefs.isDeletedMessageView(view.lastMessage)
-					? DeletedChatMessage.fromView(view.lastMessage, bot)
-					: ChatBskyConvoDefs.isMessageView(view.lastMessage)
-					? ChatMessage.fromView(view.lastMessage, bot)
-					: undefined),
 		}, bot);
 		return convo;
 	}

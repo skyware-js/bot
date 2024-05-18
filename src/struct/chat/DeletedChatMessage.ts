@@ -1,5 +1,6 @@
-import { ChatBskyConvoDefs } from "@atproto/api";
+import { type ChatBskyConvoDefs } from "@atproto/api";
 import type { Bot } from "../../bot/Bot.js";
+import type { Profile } from "../Profile.js";
 
 /**
  * Data used to construct a DeletedChatMessage class.
@@ -18,11 +19,14 @@ export class DeletedChatMessage {
 	/** The message's ID. */
 	id: string;
 
-	/** The message's sender. */
-	sender: { did: string };
+	/** The DID of the message's sender. */
+	senderDid: string;
 
 	/** When the message was sent. */
 	sentAt: Date;
+
+	/** The profile of the user who sent the message. */
+	private sender?: Profile;
 
 	/**
 	 * @param data Data used to construct the message.
@@ -30,8 +34,17 @@ export class DeletedChatMessage {
 	 */
 	constructor({ id, sender, sentAt }: DeletedChatMessageData, protected bot: Bot) {
 		this.id = id;
-		this.sender = sender;
+		this.senderDid = sender.did;
 		this.sentAt = sentAt;
+	}
+
+	/**
+	 * Fetch the profile of the user who sent this message.
+	 */
+	async getSender(): Promise<Profile> {
+		if (this.sender) return this.sender;
+		if (this.senderDid === this.bot.profile.did) return this.bot.profile;
+		return this.sender = await this.bot.getProfile(this.senderDid);
 	}
 
 	/**

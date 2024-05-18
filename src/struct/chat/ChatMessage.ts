@@ -1,7 +1,12 @@
-import { AppBskyEmbedRecord, AppBskyRichtextFacet, ChatBskyConvoDefs } from "@atproto/api";
+import {
+	AppBskyEmbedRecord,
+	type AppBskyRichtextFacet,
+	type ChatBskyConvoDefs,
+} from "@atproto/api";
 import type { Bot, StrongRef } from "../../bot/Bot.js";
 import type { RichText } from "../../richtext/RichText.js";
 import { Facet } from "../post/Facet.js";
+import type { Profile } from "../Profile.js";
 
 /**
  * Data used to construct a ChatMessage class.
@@ -26,8 +31,8 @@ export class ChatMessage {
 	/** The message's text. */
 	text: string;
 
-	/** The message's sender. */
-	sender: { did: string };
+	/** The DID of the message's sender. */
+	senderDid: string;
 
 	/** When the message was sent. */
 	sentAt: Date;
@@ -38,6 +43,9 @@ export class ChatMessage {
 	/** An embedded reference to a record. */
 	embed?: StrongRef;
 
+	/** The profile of the user who sent the message. */
+	private sender?: Profile;
+
 	/**
 	 * @param data Data used to construct the message.
 	 * @param bot The active Bot instance.
@@ -45,10 +53,19 @@ export class ChatMessage {
 	constructor({ id, text, sender, sentAt, facets, embed }: ChatMessageData, protected bot: Bot) {
 		this.id = id;
 		this.text = text;
-		this.sender = sender;
+		this.senderDid = sender.did;
 		this.sentAt = sentAt;
 		if (facets) this.facets = facets;
 		if (embed) this.embed = embed;
+	}
+
+	/**
+	 * Fetch the profile of the user who sent this message.
+	 */
+	async getSender(): Promise<Profile> {
+		if (this.sender) return this.sender;
+		if (this.senderDid === this.bot.profile.did) return this.bot.profile;
+		return this.sender = await this.bot.getProfile(this.senderDid);
 	}
 
 	/**

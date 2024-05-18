@@ -1364,8 +1364,12 @@ export class Bot extends EventEmitter {
 	 * @param listener The callback function, called when the event is emitted.
 	 */
 	override on(event: string | symbol, listener: (...args: any[]) => void): this {
-		if (!this.eventEmitter) throw new Error("Events are not enabled.");
-		if (!this.eventEmitter.emitting) this.eventEmitter.start();
+		if (!this.eventEmitter && !this.chatEventEmitter) {
+			throw new Error("Events are not enabled.");
+		}
+		// TODO: find a better solution for this
+		if (event === "message" && !this.chatEventEmitter?.emitting) this.chatEventEmitter?.start();
+		else if (!this.eventEmitter?.emitting) this.eventEmitter?.start();
 		super.on(event, listener);
 		return this;
 	}
@@ -1401,7 +1405,6 @@ export class Bot extends EventEmitter {
 	 */
 	override off(event: string, listener: (...args: any[]) => void): this {
 		super.off(event, listener);
-		if (!this.listenerCount(event)) this.eventEmitter?.stop();
 		return this;
 	}
 
@@ -1415,9 +1418,12 @@ export class Bot extends EventEmitter {
 	 * @param event The event to remove listeners for.
 	 */
 	override removeAllListeners(event?: string): this {
-		if (!this.eventEmitter) throw new Error("Events are not enabled.");
+		if (!this.eventEmitter && !this.chatEventEmitter) {
+			throw new Error("Events are not enabled.");
+		}
 		super.removeAllListeners(event);
-		this.eventEmitter.stop();
+		this.eventEmitter?.stop();
+		this.chatEventEmitter?.stop();
 		return this;
 	}
 }

@@ -561,20 +561,24 @@ export class Bot extends EventEmitter {
 	 * Fetch all conversations the bot is a member of.
 	 * @param options Optional configuration.
 	 */
-	async listConversations(options: BaseBotGetMethodOptions = {}): Promise<Array<Conversation>> {
+	async listConversations(
+		options: BotListConversationsOptions = {},
+	): Promise<{ cursor: string | undefined; conversations: Array<Conversation> }> {
 		if (!this.chatProxy) {
 			throw new Error("Chat proxy does not exist. Make sure to log in first.");
 		}
 
-		const response = await this.chatProxy.api.chat.bsky.convo.listConvos().catch((e) => {
+		const response = await this.chatProxy.api.chat.bsky.convo.listConvos(options).catch((e) => {
 			throw new Error("Failed to list conversations.", { cause: e });
 		});
 
-		return response.data.convos.map((convoView) => {
+		const conversations = response.data.convos.map((convoView) => {
 			const convo = Conversation.fromView(convoView, this);
 			if (!options.noCacheResponse) this.cache.conversations.set(convo.id, convo);
 			return convo;
 		});
+
+		return { cursor: response.data.cursor, conversations };
 	}
 
 	/**
@@ -1645,6 +1649,22 @@ export interface BotGetTimelineOptions extends BaseBotGetMethodOptions {
 
 	/**
 	 * The offset at which to start fetching posts.
+	 */
+	cursor?: string;
+}
+
+/**
+ * Options for the {@link Bot#listConversations} method.
+ */
+export interface BotListConversationsOptions extends BaseBotGetMethodOptions {
+	/**
+	 * The maximum number of conversations to fetch (up to 100, inclusive).
+	 * @default 50
+	 */
+	limit?: number;
+
+	/**
+	 * The offset at which to start fetching conversations.
 	 */
 	cursor?: string;
 }

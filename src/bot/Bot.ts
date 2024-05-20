@@ -564,6 +564,8 @@ export class Bot extends EventEmitter {
 	async listConversations(
 		options: BotListConversationsOptions = {},
 	): Promise<{ cursor: string | undefined; conversations: Array<Conversation> }> {
+		options.limit ??= 100;
+
 		if (!this.chatProxy) {
 			throw new Error("Chat proxy does not exist. Make sure to log in first.");
 		}
@@ -591,6 +593,8 @@ export class Bot extends EventEmitter {
 		conversationId: string,
 		options: BotGetConversationMessagesOptions = {},
 	): Promise<{ cursor: string | undefined; messages: Array<ChatMessage | DeletedChatMessage> }> {
+		options.limit ??= 100;
+
 		if (!this.chatProxy) {
 			throw new Error("Chat proxy does not exist. Make sure to log in first.");
 		}
@@ -1659,7 +1663,7 @@ export interface BotGetTimelineOptions extends BaseBotGetMethodOptions {
 export interface BotListConversationsOptions extends BaseBotGetMethodOptions {
 	/**
 	 * The maximum number of conversations to fetch (up to 100, inclusive).
-	 * @default 50
+	 * @default 100
 	 */
 	limit?: number;
 
@@ -1675,7 +1679,7 @@ export interface BotListConversationsOptions extends BaseBotGetMethodOptions {
 export interface BotGetConversationMessagesOptions {
 	/**
 	 * The maximum number of messages to fetch (up to 100, inclusive).
-	 * @default 50
+	 * @default 100
 	 */
 	limit?: number;
 

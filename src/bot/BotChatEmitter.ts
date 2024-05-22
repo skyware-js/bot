@@ -49,6 +49,7 @@ export class BotChatEmitter extends EventEmitter {
 			signal: this.pollingController.signal,
 		});
 		void (async () => {
+			await this.poll().catch((error) => this.emit("error", error));
 			for await (const _ of interval) {
 				await this.poll().catch((error) => this.emit("error", error));
 			}

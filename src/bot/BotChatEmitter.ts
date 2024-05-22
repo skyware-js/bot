@@ -87,6 +87,7 @@ export class BotChatEmitter extends EventEmitter {
 			if (ChatBskyConvoDefs.isLogCreateMessage(log)) {
 				const message = log.message;
 				if (ChatBskyConvoDefs.isMessageView(message)) {
+					if (message.sender.did === this.bot.profile.did) continue;
 					this.emit("message", ChatMessage.fromView(message, this.bot, log.convoId));
 				} else if (ChatBskyConvoDefs.isDeletedMessageView(message)) {
 					continue;

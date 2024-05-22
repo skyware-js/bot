@@ -86,7 +86,7 @@ export class BotChatEmitter extends EventEmitter {
 			if (ChatBskyConvoDefs.isLogCreateMessage(log)) {
 				const message = log.message;
 				if (ChatBskyConvoDefs.isMessageView(message)) {
-					this.emit("message", ChatMessage.fromView(message, this.bot));
+					this.emit("message", ChatMessage.fromView(message, this.bot, log.convoId));
 				} else if (ChatBskyConvoDefs.isDeletedMessageView(message)) {
 					continue;
 				} else {

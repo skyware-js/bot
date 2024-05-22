@@ -7,6 +7,7 @@ import type { Bot, StrongRef } from "../../bot/Bot.js";
 import type { RichText } from "../../richtext/RichText.js";
 import { Facet } from "../post/Facet.js";
 import type { Profile } from "../Profile.js";
+import type { Conversation } from "./Conversation.js";
 
 /**
  * Data used to construct a ChatMessage class.
@@ -15,6 +16,7 @@ import type { Profile } from "../Profile.js";
 export interface ChatMessageData {
 	id: string;
 	text: string;
+	conversationId?: string | undefined;
 	sender: { did: string };
 	sentAt: Date;
 	facets?: Array<Facet> | undefined;
@@ -31,6 +33,9 @@ export class ChatMessage {
 	/** The message's text. */
 	text: string;
 
+	/** The ID of the conversation the message belongs to. */
+	conversationId?: string;
+
 	/** The DID of the message's sender. */
 	senderDid: string;
 
@@ -46,13 +51,20 @@ export class ChatMessage {
 	/** The profile of the user who sent the message. */
 	private sender?: Profile;
 
+	/** The Conversation instance this message belongs to. */
+	private conversation?: Conversation;
+
 	/**
 	 * @param data Data used to construct the message.
 	 * @param bot The active Bot instance.
 	 */
-	constructor({ id, text, sender, sentAt, facets, embed }: ChatMessageData, protected bot: Bot) {
+	constructor(
+		{ id, text, conversationId, sender, sentAt, facets, embed }: ChatMessageData,
+		protected bot: Bot,
+	) {
 		this.id = id;
 		this.text = text;
+		if (conversationId) this.conversationId = conversationId;
 		this.senderDid = sender.did;
 		this.sentAt = sentAt;
 		if (facets) this.facets = facets;
@@ -64,17 +76,32 @@ export class ChatMessage {
 	 */
 	async getSender(): Promise<Profile> {
 		if (this.sender) return this.sender;
-		if (this.senderDid === this.bot.profile.did) return this.bot.profile;
+		if (this.senderDid === this.bot.profile.did) return this.sender = this.bot.profile;
 		return this.sender = await this.bot.getProfile(this.senderDid);
+	}
+
+	/**
+	 * Fetch the Conversation instance this message belongs to.
+	 * Returns null if the conversation could not be found.
+	 */
+	async getConversation(): Promise<Conversation | null> {
+		if (this.conversation) return this.conversation;
+		if (!this.conversationId) return null;
+		return this.conversation = await this.bot.getConversation(this.conversationId);
 	}
 
 	/**
 	 * Constructs an instance from a MessageView.
 	 */
-	static fromView(view: ChatBskyConvoDefs.MessageView, bot: Bot): ChatMessage {
+	static fromView(
+		view: ChatBskyConvoDefs.MessageView,
+		bot: Bot,
+		conversationId?: string,
+	): ChatMessage {
 		const message = new ChatMessage({
 			id: view.id,
 			text: view.text,
+			conversationId: conversationId,
 			sender: view.sender,
 			sentAt: new Date(view.sentAt),
 			facets: view.facets?.map((facet) => new Facet(view.text, facet)),

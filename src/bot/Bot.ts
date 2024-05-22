@@ -609,7 +609,9 @@ export class Bot extends EventEmitter {
 		});
 
 		const messages = response.data.messages.map((view) => {
-			if (ChatBskyConvoDefs.isMessageView(view)) return ChatMessage.fromView(view, this);
+			if (ChatBskyConvoDefs.isMessageView(view)) {
+				return ChatMessage.fromView(view, this, conversationId);
+			}
 			if (ChatBskyConvoDefs.isDeletedMessageView(view)) {
 				return DeletedChatMessage.fromView(view, this);
 			}
@@ -1093,7 +1095,7 @@ export class Bot extends EventEmitter {
 			throw new Error("Failed to send message.", { cause: e });
 		});
 
-		return ChatMessage.fromView(response.data, this);
+		return ChatMessage.fromView(response.data, this, payload.conversationId);
 	}
 
 	/**
@@ -1145,7 +1147,9 @@ export class Bot extends EventEmitter {
 			throw new Error("Failed to send messages.", { cause: e });
 		});
 
-		return response.data.items.map((view) => ChatMessage.fromView(view, this));
+		return response.data.items.map((view) =>
+			ChatMessage.fromView(view, this, messages[0].convoId)
+		);
 	}
 
 	/**

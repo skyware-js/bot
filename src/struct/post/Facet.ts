@@ -57,6 +57,24 @@ export class Facet {
 			else throw new Error("Unknown facet feature type " + feature.$type + ".");
 		});
 	}
+
+	/**
+	 * Returns a record representation of the facet.
+	 */
+	toRecord(): AppBskyRichtextFacet.Main {
+		return {
+			index: { ...this.byteIndex },
+			features: this.features.map((feature) => {
+				if (feature.isMention()) {
+					return { $type: "app.bsky.richtext.facet#mention", did: feature.did };
+				} else if (feature.isLink()) {
+					return { $type: "app.bsky.richtext.facet#link", uri: feature.uri };
+				} else if (feature.isTag()) {
+					return { $type: "app.bsky.richtext.facet#tag", tag: feature.tag };
+				} else throw new Error("Unknown facet feature type.");
+			}),
+		};
+	}
 }
 
 /** Represents a decoration applied to a span of text. */

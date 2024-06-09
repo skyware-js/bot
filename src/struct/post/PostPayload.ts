@@ -2,6 +2,7 @@ import type { AppBskyRichtextFacet, LabelDefinitionMap } from "@atproto/api";
 import type { StrongRef } from "../../bot/Bot.js";
 import type { RichText } from "../../richtext/RichText.js";
 import type { List } from "../List.js";
+import type { Facet } from "./Facet.js";
 
 /**
  * Data that can be used to create a post.
@@ -14,8 +15,9 @@ export interface PostPayload {
 	 * A facet represents a range within the post's text that has special meaning
 	 * (e.g. mentions, links, tags). Prefer to use the {@link RichText} class to create
 	 * posts with facets.
+	 * This will override any facets present in the {@link text} property or detected automatically.
 	 */
-	facets?: Array<AppBskyRichtextFacet.Main> | undefined;
+	facets?: Array<Facet | AppBskyRichtextFacet.Main> | undefined;
 
 	/**  A reference to the post's parent and root posts. */
 	replyRef?: ReplyRef | undefined;

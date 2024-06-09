@@ -33,6 +33,7 @@ import { FeedGenerator } from "../struct/FeedGenerator.js";
 import { Labeler } from "../struct/Labeler.js";
 import { List } from "../struct/List.js";
 import { fetchExternalEmbedData, fetchImageForBlob } from "../struct/post/embed/util.js";
+import { Facet } from "../struct/post/Facet.js";
 import { Post } from "../struct/post/Post.js";
 import type { PostPayload } from "../struct/post/PostPayload.js";
 import { PostReference } from "../struct/post/PostReference.js";
@@ -646,6 +647,14 @@ export class Bot extends EventEmitter {
 			facets = await RichText.detectFacets(text, this);
 		} else {
 			text = payload.text;
+		}
+
+		// Override facets if provided
+		if (payload.facets?.length) {
+			for (const facet of payload.facets) {
+				if (facet instanceof Facet) facets.push(facet.toRecord());
+				else facets.push(facet);
+			}
 		}
 
 		if (graphemeLength(text) > 300) {

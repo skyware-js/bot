@@ -30,6 +30,7 @@ export interface PostData extends PostReferenceData {
 	likeCount?: number | undefined;
 	repostCount?: number | undefined;
 	replyCount?: number | undefined;
+	quoteCount?: number | undefined;
 }
 
 /**
@@ -93,13 +94,16 @@ export class Post extends PostReference {
 	/** The post's reply count. */
 	replyCount?: number;
 
+	/** The post's quote count. */
+	quoteCount?: number;
+
 	/**
 	 * @param data Post data.
 	 * @param bot The active Bot instance.
 	 */
 	constructor(
 		// dprint-ignore
-		{ text, uri, cid, author, facets, replyRef, langs, embed, labels, tags, likeUri, repostUri, likeCount, replyCount, repostCount, threadgate, createdAt = new Date(), indexedAt, parent, root, children, }: PostData,
+		{ text, uri, cid, author, facets, replyRef, langs, embed, labels, tags, likeUri, repostUri, likeCount, replyCount, repostCount, quoteCount, threadgate, createdAt = new Date(), indexedAt, parent, root, children, }: PostData,
 		bot: Bot,
 	) {
 		super({ uri, cid, replyRef }, bot);
@@ -118,6 +122,7 @@ export class Post extends PostReference {
 		if (likeCount) this.likeCount = likeCount;
 		if (replyCount) this.replyCount = replyCount;
 		if (repostCount) this.repostCount = repostCount;
+		if (quoteCount) this.quoteCount = quoteCount;
 
 		if (threadgate) this.threadgate = threadgate;
 
@@ -198,6 +203,7 @@ export class Post extends PostReference {
 		if (view.likeCount != undefined) this.likeCount = view.likeCount;
 		if (view.repostCount != undefined) this.repostCount = view.repostCount;
 		if (view.replyCount != undefined) this.replyCount = view.replyCount;
+		if (view.quoteCount != undefined) this.quoteCount = view.quoteCount;
 	}
 
 	/**
@@ -228,6 +234,16 @@ export class Post extends PostReference {
 		this.setCounts(thread.post);
 		const { replyCount } = thread.post;
 		return replyCount ?? null;
+	}
+
+	/**
+	 * Fetch the post's current quote count.
+	 */
+	async getQuoteCount(): Promise<number | null> {
+		const thread = await this.fetchThreadView();
+		this.setCounts(thread.post);
+		const { quoteCount } = thread.post;
+		return quoteCount ?? null;
 	}
 
 	/**
@@ -269,6 +285,25 @@ export class Post extends PostReference {
 		return {
 			cursor: response.data.cursor,
 			reposts: response.data.repostedBy.map((actor) => Profile.fromView(actor, this.bot)),
+		};
+	}
+
+	/**
+	 * Fetch a list of posts that quote this post.
+	 * This method returns 100 quotes at a time, alongside a cursor to fetch the next 100.
+	 * @param cursor The cursor to begin fetching from.
+	 */
+	async getQuotes(cursor?: string): Promise<{ cursor: string | undefined; quotes: Array<Post> }> {
+		const response = await this.bot.api.app.bsky.feed.getQuotes({
+			uri: this.uri,
+			limit: 100,
+			cursor: cursor ?? "",
+		}).catch((e: unknown) => {
+			throw new Error("Failed to fetch quotes.", { cause: e });
+		});
+		return {
+			cursor: response.data.cursor,
+			quotes: response.data.posts.map((quote) => Post.fromView(quote, this.bot)),
 		};
 	}
 

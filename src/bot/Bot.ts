@@ -9,11 +9,9 @@ import {
 	AppBskyLabelerDefs,
 	type AppBskyRichtextFacet,
 	type AtpAgent,
-	type AtpServiceClient,
 	type AtpSessionData,
 	AtUri,
 	type BlobRef,
-	BskyAgent,
 	ChatBskyConvoDefs,
 	type ComAtprotoLabelDefs,
 	type ComAtprotoServerCreateSession,
@@ -41,6 +39,7 @@ import { type IncomingChatPreference, Profile } from "../struct/Profile.js";
 import { BotChatEmitter } from "./BotChatEmitter.js";
 import { BotEventEmitter, type BotEventEmitterOptions, EventStrategy } from "./BotEventEmitter.js";
 import { type CacheOptions, makeCache } from "./cache.js";
+import { RateLimitedAgent } from "./RateLimitedAgent.js";
 
 const NO_SESSION_ERROR = "Active session not found. Make sure to call the login method first.";
 
@@ -87,10 +86,7 @@ export interface BotOptions {
  */
 export class Bot extends EventEmitter {
 	/** The agent used to communicate with the Bluesky API. */
-	private readonly agent: BskyAgent;
-
-	/** A limiter to rate limit API requests. */
-	private readonly limiter: RateLimitThreshold;
+	readonly agent: RateLimitedAgent;
 
 	/** A cache to store API responses. */
 	private readonly cache: BotCache;
@@ -100,9 +96,6 @@ export class Bot extends EventEmitter {
 
 	/** Receives and emits chat events. */
 	private readonly chatEventEmitter?: BotChatEmitter;
-
-	/** The Bluesky API client, with rate-limited methods. */
-	readonly api: AtpServiceClient;
 
 	/** The proxy agent for chat-related requests. */
 	chatProxy?: AtpAgent;
@@ -130,14 +123,12 @@ export class Bot extends EventEmitter {
 	) {
 		super();
 
-		this.agent = new BskyAgent({ service });
+		this.agent = new RateLimitedAgent(
+			{ service },
+			new RateLimitThreshold(3000, (rateLimitOptions?.rateLimitInterval ?? 300) * 1000),
+		);
 
 		this.langs = langs;
-
-		this.limiter = new RateLimitThreshold(
-			3000,
-			(rateLimitOptions?.rateLimitInterval ?? 300) * 1000,
-		);
 
 		this.cache = {
 			profiles: makeCache(cacheOptions),
@@ -166,8 +157,6 @@ export class Bot extends EventEmitter {
 			this.chatEventEmitter.on("message", (event) => this.emit("message", event));
 			this.chatEventEmitter.on("error", (error) => this.emit("error", error));
 		}
-
-		this.api = this.agent.api = rateLimitApi(this.agent.api, this.limiter);
 	}
 
 	/** Whether the bot has an active session. */
@@ -191,7 +180,6 @@ export class Bot extends EventEmitter {
 			});
 		});
 
-		// @ts-expect-error - only valid serviceType is atproto_labeler for now
 		this.chatProxy = this.agent.withProxy("bsky_chat", "did:web:api.bsky.chat");
 
 		this.profile = await this.getProfile(response.data.did).catch((e) => {
@@ -359,7 +347,7 @@ export class Bot extends EventEmitter {
 			return this.cache.lists.get(uri)!;
 		}
 
-		const response = await this.api.app.bsky.graph.getList({ list: uri }).catch((e) => {
+		const response = await this.agent.app.bsky.graph.getList({ list: uri }).catch((e) => {
 			throw new Error(`Failed to fetch list ${uri}`, { cause: e });
 		});
 
@@ -379,7 +367,7 @@ export class Bot extends EventEmitter {
 		did: string,
 		options: BotGetUserListsOptions,
 	): Promise<{ cursor: string | undefined; lists: Array<List> }> {
-		const response = await this.api.app.bsky.graph.getLists({ actor: did, ...options }).catch(
+		const response = await this.agent.app.bsky.graph.getLists({ actor: did, ...options }).catch(
 			(e) => {
 				throw new Error(`Failed to fetch user lists for ${did}.`, { cause: e });
 			},
@@ -407,9 +395,11 @@ export class Bot extends EventEmitter {
 			return this.cache.feeds.get(uri)!;
 		}
 
-		const response = await this.api.app.bsky.feed.getFeedGenerator({ feed: uri }).catch((e) => {
-			throw new Error(`Failed to fetch feed generator ${uri}`, { cause: e });
-		});
+		const response = await this.agent.app.bsky.feed.getFeedGenerator({ feed: uri }).catch(
+			(e) => {
+				throw new Error(`Failed to fetch feed generator ${uri}`, { cause: e });
+			},
+		);
 
 		const feed = FeedGenerator.fromView(response.data.view, this);
 		feed.isOnline = response.data.isOnline;
@@ -428,7 +418,7 @@ export class Bot extends EventEmitter {
 	): Promise<Array<FeedGenerator>> {
 		if (!uris.length) return [];
 
-		const feedViews = await this.api.app.bsky.feed.getFeedGenerators({ feeds: uris }).catch(
+		const feedViews = await this.agent.app.bsky.feed.getFeedGenerators({ feeds: uris }).catch(
 			(e) => {
 				throw new Error(
 					"Failed to fetch feed generators at URIs:\n" + uris.slice(0, 3).join("\n")
@@ -1229,7 +1219,7 @@ export class Bot extends EventEmitter {
 		const subject = "did" in reference
 			? { $type: "com.atproto.admin.defs#repoRef", did: reference.did }
 			: { $type: "com.atproto.repo.strongRef", uri: reference.uri, cid: reference.cid };
-		return this.api.tools.ozone.moderation.emitEvent({
+		return this.agent.tools.ozone.moderation.emitEvent({
 			event: {
 				$type: "tools.ozone.moderation.defs#modEventLabel",
 				...event,
@@ -1299,7 +1289,7 @@ export class Bot extends EventEmitter {
 	 */
 	async declareLabeler(policies: AppBskyLabelerDefs.LabelerPolicies): Promise<void> {
 		if (!this.hasSession) throw new Error(NO_SESSION_ERROR);
-		await this.api.app.bsky.labeler.service.create({ repo: this.profile.did }, {
+		await this.agent.app.bsky.labeler.service.create({ repo: this.profile.did }, {
 			createdAt: new Date().toISOString(),
 			policies,
 		});
@@ -1311,7 +1301,7 @@ export class Bot extends EventEmitter {
 	 */
 	async deleteLabelerDeclaration(): Promise<void> {
 		if (!this.hasSession) throw new Error(NO_SESSION_ERROR);
-		await this.api.app.bsky.labeler.service.delete({ repo: this.profile.did, rkey: "self" });
+		await this.agent.app.bsky.labeler.service.delete({ repo: this.profile.did, rkey: "self" });
 		this.profile.isLabeler = false;
 	}
 
@@ -1333,7 +1323,7 @@ export class Bot extends EventEmitter {
 	 */
 	async createRecord(nsid: string, record: object, rkey?: string): Promise<StrongRef> {
 		if (!this.hasSession) throw new Error(NO_SESSION_ERROR);
-		const response = await this.api.com.atproto.repo.createRecord({
+		const response = await this.agent.com.atproto.repo.createRecord({
 			collection: nsid,
 			record: { $type: nsid, createdAt: new Date().toISOString(), ...record },
 			repo: this.profile.did,
@@ -1351,7 +1341,7 @@ export class Bot extends EventEmitter {
 	 */
 	async putRecord(nsid: string, record: object, rkey: string): Promise<StrongRef> {
 		if (!this.hasSession) throw new Error(NO_SESSION_ERROR);
-		const response = await this.api.com.atproto.repo.putRecord({
+		const response = await this.agent.com.atproto.repo.putRecord({
 			collection: nsid,
 			record: { $type: nsid, createdAt: new Date().toISOString(), ...record },
 			repo: this.profile.did,
@@ -1367,7 +1357,7 @@ export class Bot extends EventEmitter {
 	async deleteRecord(uri: string): Promise<void> {
 		const { host: repo, collection, rkey } = new AtUri(uri);
 		if (repo !== this.profile.did) throw new Error("Can only delete own record.");
-		await this.api.com.atproto.repo.deleteRecord({ collection, repo, rkey });
+		await this.agent.com.atproto.repo.deleteRecord({ collection, repo, rkey });
 	}
 
 	/** Emitted when the bot begins listening for events. */
@@ -1475,17 +1465,6 @@ export class Bot extends EventEmitter {
 		this.chatEventEmitter?.stop();
 		return this;
 	}
-}
-
-const NOT_LIMITED_METHODS = ["com.atproto.server.createSession", "com.atproto.server.getSession"];
-
-function rateLimitApi(client: AtpServiceClient, limiter: RateLimitThreshold) {
-	const call = client.xrpc.call.bind(client.xrpc);
-	client.xrpc.call = async (nsid, ...params) => {
-		if (!NOT_LIMITED_METHODS.includes(nsid)) await limiter.limit();
-		return call(nsid, ...params);
-	};
-	return client;
 }
 
 /**

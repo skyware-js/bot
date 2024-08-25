@@ -230,7 +230,7 @@ export class BotEventEmitter extends EventEmitter {
 
 	/** Poll the notifications endpoint. */
 	async poll() {
-		const response = await this.bot.api.app.bsky.notification.listNotifications().catch(
+		const response = await this.bot.agent.app.bsky.notification.listNotifications().catch(
 			(error) => {
 				this.emit("error", error);
 				return { success: false } as const;

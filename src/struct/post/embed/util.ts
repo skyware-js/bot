@@ -135,7 +135,7 @@ export async function fetchExternalEmbedData(
 		const { type, data: image } = await fetchImageForBlob(extractedEmbedData.image) ?? {};
 
 		if (image && type) {
-			const blob = await this.api.com.atproto.repo.uploadBlob(image, { encoding: type });
+			const blob = await this.agent.com.atproto.repo.uploadBlob(image, { encoding: type });
 			if (blob.success) {
 				thumb = blob.data.blob;
 			}

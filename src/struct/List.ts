@@ -157,7 +157,7 @@ export class List {
 	 * Mute all accounts on the list.
 	 */
 	async mute(): Promise<void> {
-		await this.bot.api.app.bsky.graph.muteActorList({ list: this.uri }).catch((e) => {
+		await this.bot.agent.app.bsky.graph.muteActorList({ list: this.uri }).catch((e) => {
 			throw new Error(`Failed to mute list ${this.uri}`, { cause: e });
 		});
 	}
@@ -166,7 +166,7 @@ export class List {
 	 * Unmute all accounts on the list.
 	 */
 	async unmute(): Promise<void> {
-		await this.bot.api.app.bsky.graph.unmuteActorList({ list: this.uri }).catch((e) => {
+		await this.bot.agent.app.bsky.graph.unmuteActorList({ list: this.uri }).catch((e) => {
 			throw new Error(`Failed to unmute list ${this.uri}`, { cause: e });
 		});
 	}
@@ -176,7 +176,7 @@ export class List {
 	 * @returns The AT URI of the list block record.
 	 */
 	async block(): Promise<string> {
-		const block = await this.bot.api.app.bsky.graph.listblock.create({
+		const block = await this.bot.agent.app.bsky.graph.listblock.create({
 			repo: this.bot.profile.did,
 		}, { subject: this.uri, createdAt: new Date().toISOString() }).catch((e) => {
 			throw new Error("Failed to block list " + this.uri, { cause: e });
@@ -191,7 +191,7 @@ export class List {
 	async unblock(): Promise<void> {
 		if (this.blockUri) {
 			const { host: repo, rkey } = new AtUri(this.blockUri);
-			await this.bot.api.app.bsky.graph.listblock.delete({ repo, rkey }, {}).catch((e) => {
+			await this.bot.agent.app.bsky.graph.listblock.delete({ repo, rkey }, {}).catch((e) => {
 				throw new Error("Failed to unblock list " + this.uri, { cause: e });
 			});
 		}
@@ -204,7 +204,7 @@ export class List {
 	async getFeed(
 		{ limit = 100, cursor = "" }: ListGetFeedOptions = {},
 	): Promise<{ cursor: string | undefined; posts: Array<Post> }> {
-		const response = await this.bot.api.app.bsky.feed.getListFeed({
+		const response = await this.bot.agent.app.bsky.feed.getListFeed({
 			list: this.uri,
 			limit,
 			cursor,

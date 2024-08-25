@@ -110,10 +110,13 @@ export class FeedGenerator {
 	async getPosts(
 		{ limit = 100, cursor = "" }: FeedGeneratorGetPostsOptions = {},
 	): Promise<{ cursor: string | undefined; posts: Array<Post> }> {
-		const response = await this.bot.api.app.bsky.feed.getFeed({ feed: this.uri, limit, cursor })
-			.catch((e) => {
-				throw new Error("Failed to get feed for generator " + this.uri, { cause: e });
-			});
+		const response = await this.bot.agent.app.bsky.feed.getFeed({
+			feed: this.uri,
+			limit,
+			cursor,
+		}).catch((e) => {
+			throw new Error("Failed to get feed for generator " + this.uri, { cause: e });
+		});
 		return {
 			cursor: response.data.cursor,
 			posts: response.data.feed.map(({ post }) => Post.fromView(post, this.bot)),

@@ -20,6 +20,7 @@ export {
 } from "./bot/Bot.js";
 export { type BotChatEmitterOptions } from "./bot/BotChatEmitter.js";
 export { type BotEventEmitterOptions, EventStrategy } from "./bot/BotEventEmitter.js";
+export { RateLimitedAgent } from "./bot/RateLimitedAgent.js";
 
 export { type CacheOptions } from "./bot/cache.js";
 

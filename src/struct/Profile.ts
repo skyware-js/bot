@@ -327,7 +327,7 @@ export class Profile {
 	 * @param comment An optional comment to attach to the label.
 	 */
 	async labelProfile(labels: Array<string>, comment?: string) {
-		const profileRecordResponse = await this.bot.api.com.atproto.repo.getRecord({
+		const profileRecordResponse = await this.bot.agent.com.atproto.repo.getRecord({
 			repo: this.did,
 			collection: "app.bsky.actor.profile",
 			rkey: "self",
@@ -348,7 +348,7 @@ export class Profile {
 	 * @param comment An optional comment to attach.
 	 */
 	async negateProfileLabels(labels: Array<string>, comment?: string) {
-		const profileRecordResponse = await this.bot.api.com.atproto.repo.getRecord({
+		const profileRecordResponse = await this.bot.agent.com.atproto.repo.getRecord({
 			repo: this.did,
 			collection: "app.bsky.actor.profile",
 			rkey: "self",

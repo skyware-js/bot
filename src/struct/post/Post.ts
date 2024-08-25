@@ -135,7 +135,7 @@ export class Post extends PostReference {
 	}
 
 	private async fetchThreadView(): Promise<AppBskyFeedDefs.ThreadViewPost> {
-		const response = await this.bot.api.app.bsky.feed.getPostThread({ uri: this.uri }).catch(
+		const response = await this.bot.agent.app.bsky.feed.getPostThread({ uri: this.uri }).catch(
 			(e) => {
 				throw new Error("Failed to fetch post like count", { cause: e });
 			},
@@ -254,7 +254,7 @@ export class Post extends PostReference {
 	async getLikes(
 		cursor?: string,
 	): Promise<{ cursor: string | undefined; likes: Array<Profile> }> {
-		const response = await this.bot.api.app.bsky.feed.getLikes({
+		const response = await this.bot.agent.app.bsky.feed.getLikes({
 			uri: this.uri,
 			limit: 100,
 			cursor: cursor ?? "",
@@ -275,7 +275,7 @@ export class Post extends PostReference {
 	async getReposts(
 		cursor?: string,
 	): Promise<{ cursor: string | undefined; reposts: Array<Profile> }> {
-		const response = await this.bot.api.app.bsky.feed.getRepostedBy({
+		const response = await this.bot.agent.app.bsky.feed.getRepostedBy({
 			uri: this.uri,
 			limit: 100,
 			cursor: cursor ?? "",
@@ -294,7 +294,7 @@ export class Post extends PostReference {
 	 * @param cursor The cursor to begin fetching from.
 	 */
 	async getQuotes(cursor?: string): Promise<{ cursor: string | undefined; quotes: Array<Post> }> {
-		const response = await this.bot.api.app.bsky.feed.getQuotes({
+		const response = await this.bot.agent.app.bsky.feed.getQuotes({
 			uri: this.uri,
 			limit: 100,
 			cursor: cursor ?? "",

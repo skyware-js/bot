@@ -118,7 +118,6 @@ export class BotEventEmitter extends EventEmitter {
 		if (this.emitting) return;
 		if (this.strategy === EventStrategy.Firehose) this.startFirehose();
 		else this.startPolling();
-		this.emitting = true;
 	}
 
 	/** Stop emitting events. */
@@ -208,6 +207,8 @@ export class BotEventEmitter extends EventEmitter {
 		});
 
 		this.firehose?.start();
+
+		this.emitting = true;
 	}
 
 	/** Start polling the notifications endpoint. */
@@ -223,6 +224,8 @@ export class BotEventEmitter extends EventEmitter {
 				await this.poll().catch((error) => this.emit("error", error));
 			}
 		})();
+
+		this.emitting = true;
 	}
 
 	/** Poll the notifications endpoint. */

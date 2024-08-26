@@ -4,6 +4,7 @@ import type {
 	BotGetUserLikesOptions,
 	BotGetUserListsOptions,
 	BotGetUserPostsOptions,
+	BotGetUserStarterPacksOptions,
 } from "../bot/Bot.js";
 import type { ChatMessagePayload } from "./chat/ChatMessage.js";
 import type { Conversation } from "./chat/Conversation.js";
@@ -263,6 +264,14 @@ export class Profile {
 		options: BotGetUserListsOptions = {},
 	): Promise<{ cursor: string | undefined; lists: Array<List> }> {
 		return this.bot.getUserLists(this.did, { limit: 100, ...options });
+	}
+
+	/**
+	 * Fetch the user's starter packs (up to 25 at a time, default 25).
+	 * @returns The user's starter packs.
+	 */
+	async getStarterPacks(options: BotGetUserStarterPacksOptions = {}) {
+		return this.bot.getUserStarterPacks(this.did, options);
 	}
 
 	/**

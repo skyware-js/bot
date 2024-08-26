@@ -6,6 +6,10 @@ import {
 	type BlobRef,
 } from "@atproto/api";
 import type { Bot } from "../../../bot/Bot.js";
+import type { FeedGenerator } from "../../FeedGenerator.js";
+import type { List } from "../../List.js";
+import type { StarterPack } from "../../StarterPack.js";
+import type { Post } from "../Post.js";
 import { ExternalEmbed } from "./ExternalEmbed.js";
 import { ImagesEmbed } from "./ImagesEmbed.js";
 import type { PostEmbed } from "./PostEmbed.js";
@@ -31,6 +35,11 @@ export interface PostEmbedFromViewOptions {
 	/** The active Bot instance (needed to create Post instance for RecordEmbed and RecordWithMediaEmbed). */
 	bot?: Bot;
 }
+
+/**
+ * Types of records that can be embedded in a post.
+ */
+export type EmbeddableRecord = Post | List | FeedGenerator | StarterPack;
 
 /**
  * Constructs the appropriate embed type from an embed view and record.

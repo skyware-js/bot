@@ -36,6 +36,7 @@ import { Post } from "../struct/post/Post.js";
 import type { PostPayload } from "../struct/post/PostPayload.js";
 import { PostReference } from "../struct/post/PostReference.js";
 import { type IncomingChatPreference, Profile } from "../struct/Profile.js";
+import { StarterPack } from "../struct/StarterPack.js";
 import { BotChatEmitter } from "./BotChatEmitter.js";
 import { BotEventEmitter, type BotEventEmitterOptions, EventStrategy } from "./BotEventEmitter.js";
 import { type CacheOptions, makeCache } from "./cache.js";
@@ -136,6 +137,7 @@ export class Bot extends EventEmitter {
 			lists: makeCache({ maxEntries: 100, ...cacheOptions }),
 			feeds: makeCache({ maxEntries: 50, ...cacheOptions }),
 			labelers: makeCache({ maxEntries: 10, ...cacheOptions }),
+			starterPacks: makeCache({ maxEntries: 10, ...cacheOptions }),
 			conversations: makeCache({ maxEntries: 50, ...cacheOptions }),
 		};
 
@@ -479,7 +481,9 @@ export class Bot extends EventEmitter {
 		options: BaseBotGetMethodOptions = {},
 	): Promise<Array<Labeler>> {
 		const response = await this.agent.getLabelers({ dids, detailed: true }).catch((e) => {
-			throw new Error("Failed to fetch labelers.", { cause: e });
+			throw new Error("Failed to fetch labelers:\n" + dids.slice(0, 3).join("\n") + "\n...", {
+				cause: e,
+			});
 		});
 
 		return response.data.views.map((labelerView) => {
@@ -496,6 +500,76 @@ export class Bot extends EventEmitter {
 	}
 
 	/**
+	 * Fetch a starter pack by its AT URI.
+	 * @param uri The starter pack's AT URI.
+	 * @param options Optional configuration.
+	 */
+	async getStarterPack(uri: string, options: BaseBotGetMethodOptions = {}): Promise<StarterPack> {
+		if (!options.skipCache && this.cache.starterPacks.has(uri)) {
+			return this.cache.starterPacks.get(uri)!;
+		}
+
+		const response = await this.agent.app.bsky.graph.getStarterPack({ starterPack: uri }).catch(
+			(e) => {
+				throw new Error(`Failed to fetch starter pack ${uri}`, { cause: e });
+			},
+		);
+
+		if (!options.noCacheResponse) {
+			this.cache.starterPacks.set(uri, StarterPack.fromView(response.data.starterPack, this));
+		}
+
+		return StarterPack.fromView(response.data.starterPack, this);
+	}
+
+	/**
+	 * Fetch a list of starter packs by their AT URIs.
+	 * @param uris The URIs of the starter packs to fetch.
+	 * @param options Optional configuration.
+	 */
+	async getStarterPacks(
+		uris: Array<string>,
+		options: BaseBotGetMethodOptions = {},
+	): Promise<Array<StarterPack>> {
+		const response = await this.agent.app.bsky.graph.getStarterPacks({ uris }).catch((e) => {
+			throw new Error(
+				"Failed to fetch starter packs at URIs:\n" + uris.slice(0, 3).join("\n") + "\n...",
+				{ cause: e },
+			);
+		});
+
+		return response.data.starterPacks.map((starterPackView) => {
+			const starterPack = StarterPack.fromView(starterPackView, this);
+			if (!options.noCacheResponse) this.cache.starterPacks.set(starterPack.uri, starterPack);
+			return starterPack;
+		});
+	}
+
+	/**
+	 * Fetch a list of starter packs by their creator's DID.
+	 * @param did The creator's DID.
+	 * @param options Optional configuration.
+	 */
+	async getUserStarterPacks(
+		did: string,
+		options: BotGetUserStarterPacksOptions = {},
+	): Promise<Array<StarterPack>> {
+		const response = await this.agent.app.bsky.graph.getActorStarterPacks({
+			actor: did,
+			limit: options.limit ?? 100,
+			cursor: options.cursor ?? "",
+		}).catch((e) => {
+			throw new Error(`Failed to fetch starter packs for creator ${did}.`, { cause: e });
+		});
+
+		return response.data.starterPacks.map((starterPackView) => {
+			const starterPack = StarterPack.fromView(starterPackView, this);
+			if (!options.noCacheResponse) this.cache.starterPacks.set(starterPack.uri, starterPack);
+			return starterPack;
+		});
+	}
+
+	/**
 	 * Fetch a conversation containing 1-10 members. If a conversation doesn't exist, it will be created.
 	 * @param members The DIDs of the conversation members.
 	 * @param options Optional configuration.
@@ -508,10 +582,11 @@ export class Bot extends EventEmitter {
 			throw new Error("Chat proxy does not exist. Make sure to log in first.");
 		}
 
-		const response = await this.chatProxy.api.chat.bsky.convo.getConvoForMembers({ members })
-			.catch((e) => {
+		const response = await this.chatProxy.chat.bsky.convo.getConvoForMembers({ members }).catch(
+			(e) => {
 				throw new Error("Failed to create conversation.", { cause: e });
-			});
+			},
+		);
 
 		const convo = Conversation.fromView(response.data.convo, this);
 
@@ -537,7 +612,7 @@ export class Bot extends EventEmitter {
 			throw new Error("Chat proxy does not exist. Make sure to log in first.");
 		}
 
-		const response = await this.chatProxy.api.chat.bsky.convo.getConvo({ convoId: id }).catch(
+		const response = await this.chatProxy.chat.bsky.convo.getConvo({ convoId: id }).catch(
 			(e) => {
 				throw new Error(`Failed to fetch conversation ${id}.`, { cause: e });
 			},
@@ -561,7 +636,7 @@ export class Bot extends EventEmitter {
 			throw new Error("Chat proxy does not exist. Make sure to log in first.");
 		}
 
-		const response = await this.chatProxy.api.chat.bsky.convo.listConvos(options).catch((e) => {
+		const response = await this.chatProxy.chat.bsky.convo.listConvos(options).catch((e) => {
 			throw new Error("Failed to list conversations.", { cause: e });
 		});
 
@@ -590,7 +665,7 @@ export class Bot extends EventEmitter {
 			throw new Error("Chat proxy does not exist. Make sure to log in first.");
 		}
 
-		const response = await this.chatProxy.api.chat.bsky.convo.getMessages({
+		const response = await this.chatProxy.chat.bsky.convo.getMessages({
 			convoId: conversationId,
 			...options,
 		}).catch((e) => {
@@ -1476,6 +1551,7 @@ export interface BotCache {
 	lists: QuickLRU<string, List>;
 	feeds: QuickLRU<string, FeedGenerator>;
 	labelers: QuickLRU<string, Labeler>;
+	starterPacks: QuickLRU<string, StarterPack>;
 	conversations: QuickLRU<string, Conversation>;
 }
 
@@ -1645,6 +1721,22 @@ export interface BotGetTimelineOptions extends BaseBotGetMethodOptions {
 
 	/**
 	 * The offset at which to start fetching posts.
+	 */
+	cursor?: string;
+}
+
+/**
+ * Options for the {@link Bot#getUserStarterPacks} method.
+ */
+export interface BotGetUserStarterPacksOptions extends Omit<BaseBotGetMethodOptions, "skipCache"> {
+	/**
+	 * The maximum number of starter packs to fetch (up to 100, inclusive).
+	 * @default 100
+	 */
+	limit?: number;
+
+	/**
+	 * The offset at which to start fetching starter packs.
 	 */
 	cursor?: string;
 }

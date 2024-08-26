@@ -7,8 +7,10 @@ import {
 import type { Bot } from "../../../bot/Bot.js";
 import { FeedGenerator } from "../../FeedGenerator.js";
 import { List } from "../../List.js";
+import { StarterPack } from "../../StarterPack.js";
 import { Post } from "../Post.js";
 import { PostEmbed } from "./PostEmbed.js";
+import type { EmbeddableRecord } from "./util.js";
 
 /**
  * A post embed that links to a post, list, or feed generator record.
@@ -17,7 +19,7 @@ export class RecordEmbed extends PostEmbed {
 	/**
 	 * @param record The embedded record.
 	 */
-	constructor(public record: Post | List | FeedGenerator) {
+	constructor(public record: EmbeddableRecord) {
 		super();
 	}
 
@@ -43,6 +45,8 @@ export class RecordEmbed extends PostEmbed {
 			return new RecordEmbed(FeedGenerator.fromView(recordView.record, bot));
 		} else if (AppBskyGraphDefs.isListView(recordView.record)) {
 			return new RecordEmbed(List.fromView(recordView.record, bot));
+		} else if (AppBskyGraphDefs.isStarterPackViewBasic(recordView.record)) {
+			return new RecordEmbed(StarterPack.fromView(recordView.record, bot));
 		} else {
 			throw new Error("Invalid embed record");
 		}

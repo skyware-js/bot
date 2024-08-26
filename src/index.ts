@@ -8,7 +8,9 @@ export {
 	type BotGetUserLikesOptions,
 	type BotGetUserListsOptions,
 	type BotGetUserPostsOptions,
+	type BotGetUserStarterPacksOptions,
 	type BotLabelRecordOptions,
+	type BotListConversationsOptions,
 	type BotLoginOptions,
 	type BotOptions,
 	type BotPostOptions,
@@ -76,6 +78,7 @@ export {
 } from "./struct/post/PostPayload.js";
 export { PostReference, type PostReferenceData } from "./struct/post/PostReference.js";
 export { Threadgate, type ThreadgateData } from "./struct/post/Threadgate.js";
+export { StarterPack, type StarterPackData } from "./struct/StarterPack.js";
 
 export { EmbedImage, type ImageData } from "./struct/post/embed/EmbedImage.js";
 export { ExternalEmbed, type ExternalEmbedData } from "./struct/post/embed/ExternalEmbed.js";
@@ -84,6 +87,7 @@ export { PostEmbed } from "./struct/post/embed/PostEmbed.js";
 export { RecordEmbed } from "./struct/post/embed/RecordEmbed.js";
 export { RecordWithMediaEmbed } from "./struct/post/embed/RecordWithMediaEmbed.js";
 export {
+	type EmbeddableRecord,
 	isEmbedMainRecord,
 	isEmbedView,
 	postEmbedFromView,

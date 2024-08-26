@@ -1156,7 +1156,7 @@ export class Bot extends EventEmitter {
 			throw new Error("Message exceeds maximum length of 1000 graphemes.");
 		}
 
-		const response = await this.chatProxy.api.chat.bsky.convo.sendMessage({
+		const response = await this.chatProxy.chat.bsky.convo.sendMessage({
 			convoId: payload.conversationId,
 			message: {
 				text,
@@ -1215,11 +1215,10 @@ export class Bot extends EventEmitter {
 			};
 		}));
 
-		const response = await this.chatProxy.api.chat.bsky.convo.sendMessageBatch({
-			items: messages,
-		}).catch((e) => {
-			throw new Error("Failed to send messages.", { cause: e });
-		});
+		const response = await this.chatProxy.chat.bsky.convo.sendMessageBatch({ items: messages })
+			.catch((e) => {
+				throw new Error("Failed to send messages.", { cause: e });
+			});
 
 		return response.data.items.map((view) =>
 			ChatMessage.fromView(view, this, messages[0].convoId)
@@ -1235,15 +1234,16 @@ export class Bot extends EventEmitter {
 			throw new Error("Chat proxy does not exist. Make sure to log in first.");
 		}
 
-		await this.chatProxy.api.chat.bsky.convo.leaveConvo({ convoId: id }).catch((e) => {
+		await this.chatProxy.chat.bsky.convo.leaveConvo({ convoId: id }).catch((e) => {
 			throw new Error(`Failed to leave conversation ${id}.`, { cause: e });
 		});
 	}
 
 	/**
-	 * Label a user or record. Note that you need a running Ozone instance on this DID to publish labels!
+	 * Label a user or record. Note that you need a running labeler server on this DID to publish labels!
 	 * @param options Information on the label to apply.
-	 * @see [Self-hosting Ozone](https://github.com/bluesky-social/ozone/blob/main/HOSTING.md)
+	 * @see [@skyware/labeler | Getting Started](https://skyware.js.org/guides/labeler/introduction/getting-started/) to run a minimal labeler server.
+	 * @see [Self-hosting Ozone](https://github.com/bluesky-social/ozone/blob/main/HOSTING.md) for a full web UI and report handling.
 	 */
 	async label(
 		{ reference, labels, blobCids = [], comment }: BotLabelRecordOptions,
@@ -1288,7 +1288,7 @@ export class Bot extends EventEmitter {
 	): Promise<ToolsOzoneModerationEmitEvent.Response> {
 		if (!this.profile.isLabeler) {
 			throw new Error(
-				"The bot doesn't seem to have a labeler service declared. Make sure to use the Bot#declareLabeler method before trying to publish labels!",
+				"The bot doesn't seem to have a labeler service declared.\nFor more information, see https://skyware.js.org/guides/labeler/introduction/getting-started/",
 			);
 		}
 		const subject = "did" in reference
@@ -1352,32 +1352,6 @@ export class Bot extends EventEmitter {
 			throw new Error("Failed to update handle.", { cause: e });
 		});
 		this.profile.handle = handle;
-	}
-
-	/**
-	 * Declare that the bot account is a labeler. This will allow the bot to publish labels,
-	 * and allow other users to subscribe to the bot as a labeler. Note that you need an active [Ozone](https://github.com/bluesky-social/ozone)
-	 * instance running on this DID to be able to publish labels!
-	 * @param policies The labeler's policies; a description of the labels the bot will publish.
-	 * @see [Labeler declarations](https://docs.bsky.app/docs/advanced-guides/moderation#labeler-declarations)
-	 * @see [Self-hosting Ozone](https://github.com/bluesky-social/ozone/blob/main/HOSTING.md)
-	 */
-	async declareLabeler(policies: AppBskyLabelerDefs.LabelerPolicies): Promise<void> {
-		if (!this.hasSession) throw new Error(NO_SESSION_ERROR);
-		await this.agent.app.bsky.labeler.service.create({ repo: this.profile.did }, {
-			createdAt: new Date().toISOString(),
-			policies,
-		});
-		this.profile.isLabeler = true;
-	}
-
-	/**
-	 * Delete the bot's labeler declaration record.
-	 */
-	async deleteLabelerDeclaration(): Promise<void> {
-		if (!this.hasSession) throw new Error(NO_SESSION_ERROR);
-		await this.agent.app.bsky.labeler.service.delete({ repo: this.profile.did, rkey: "self" });
-		this.profile.isLabeler = false;
 	}
 
 	/**

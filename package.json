@@ -18,7 +18,7 @@
 		"build": "tsc",
 		"fmt": "dprint fmt",
 		"lint": "eslint . --ext .ts --fix",
-		"prepublish": "npm run fmt && npm run lint && npm run build"
+		"prepublishOnly": "npm run fmt && npm run lint && npm run build"
 	},
 	"dependencies": {
 		"@atproto/api": "^0.13.3",

@@ -126,7 +126,7 @@ export class Bot extends EventEmitter {
 
 		this.agent = new RateLimitedAgent(
 			{ service },
-			new RateLimitThreshold(3000, (rateLimitOptions?.rateLimitInterval ?? 300) * 1000),
+			new RateLimitThreshold(3000, rateLimitOptions?.rateLimitInterval ?? 300),
 		);
 
 		this.langs = langs;

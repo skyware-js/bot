@@ -20,6 +20,7 @@ export interface PostData extends PostReferenceData {
 	labels?: Array<ComAtprotoLabelDefs.Label> | undefined;
 	tags?: Array<string> | undefined;
 	threadgate?: Threadgate | undefined;
+	embeddingDisabled?: boolean | undefined;
 	root?: Post | undefined;
 	parent?: Post | undefined;
 	children?: Array<Post> | undefined;
@@ -64,6 +65,9 @@ export class Post extends PostReference {
 	/** The threadgate attached to the post, if there is any. */
 	threadgate?: Threadgate;
 
+	/** Whether embedding this post is disallowed by a postgate. */
+	embeddingDisabled?: boolean;
+
 	/** The root post of this post's thread. */
 	root?: Post;
 
@@ -103,7 +107,7 @@ export class Post extends PostReference {
 	 */
 	constructor(
 		// dprint-ignore
-		{ text, uri, cid, author, facets, replyRef, langs, embed, labels, tags, likeUri, repostUri, likeCount, replyCount, repostCount, quoteCount, threadgate, createdAt = new Date(), indexedAt, parent, root, children, }: PostData,
+		{ text, uri, cid, author, facets, replyRef, langs, embed, labels, tags, likeUri, repostUri, likeCount, replyCount, repostCount, quoteCount, threadgate, embeddingDisabled, createdAt = new Date(), indexedAt, parent, root, children, }: PostData,
 		bot: Bot,
 	) {
 		super({ uri, cid, replyRef }, bot);
@@ -125,6 +129,7 @@ export class Post extends PostReference {
 		if (quoteCount) this.quoteCount = quoteCount;
 
 		if (threadgate) this.threadgate = threadgate;
+		if (embeddingDisabled !== undefined) this.embeddingDisabled = embeddingDisabled;
 
 		this.createdAt = createdAt;
 		if (indexedAt) this.indexedAt = indexedAt;
@@ -332,6 +337,7 @@ export class Post extends PostReference {
 			repostCount: view.repostCount,
 			replyCount: view.replyCount,
 			threadgate: undefined,
+			embeddingDisabled: view.viewer?.embeddingDisabled,
 			createdAt: new Date(view.record.createdAt),
 			indexedAt: view.indexedAt ? new Date(view.indexedAt) : undefined,
 		}, bot);

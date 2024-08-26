@@ -11,6 +11,9 @@ import {
 import type { Firehose, FirehoseOptions } from "@skyware/firehose";
 import { EventEmitter } from "node:events";
 import { setInterval } from "node:timers/promises";
+import type { FeedGenerator } from "../struct/FeedGenerator.js";
+import type { Labeler } from "../struct/Labeler.js";
+import type { Post } from "../struct/post/Post.js";
 import { Profile } from "../struct/Profile.js";
 import type { Bot } from "./Bot.js";
 
@@ -190,7 +193,7 @@ export class BotEventEmitter extends EventEmitter {
 						) {
 							const post = await this.bot.getPost(op.record.subject.uri);
 							const user = await this.bot.getProfile(message.repo);
-							this.emit("like", { post, user, uri });
+							this.emit("like", { subject: post, user, uri });
 						}
 					} else if (AppBskyGraphFollow.isRecord(op.record)) {
 						// Follow
@@ -302,7 +305,7 @@ export class BotEventEmitter extends EventEmitter {
 					}
 					const post = await this.bot.getPost(notification.reasonSubject);
 					const user = Profile.fromView(notification.author, this.bot);
-					if (post) this.emit("repost", { post, user });
+					if (post) this.emit("repost", { post, user, uri: notification.uri });
 					break;
 				}
 				case "like": {
@@ -313,14 +316,29 @@ export class BotEventEmitter extends EventEmitter {
 						emitInvalidRecordError(notification);
 						break;
 					}
-					const post = await this.bot.getPost(notification.reasonSubject);
+
 					const user = Profile.fromView(notification.author, this.bot);
-					if (post) this.emit("like", { post, user });
+
+					let subject: Post | FeedGenerator | Labeler | undefined;
+					const subjectUri = new AtUri(notification.reasonSubject);
+					switch (subjectUri.collection) {
+						case "app.bsky.feed.post":
+							subject = await this.bot.getPost(notification.reasonSubject);
+							break;
+						case "app.bsky.feed.generator":
+							subject = await this.bot.getFeedGenerator(notification.reasonSubject);
+							break;
+						case "app.bsky.labeler.service":
+							subject = await this.bot.getLabeler(notification.reasonSubject);
+							break;
+					}
+
+					if (subject) this.emit("like", { subject, user, uri: notification.uri });
 					break;
 				}
 				case "follow": {
 					const user = Profile.fromView(notification.author, this.bot);
-					this.emit("follow", user);
+					this.emit("follow", { user, uri: notification.uri });
 					break;
 				}
 				default: {

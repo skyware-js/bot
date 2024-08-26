@@ -1431,11 +1431,13 @@ export class Bot extends EventEmitter {
 	): this;
 	/**
 	 * Emitted when one of the bot's posts is liked.
-	 * @param listener A callback function that receives the post that was liked, the user who liked it, and the like's AT URI.
+	 * @param listener A callback function that receives the subject that was liked, the user who liked it, and the like's AT URI.
 	 */
 	override on(
 		event: "like",
-		listener: (event: { post: Post; user: Profile; uri: string }) => void,
+		listener: (
+			event: { subject: Post | FeedGenerator | Labeler; user: Profile; uri: string },
+		) => void,
 	): this;
 	/**
 	 * Emitted when the bot is followed.

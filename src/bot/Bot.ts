@@ -1294,16 +1294,17 @@ export class Bot extends EventEmitter {
 		const subject = "did" in reference
 			? { $type: "com.atproto.admin.defs#repoRef", did: reference.did }
 			: { $type: "com.atproto.repo.strongRef", uri: reference.uri, cid: reference.cid };
-		return this.agent.tools.ozone.moderation.emitEvent({
-			event: {
-				$type: "tools.ozone.moderation.defs#modEventLabel",
-				...event,
-			} satisfies ToolsOzoneModerationDefs.ModEventLabel,
-			subject,
-			createdBy: this.profile.did,
-			createdAt: new Date().toISOString(),
-			subjectBlobCids,
-		});
+		return this.agent.withProxy("atproto_labeler", this.profile.did).tools.ozone.moderation
+			.emitEvent({
+				event: {
+					$type: "tools.ozone.moderation.defs#modEventLabel",
+					...event,
+				} satisfies ToolsOzoneModerationDefs.ModEventLabel,
+				subject,
+				createdBy: this.profile.did,
+				createdAt: new Date().toISOString(),
+				subjectBlobCids,
+			});
 	}
 
 	/**

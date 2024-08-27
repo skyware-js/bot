@@ -329,7 +329,7 @@ export class BotEventEmitter extends EventEmitter {
 							subject = await this.bot.getFeedGenerator(notification.reasonSubject);
 							break;
 						case "app.bsky.labeler.service":
-							subject = await this.bot.getLabeler(notification.reasonSubject);
+							subject = await this.bot.getLabeler(subjectUri.host);
 							break;
 					}
 

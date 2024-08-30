@@ -80,7 +80,7 @@ export class Post extends PostReference {
 	/** The time the post was created. */
 	createdAt: Date;
 
-	/** The time the post was indexed by the App View. */
+	/** The time the post was indexed by the AppView. */
 	indexedAt?: Date;
 
 	/** The post's like URI, if the bot has liked the post. */

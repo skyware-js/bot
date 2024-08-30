@@ -49,7 +49,7 @@ export interface StarterPackData {
 	/** The number of users who joined using the starter pack in all time. */
 	joinedAllTimeCount?: number | undefined;
 
-	/** When the starter pack was indexed by the App View. */
+	/** When the starter pack was indexed by the AppView. */
 	indexedAt: Date;
 
 	/** Any labels on the starter pack record. */
@@ -96,7 +96,7 @@ export class StarterPack {
 	/** The number of users who joined using the starter pack in all time. */
 	joinedAllTimeCount?: number;
 
-	/** When the starter pack was indexed by the App View. */
+	/** When the starter pack was indexed by the AppView. */
 	indexedAt: Date;
 
 	/** Any labels on the starter pack record. */

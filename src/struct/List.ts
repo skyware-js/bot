@@ -57,7 +57,7 @@ export interface ListData {
 	/** Whether the logged in user has the list muted. */
 	muted?: boolean | undefined;
 
-	/** The time the list was indexed by the App View. */
+	/** The time the list was indexed by the AppView. */
 	indexedAt?: Date | undefined;
 }
 
@@ -98,7 +98,7 @@ export class List {
 	/** Whether the bot has the list muted. */
 	muted?: boolean;
 
-	/** The time the list was indexed by the App View. */
+	/** The time the list was indexed by the AppView. */
 	indexedAt?: Date;
 
 	/** Whether the list is a mod list. */

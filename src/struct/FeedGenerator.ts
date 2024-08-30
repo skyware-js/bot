@@ -56,7 +56,7 @@ export class FeedGenerator {
 	/** The URI of the feed generator's like record, if the viewer has liked the feed generator. */
 	likeUri?: string;
 
-	/** The time the feed generator was indexed by the App View. */
+	/** The time the feed generator was indexed by the AppView. */
 	indexedAt: Date;
 
 	/**

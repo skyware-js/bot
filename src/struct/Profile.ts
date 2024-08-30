@@ -45,7 +45,7 @@ export interface ProfileData {
 	/** Labels on the user's profile. */
 	labels?: Array<ComAtprotoLabelDefs.Label> | undefined;
 
-	/** The time when the user's profile was indexed by the App View. */
+	/** The time when the user's profile was indexed by the AppView. */
 	indexedAt?: Date | undefined;
 
 	/** The AT URI of the follow relationship between the bot and the user. */
@@ -104,7 +104,7 @@ export class Profile {
 	/** Labels on the user's profile. */
 	labels: Array<ComAtprotoLabelDefs.Label>;
 
-	/** The time when the user's profile was indexed by the App View. */
+	/** The time when the user's profile was indexed by the AppView. */
 	indexedAt?: Date;
 
 	/**

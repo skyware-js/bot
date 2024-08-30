@@ -19,7 +19,7 @@ export interface LabelerData {
 	/** The number of likes the labeler has. */
 	likeCount?: number | undefined;
 
-	/** When the labeler was indexed by the App View. */
+	/** When the labeler was indexed by the AppView. */
 	indexedAt: Date;
 
 	/** The label policies published by the labeler. */
@@ -45,7 +45,7 @@ export class Labeler {
 	/** The number of likes the labeler has. */
 	likeCount?: number;
 
-	/** When the labeler was indexed by the App View. */
+	/** When the labeler was indexed by the AppView. */
 	indexedAt: Date;
 
 	/** The label policies published by the labeler. */

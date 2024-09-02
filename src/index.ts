@@ -20,8 +20,12 @@ export {
 	type RepoRef,
 	type StrongRef,
 } from "./bot/Bot.js";
-export { type BotChatEmitterOptions } from "./bot/BotChatEmitter.js";
-export { type BotEventEmitterOptions, EventStrategy } from "./bot/BotEventEmitter.js";
+export { BotChatEmitter, type BotChatEmitterOptions } from "./bot/BotChatEmitter.js";
+export {
+	BotEventEmitter,
+	type BotEventEmitterOptions,
+	EventStrategy,
+} from "./bot/BotEventEmitter.js";
 export { RateLimitedAgent } from "./bot/RateLimitedAgent.js";
 
 export { type CacheOptions } from "./bot/cache.js";
@@ -78,7 +82,12 @@ export {
 } from "./struct/post/PostPayload.js";
 export { PostReference, type PostReferenceData } from "./struct/post/PostReference.js";
 export { Threadgate, type ThreadgateData } from "./struct/post/Threadgate.js";
-export { StarterPack, type StarterPackData } from "./struct/StarterPack.js";
+export {
+	StarterPack,
+	type StarterPackData,
+	type StarterPackFetchFeedsOptions,
+	type StarterPackFetchListOptions,
+} from "./struct/StarterPack.js";
 
 export { EmbedImage, type ImageData } from "./struct/post/embed/EmbedImage.js";
 export { ExternalEmbed, type ExternalEmbedData } from "./struct/post/embed/ExternalEmbed.js";

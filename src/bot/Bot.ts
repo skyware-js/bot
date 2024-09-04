@@ -340,6 +340,41 @@ export class Bot extends EventEmitter {
 	}
 
 	/**
+	 * Fetch up to 25 (default 25) profiles by their DIDs or handles.
+	 * @param identifiers The identifiers of the profiles to fetch.
+	 * @param options Optional configuration.
+	 */
+	async getProfiles(
+		identifiers: Array<string>,
+		options: BaseBotGetMethodOptions = {},
+	): Promise<Array<Profile>> {
+		if (!identifiers.length) return [];
+		if (identifiers.length > 25) {
+			throw new Error("You can only fetch up to 25 profiles at a time.");
+		}
+		if (
+			!options.skipCache
+			&& identifiers.every((didOrHandle) => this.cache.profiles.has(didOrHandle))
+		) {
+			return identifiers.map((didOrHandle) => this.cache.profiles.get(didOrHandle)!);
+		}
+
+		const { data } = await this.agent.getProfiles({ actors: identifiers }).catch((e) => {
+			throw new Error(
+				"Failed to fetch profiles at identifiers:\n" + identifiers.slice(0, 3).join("\n")
+					+ "\n...",
+				{ cause: e },
+			);
+		});
+
+		return data.profiles.map((profileView) => {
+			const profile = Profile.fromView(profileView, this);
+			if (!options.noCacheResponse) this.cache.profiles.set(profile.did, profile);
+			return profile;
+		});
+	}
+
+	/**
 	 * Fetch a list by its AT URI.
 	 * @param uri The list's AT URI.
 	 * @param options Optional configuration.

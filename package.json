@@ -21,7 +21,7 @@
 		"prepublishOnly": "npm run fmt && npm run lint && npm run build"
 	},
 	"dependencies": {
-		"@atproto/api": "^0.13.3",
+		"@atproto/api": "^0.13.7",
 		"quick-lru": "^7.0.0",
 		"rate-limit-threshold": "^0.1.5"
 	},
@@ -41,5 +41,6 @@
 	},
 	"files": [
 		"dist"
-	]
+	],
+	"packageManager": "pnpm@7.0.0-rc.3+sha256.8d1f9951a9723ce89b4834698a4ce8b67bbf38571fc0d1c847b328e0f98867df"
 }

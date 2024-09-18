@@ -1,4 +1,4 @@
-import type { AppBskyEmbedImages } from "@atproto/api";
+import type { AppBskyEmbedDefs } from "@atproto/api";
 
 /**
  * Data used to construct an EmbedImage class.
@@ -9,7 +9,7 @@ export interface ImageData {
 	alt?: string;
 	mimeType: string;
 	size: number;
-	aspectRatio?: AppBskyEmbedImages.AspectRatio;
+	aspectRatio?: AppBskyEmbedDefs.AspectRatio;
 
 	/** The URL of the image's thumbnail. */
 	thumb?: string;
@@ -35,7 +35,7 @@ export class EmbedImage {
 	size: number;
 
 	/** The image's aspect ratio. */
-	aspectRatio?: AppBskyEmbedImages.AspectRatio;
+	aspectRatio?: AppBskyEmbedDefs.AspectRatio;
 
 	/** The URL of the image's thumbnail located at the Bluesky CDN. */
 	private _thumbUrl?: string;

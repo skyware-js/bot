@@ -3,6 +3,7 @@ import {
 	AppBskyEmbedImages,
 	AppBskyEmbedRecord,
 	AppBskyEmbedRecordWithMedia,
+	AppBskyEmbedVideo,
 	type BlobRef,
 } from "@atproto/api";
 import type { Bot } from "../../../bot/Bot.js";
@@ -15,6 +16,7 @@ import { ImagesEmbed } from "./ImagesEmbed.js";
 import type { PostEmbed } from "./PostEmbed.js";
 import { RecordEmbed } from "./RecordEmbed.js";
 import { RecordWithMediaEmbed } from "./RecordWithMediaEmbed.js";
+import { VideoEmbed } from "./VideoEmbed.js";
 
 /**
  * Options for constructing a PostEmbed from an embed view.
@@ -23,12 +25,14 @@ export interface PostEmbedFromViewOptions {
 	/** The embed view. */
 	view:
 		| AppBskyEmbedImages.View
+		| AppBskyEmbedVideo.View
 		| AppBskyEmbedExternal.View
 		| AppBskyEmbedRecord.View
 		| AppBskyEmbedRecordWithMedia.View;
 	/** The embed record. */
 	record?:
 		| AppBskyEmbedImages.Main
+		| AppBskyEmbedVideo.Main
 		| AppBskyEmbedExternal.Main
 		| AppBskyEmbedRecord.Main
 		| AppBskyEmbedRecordWithMedia.Main;
@@ -51,6 +55,11 @@ export function postEmbedFromView({ view, record, bot }: PostEmbedFromViewOption
 			throw new Error("Cannot construct ImagesEmbed from view without valid embed record");
 		}
 		return ImagesEmbed.fromView(view, record);
+	} else if (AppBskyEmbedVideo.isView(view)) {
+		if (!record || !AppBskyEmbedVideo.isMain(record)) {
+			throw new Error("Cannot construct VideoEmbed from view without valid embed record");
+		}
+		return VideoEmbed.fromView(view, record);
 	} else if (AppBskyEmbedExternal.isView(view)) {
 		return ExternalEmbed.fromView(view);
 	} else if (AppBskyEmbedRecord.isView(view)) {
@@ -77,11 +86,13 @@ export function isEmbedMainRecord(
 	embed: unknown,
 ): embed is
 	| AppBskyEmbedImages.Main
+	| AppBskyEmbedVideo.Main
 	| AppBskyEmbedExternal.Main
 	| AppBskyEmbedRecord.Main
 	| AppBskyEmbedRecordWithMedia.Main
 {
 	return (AppBskyEmbedImages.isMain(embed)
+		|| AppBskyEmbedVideo.isMain(embed)
 		|| AppBskyEmbedExternal.isMain(embed)
 		|| AppBskyEmbedRecord.isMain(embed)
 		|| AppBskyEmbedRecordWithMedia.isMain(embed));
@@ -95,18 +106,21 @@ export function isEmbedView(
 	view: unknown,
 ): view is
 	| AppBskyEmbedImages.View
+	| AppBskyEmbedVideo.View
 	| AppBskyEmbedExternal.View
 	| AppBskyEmbedRecord.View
 	| AppBskyEmbedRecordWithMedia.View
 {
 	return (AppBskyEmbedImages.isView(view)
+		|| AppBskyEmbedVideo.isView(view)
 		|| AppBskyEmbedExternal.isView(view)
 		|| AppBskyEmbedRecord.isView(view)
 		|| AppBskyEmbedRecordWithMedia.isView(view));
 }
 
-export async function fetchImageForBlob(
+export async function fetchMediaForBlob(
 	url: string,
+	mimeTypePrefix: string,
 ): Promise<{ type: string; data: Uint8Array } | null> {
 	const res = await fetch(url);
 	if (!res || !res.ok) return null;
@@ -115,7 +129,7 @@ export async function fetchImageForBlob(
 	if (!blob) return null;
 
 	const type = res.headers.get("content-type");
-	if (!type?.startsWith("image/")) return null;
+	if (!type?.startsWith(mimeTypePrefix)) return null;
 
 	return { type, data: new Uint8Array(await blob.arrayBuffer()) };
 }
@@ -141,7 +155,8 @@ export async function fetchExternalEmbedData(
 
 	let thumb: BlobRef | undefined;
 	if ("image" in extractedEmbedData && typeof extractedEmbedData.image === "string") {
-		const { type, data: image } = await fetchImageForBlob(extractedEmbedData.image) ?? {};
+		const { type, data: image } = await fetchMediaForBlob(extractedEmbedData.image, "image/")
+			?? {};
 
 		if (image && type) {
 			const blob = await this.agent.com.atproto.repo.uploadBlob(image, { encoding: type });

@@ -2,6 +2,7 @@ import type { ExternalEmbed } from "./ExternalEmbed.js";
 import type { ImagesEmbed } from "./ImagesEmbed.js";
 import type { RecordEmbed } from "./RecordEmbed.js";
 import type { RecordWithMediaEmbed } from "./RecordWithMediaEmbed.js";
+import type { VideoEmbed } from "./VideoEmbed.js";
 
 /**
  * A post embed.
@@ -9,6 +10,11 @@ import type { RecordWithMediaEmbed } from "./RecordWithMediaEmbed.js";
 export class PostEmbed {
 	/** Whether this embed contains images. */
 	isImages(): this is ImagesEmbed {
+		return false;
+	}
+
+	/** Whether this embed contains a video. */
+	isVideo(): this is VideoEmbed {
 		return false;
 	}
 

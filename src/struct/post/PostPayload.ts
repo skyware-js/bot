@@ -1,4 +1,4 @@
-import type { AppBskyRichtextFacet, LabelDefinitionMap } from "@atproto/api";
+import type { AppBskyEmbedVideo, AppBskyRichtextFacet, LabelDefinitionMap } from "@atproto/api";
 import type { StrongRef } from "../../bot/Bot.js";
 import type { RichText } from "../../richtext/RichText.js";
 import type { List } from "../List.js";
@@ -24,6 +24,9 @@ export interface PostPayload {
 
 	/** 1-4 images to attach to the post. */
 	images?: [ImagePayload?, ImagePayload?, ImagePayload?, ImagePayload?] | undefined;
+
+	/** A video to attach to the post. */
+	video?: VideoPayload | undefined;
 
 	/** A link to a post, list, or feed generator to be embedded within the post. */
 	quoted?: StrongRef | undefined;
@@ -99,6 +102,23 @@ export interface ImagePayload {
 	aspectRatio?: { width: number; height: number };
 
 	/** The image's data, or a URL leading to an image. */
+	data: Blob | string;
+}
+
+/**
+ * Data for a video to be attached to a post.
+ */
+export interface VideoPayload {
+	/** Alt text for the video. */
+	alt?: string;
+
+	/** The video's aspect ratio. */
+	aspectRatio?: { width: number; height: number };
+
+	/** Sets of closed captions for the video. */
+	captions?: Array<AppBskyEmbedVideo.Caption>;
+
+	/** The video's data, or a URL leading to a video. */
 	data: Blob | string;
 }
 

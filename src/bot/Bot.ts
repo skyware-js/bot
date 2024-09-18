@@ -3,6 +3,7 @@ import {
 	type AppBskyEmbedImages,
 	type AppBskyEmbedRecord,
 	type AppBskyEmbedRecordWithMedia,
+	type AppBskyEmbedVideo,
 	AppBskyFeedDefs,
 	AppBskyFeedPost,
 	type AppBskyFeedThreadgate,
@@ -30,7 +31,7 @@ import { DeletedChatMessage } from "../struct/chat/DeletedChatMessage.js";
 import { FeedGenerator } from "../struct/FeedGenerator.js";
 import { Labeler } from "../struct/Labeler.js";
 import { List } from "../struct/List.js";
-import { fetchExternalEmbedData, fetchImageForBlob } from "../struct/post/embed/util.js";
+import { fetchExternalEmbedData, fetchMediaForBlob } from "../struct/post/embed/util.js";
 import { Facet } from "../struct/post/Facet.js";
 import { Post } from "../struct/post/Post.js";
 import type { PostPayload } from "../struct/post/PostPayload.js";
@@ -806,6 +807,10 @@ export class Bot extends EventEmitter {
 			throw new Error("Only a post can be embedded alongside images.");
 		}
 
+		if (payload.images?.length && payload.video) {
+			throw new Error("A post can only contain one of images or video.");
+		}
+
 		// Upload image blobs
 		const images: Array<AppBskyEmbedImages.Image> = [];
 		if (payload.images?.length) {
@@ -822,10 +827,11 @@ export class Bot extends EventEmitter {
 
 				let type: string | undefined, blob: Uint8Array | undefined;
 				if (typeof image.data === "string") {
-					({ type, data: blob } = await fetchImageForBlob(image.data).catch((e) => {
-						// eslint-disable-next-line @typescript-eslint/no-base-to-string, @typescript-eslint/restrict-template-expressions
-						throw new Error(`Failed to fetch image at ${image.data}\n` + e);
-					}) ?? {});
+					({ type, data: blob } =
+						await fetchMediaForBlob(image.data, "image/").catch((e) => {
+							// eslint-disable-next-line @typescript-eslint/no-base-to-string, @typescript-eslint/restrict-template-expressions
+							throw new Error(`Failed to fetch image at ${image.data}\n` + e);
+						}) ?? {});
 				} else {
 					type = image.data.type;
 					blob = new Uint8Array(await image.data.arrayBuffer());
@@ -885,11 +891,12 @@ export class Bot extends EventEmitter {
 
 					let type: string | undefined, blob: Uint8Array | undefined;
 					if (typeof image === "string") {
-						({ type, data: blob } = await fetchImageForBlob(image).catch((e) => {
-							throw new Error(
-								`Failed to fetch payload.external.thumb at ${image}\n` + e,
-							);
-						}) ?? {});
+						({ type, data: blob } =
+							await fetchMediaForBlob(image, "image/").catch((e) => {
+								throw new Error(
+									`Failed to fetch payload.external.thumb at ${image}\n` + e,
+								);
+							}) ?? {});
 					} else {
 						type = image.type;
 						blob = new Uint8Array(await image.arrayBuffer());
@@ -917,6 +924,42 @@ export class Bot extends EventEmitter {
 			}
 		} else if (images.length) {
 			embed = { $type: "app.bsky.embed.images", images } satisfies AppBskyEmbedImages.Main;
+		} else if (payload.video) {
+			if (payload.video?.data instanceof Blob) {
+				if (!payload.video?.data.size) throw new Error("Can't upload an empty video");
+				if (!payload.video.data.type.startsWith("video/")) {
+					throw new Error("Video blob is not a video");
+				}
+			}
+
+			payload.video.alt ??= "";
+
+			let type: string | undefined, blob: Uint8Array | undefined;
+			if (typeof payload.video.data === "string") {
+				({ type, data: blob } =
+					await fetchMediaForBlob(payload.video.data, "video/").catch((e) => {
+						// eslint-disable-next-line @typescript-eslint/no-base-to-string, @typescript-eslint/restrict-template-expressions
+						throw new Error(`Failed to fetch video at ${payload.video?.data}\n` + e);
+					}) ?? {});
+			} else {
+				type = payload.video.data.type;
+				blob = new Uint8Array(await payload.video.data.arrayBuffer());
+			}
+
+			if (!blob || !type) throw new Error("Invalid video provided.");
+
+			const videoResponse = await this.agent.uploadBlob(blob, { encoding: type }).catch(
+				(e) => {
+					throw new Error("Failed to upload video\n" + e);
+				},
+			);
+
+			const { blob: videoBlob } = videoResponse.data;
+			embed = {
+				...payload.video,
+				$type: "app.bsky.embed.video",
+				video: videoBlob,
+			} satisfies AppBskyEmbedVideo.Main;
 		}
 
 		// Put together the post record
@@ -927,7 +970,7 @@ export class Bot extends EventEmitter {
 			createdAt: payload.createdAt.toISOString(),
 			langs: payload.langs,
 		};
-		// @ts-expect-error — AppBskyFeedPopst.ReplyRef has a string index signature
+		// @ts-expect-error — AppBskyFeedPost.ReplyRef has a string index signature
 		if (payload.replyRef) postRecord.reply = payload.replyRef;
 		if (embed) postRecord.embed = embed;
 		if (labels) postRecord.labels = labels;

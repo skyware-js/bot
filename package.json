@@ -17,8 +17,9 @@
 	"scripts": {
 		"build": "tsc",
 		"fmt": "dprint fmt",
-		"lint": "eslint . --ext .ts --fix",
-		"prepublishOnly": "npm run fmt && npm run lint && npm run build"
+		"lint": "eslint . --ext .ts --fix; typedoc --emit none --treatValidationWarningsAsErrors",
+		"rm-ts-in-deps": "find node_modules -type f -name '*.ts' ! -name '*.d.ts' -delete",
+		"prepublishOnly": "pnpm fmt && pnpm lint && pnpm rm-ts-in-deps && pnpm build"
 	},
 	"dependencies": {
 		"@atproto/api": "^0.13.7",
@@ -34,6 +35,7 @@
 		"eslint-plugin-import": "^2.29.1",
 		"eslint-plugin-unused-imports": "^3.1.0",
 		"multiformats": "^13.1.0",
+		"typedoc": "^0.26.7",
 		"typescript": "^5.4.2"
 	},
 	"optionalDependencies": {

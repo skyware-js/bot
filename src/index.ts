@@ -79,6 +79,7 @@ export {
 	type PostPayload,
 	PostSelfLabels,
 	type ReplyRef,
+	type VideoPayload,
 } from "./struct/post/PostPayload.js";
 export { PostReference, type PostReferenceData } from "./struct/post/PostReference.js";
 export { Threadgate, type ThreadgateData } from "./struct/post/Threadgate.js";
@@ -102,3 +103,4 @@ export {
 	postEmbedFromView,
 	type PostEmbedFromViewOptions,
 } from "./struct/post/embed/util.js";
+export { VideoEmbed, type VideoEmbedData } from "./struct/post/embed/VideoEmbed.js";

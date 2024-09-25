@@ -15,6 +15,7 @@
 		"@typescript-eslint/no-unnecessary-condition": "off",
 		"@typescript-eslint/unified-signatures": "off",
 		"@typescript-eslint/no-explicit-any": "off",
+		"@typescript-eslint/no-misused-promises": "off",
 		"unused-imports/no-unused-imports": "error",
 		"import/no-unresolved": "off",
 		"import/extensions": ["error", "ignorePackages"]

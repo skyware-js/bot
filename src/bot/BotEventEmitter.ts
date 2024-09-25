@@ -9,6 +9,7 @@ import {
 	AtUri,
 } from "@atproto/api";
 import type { Firehose, FirehoseOptions } from "@skyware/firehose";
+import type { Jetstream, JetstreamOptions } from "@skyware/jetstream";
 import { EventEmitter } from "node:events";
 import { setInterval } from "node:timers/promises";
 import type { FeedGenerator } from "../struct/FeedGenerator.js";
@@ -32,8 +33,14 @@ export const EventStrategy = {
 	 * The bot will open a websocket connection to the relay and receive events in real-time.
 	 * This will consume more bandwidth and CPU than the polling strategy, but the bot will receive
 	 * events as soon as they are emitted.
+	 * @deprecated Use `EventStrategy.Jetstream` instead. This strategy will be removed in a future version.
 	 */
 	Firehose: "firehose",
+	/**
+	 * The bot will open a websocket connection to a [Jetstream](https://github.com/bluesky-social/jetstream)
+	 * instance and receive events in real-time.
+	 */
+	Jetstream: "jetstream",
 };
 export type EventStrategy = typeof EventStrategy[keyof typeof EventStrategy];
 
@@ -46,26 +53,45 @@ export interface BotEventEmitterOptions {
 	strategy?: EventStrategy;
 
 	/**
-	 * The interval in seconds at which the bot will poll the notifications endpoint. Only used if `strategy` is `EventStrategy.Polling`.
+	 * The interval in seconds at which the bot will poll the notifications endpoint. Only used if `strategy` is {@link EventStrategy.Polling}.
 	 * @default 5
 	 */
 	pollingInterval?: number;
 
 	/**
-	 * The Date to begin processing notifications from. Only used if `strategy` is `EventStrategy.Polling`.
+	 * The Date to begin processing notifications from. Only used if `strategy` is {@link EventStrategy.Polling}.
 	 * @default new Date()
 	 */
 	processFrom?: Date;
 
 	/**
-	 * The Relay ("firehose") to connect to. Only used if `strategy` is `EventStrategy.Firehose`.
+	 * The Relay ("firehose") to connect to. Only used if `strategy` is {@link EventStrategy.Firehose}.
 	 * @default wss://bsky.network
+	 * @deprecated Use `jetstreamUri` instead. This property, along with {@link firehoseOptions} and {@link EventStrategy.Firehose}, will be removed in a future version.
+	 * @see EventStrategy.Jetstream
 	 */
 	relayUri?: string;
 
-	/** Options to pass to the Firehose constructor. */
+	/**
+	 * Options to pass to the Firehose constructor.
+	 * @deprecated Use `jetstreamOptions` instead. This property, along with the {@link EventStrategy.Firehose} strategy, will be removed in a future version.
+	 * @see EventStrategy.Jetstream
+	 */
 	firehoseOptions?: FirehoseOptions;
+
+	/**
+	 * Options to pass to the Jetstream constructor. Only used if `strategy` is {@link EventStrategy.Jetstream}.
+	 * @see EventStrategy.Jetstream
+	 */
+	jetstreamOptions?: JetstreamOptions;
 }
+
+const JETSTREAM_EVENTS = [
+	"app.bsky.feed.post",
+	"app.bsky.feed.repost",
+	"app.bsky.feed.like",
+	"app.bsky.graph.follow",
+] as const satisfies Array<string>;
 
 export class BotEventEmitter extends EventEmitter {
 	/** How the bot will receive and emit events. */
@@ -73,18 +99,24 @@ export class BotEventEmitter extends EventEmitter {
 
 	/**
 	 * The interval in seconds at which the bot will poll the notifications endpoint.
-	 * Only used if `strategy` is `EventStrategy.Polling`.
+	 * Only used if `strategy` is {@link EventStrategy.Polling}.
 	 */
 	private pollingInterval: number;
 
-	/** The timestamp of the last notification processed, if using `EventStrategy.Polling`. */
+	/** The timestamp of the last notification processed, if using {@link EventStrategy.Polling}. */
 	private lastSeen?: Date;
 
 	/** Used to cancel polling. */
 	private pollingController?: AbortController;
 
-	/** The firehose event stream. */
+	/**
+	 * The firehose event stream.
+	 * @deprecated Use `jetstream` instead. This property, along with the {@link EventStrategy.Firehose} strategy, will be removed in a future version.
+	 */
 	public firehose?: Firehose;
+
+	/** The jetstream event stream. */
+	public jetstream?: Jetstream<typeof JETSTREAM_EVENTS[number]>;
 
 	/** Whether the bot is emitting events. */
 	public emitting: boolean = false;
@@ -109,6 +141,17 @@ export class BotEventEmitter extends EventEmitter {
 					"Failed to import Firehose event emitter. Make sure you have the @skyware/firehose package installed.",
 				);
 			});
+		} else if (this.strategy === EventStrategy.Jetstream) {
+			import("@skyware/jetstream").then(({ Jetstream }) => {
+				this.jetstream = new Jetstream({
+					...options.jetstreamOptions,
+					wantedCollections: JETSTREAM_EVENTS,
+				});
+			}).catch(() => {
+				throw new Error(
+					"Failed to import Jetstream event emitter. Make sure you have the @skyware/jetstream package installed.",
+				);
+			});
 		} else if (this.strategy === EventStrategy.Polling) {
 			this.startPolling();
 		} else {
@@ -120,12 +163,14 @@ export class BotEventEmitter extends EventEmitter {
 	start() {
 		if (this.emitting) return;
 		if (this.strategy === EventStrategy.Firehose) this.startFirehose();
+		else if (this.strategy === EventStrategy.Jetstream) this.startJetstream();
 		else this.startPolling();
 	}
 
 	/** Stop emitting events. */
 	stop() {
-		if (this.firehose) this.firehose.close();
+		this.firehose?.close();
+		this.jetstream?.close();
 		this.pollingController?.abort();
 		this.emitting = false;
 	}
@@ -211,6 +256,99 @@ export class BotEventEmitter extends EventEmitter {
 
 		this.firehose?.start();
 
+		this.emitting = true;
+	}
+
+	/** Start receiving and processing jetstream events. */
+	startJetstream() {
+		this.jetstream?.on("open", () => this.emit("open"));
+		this.jetstream?.on("error", (error) => this.emit("error", error));
+		this.jetstream?.on("close", () => this.jetstream?.start());
+
+		this.jetstream?.onCreate(
+			"app.bsky.feed.post",
+			async ({ commit: { record, rkey }, did }) => {
+				const uri = `at://${did}/app.bsky.feed.post/${rkey}`;
+				if (record.reply?.parent?.uri?.includes(`at://${this.bot.profile.did}`)) {
+					this.emit("reply", await this.bot.getPost(uri));
+				} else if (
+					record.embed?.$type === "app.bsky.embed.record"
+					&& record.embed.record.uri.includes(`at://${this.bot.profile.did}`)
+				) {
+					this.emit("quote", await this.bot.getPost(uri));
+				} else if (
+					record.embed?.$type === "app.bsky.embed.recordWithMedia"
+					&& record.embed.record.record.uri.includes(`at://${this.bot.profile.did}`)
+				) {
+					this.emit("quote", await this.bot.getPost(uri));
+				} else if (
+					record.facets?.some((facet) =>
+						facet.features.some((feature) =>
+							feature.$type === "app.bsky.richtext.facet#mention"
+							&& feature.did === this.bot.profile.did
+						)
+					)
+				) {
+					this.emit("mention", await this.bot.getPost(uri));
+				}
+			},
+		);
+
+		this.jetstream?.onCreate(
+			"app.bsky.feed.repost",
+			async ({ commit: { record, rkey }, did }) => {
+				const uri = `at://${did}/app.bsky.feed.repost/${rkey}`;
+				if (record.subject?.uri?.includes(`at://${this.bot.profile.did}`)) {
+					this.emit("repost", {
+						post: await this.bot.getPost(uri),
+						user: await this.bot.getProfile(did),
+						uri,
+					});
+				}
+			},
+		);
+
+		this.jetstream?.onCreate(
+			"app.bsky.feed.like",
+			async ({ commit: { record, rkey }, did }) => {
+				const uri = `at://${did}/app.bsky.feed.like/${rkey}`;
+				if (record.subject?.uri?.includes(`at://${this.bot.profile.did}`)) {
+					const { collection, host } = new AtUri(record.subject.uri);
+					let subject: Post | FeedGenerator | Labeler | undefined;
+					switch (collection) {
+						case "app.bsky.feed.post":
+							subject = await this.bot.getPost(record.subject.uri);
+							break;
+						case "app.bsky.feed.generator":
+							subject = await this.bot.getFeedGenerator(record.subject.uri);
+							break;
+						case "app.bsky.labeler.service":
+							subject = await this.bot.getLabeler(host);
+							break;
+					}
+
+					if (subject) {
+						this.emit("like", {
+							subject: await this.bot.getPost(uri),
+							user: await this.bot.getProfile(did),
+							uri,
+						});
+					}
+				}
+			},
+		);
+
+		this.jetstream?.onCreate(
+			"app.bsky.graph.follow",
+			async ({ commit: { record, rkey }, did }) => {
+				const uri = `at://${did}/app.bsky.graph.follow/${rkey}`;
+				if (record.subject === this.bot.profile.did) {
+					this.emit("follow", { user: await this.bot.getProfile(did), uri });
+				}
+			},
+		);
+
+		this.jetstream?.start();
 		this.emitting = true;
 	}
 

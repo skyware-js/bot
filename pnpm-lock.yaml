@@ -8,9 +8,9 @@ importers:
 
   .:
     dependencies:
-      '@atproto/api':
-        specifier: ^0.13.7
-        version: 0.13.7
+      '@atcute/client':
+        specifier: ^2.0.1
+        version: 2.0.1
       quick-lru:
         specifier: ^7.0.0
         version: 7.0.0
@@ -25,6 +25,12 @@ importers:
         specifier: ^0.1.5
         version: 0.1.5(@atcute/client@2.0.1)
     devDependencies:
+      '@atcute/bluesky':
+        specifier: ^1.0.6
+        version: 1.0.6(@atcute/client@2.0.1)
+      '@atcute/ozone':
+        specifier: ^1.0.4
+        version: 1.0.4(@atcute/bluesky@1.0.6(@atcute/client@2.0.1))(@atcute/client@2.0.1)
       '@types/node':
         specifier: ^20.11.26
         version: 20.11.26
@@ -70,14 +76,14 @@ packages:
   '@atcute/client@2.0.1':
     resolution: {integrity: sha512-M4q0QchcjcPTypgXTKc4MO06eJMno5op14qHAMWhKbxROOnxnhLfjG9rbcNr7nOycQb5THmUIEAwvvabrv1AjA==}
 
-  '@atproto/api@0.13.7':
-    resolution: {integrity: sha512-41kSLmFWDbuPOenb52WRq1lnBkSZrL+X29tWcvEt6SZXK4xBoKAalw1MjF+oabhzff12iMtNaNvmmt2fu1L+cw==}
+  '@atcute/ozone@1.0.4':
+    resolution: {integrity: sha512-28fL6EQoKRw4PswQOBNC83TZLqbjAO3oKlwIvinQ8d2qx7BCUUtpq19MZqp7X1bSz2oTanlDqoE+NTdEDpDRYA==}
+    peerDependencies:
+      '@atcute/bluesky': ^1.0.0
+      '@atcute/client': ^1.0.0 || ^2.0.0
 
   '@atproto/common-web@0.2.3':
     resolution: {integrity: sha512-k9VKGYUqjsRlI3wS31XyCbeb2U7ddS4X/eFgzos2CE5rIbk/uQGyKH+0Jcn1JIwRkvI1BemyNuUVrS8Ok3wiuw==}
-
-  '@atproto/common-web@0.3.0':
-    resolution: {integrity: sha512-67VnV6JJyX+ZWyjV7xFQMypAgDmjVaR9ZCuU/QW+mqlqI7fex2uL4Fv+7/jHadgzhuJHVd6OHOvNn0wR5WZYtA==}
 
   '@atproto/common@0.3.3':
     resolution: {integrity: sha512-ETYsHpQoytW3yJ1BoMDCZh3tdokV3HbZ2ThXq+EWbMxbGNsRDREgJK3JXJMHapf8PrnZZpE2VdWM9NHvlcmnQg==}
@@ -91,23 +97,14 @@ packages:
   '@atproto/lexicon@0.3.2':
     resolution: {integrity: sha512-kmGCkrRwpWIqmn/KO4BZwUf8Nmfndk3XvFC06V0ygCWc42g6+t4QP/6ywNW4PgqfZY0Q5aW4EuDfD7KjAFkFtQ==}
 
-  '@atproto/lexicon@0.4.1':
-    resolution: {integrity: sha512-bzyr+/VHXLQWbumViX5L7h1NKQObfs8Z+XZJl43OUK8nYFUI4e/sW1IZKRNfw7Wvi5YVNK+J+yP3DWIBZhkCYA==}
-
   '@atproto/repo@0.3.8':
     resolution: {integrity: sha512-rncPC33XEq1e4Buk/nXu+ytuWd5fAHaR+atKFBjHYn5yL0W9DGlKOf0g1uKpyKr20U2Dq40hc6i97XVpi5Oq3g==}
 
   '@atproto/syntax@0.2.0':
     resolution: {integrity: sha512-K+9jl6mtxC9ytlR7msSiP9jVNqtdxEBSt0kOfsC924lqGwuD8nlUAMi1GSMgAZJGg/Rd+0MKXh789heTdeL3HQ==}
 
-  '@atproto/syntax@0.3.0':
-    resolution: {integrity: sha512-Weq0ZBxffGHDXHl9U7BQc2BFJi/e23AL+k+i5+D9hUq/bzT4yjGsrCejkjq0xt82xXDjmhhvQSZ0LqxyZ5woxA==}
-
   '@atproto/xrpc-server@0.4.3':
     resolution: {integrity: sha512-JJLtKfCGGDP7/62Hw37DJU7mryUBS+lGYbiC+rswNG0RApfY7T4a8q3KdWlHb2F1NCoMjndhjkB31OucTWHzVw==}
-
-  '@atproto/xrpc@0.6.2':
-    resolution: {integrity: sha512-as/gb08xJb02HAGNrSQSumCe10WnOAcnM6bR6KMatQyQJuEu7OY6ZDSTM/4HfjjoxsNqdvPmbYuoUab1bKTNlA==}
 
   '@cbor-extract/cbor-extract-darwin-arm64@2.2.0':
     resolution: {integrity: sha512-P7swiOAdF7aSi0H+tHtHtr6zrpF3aAq/W9FXx5HektRvLTM2O89xCyXF3pk7pLc7QpaY7AoaE8UowVf9QBdh3w==}
@@ -403,9 +400,6 @@ packages:
   available-typed-arrays@1.0.7:
     resolution: {integrity: sha512-wvUjBtSGN7+7SjNpq/9M2Tg350UZD3q62IFZLbRAR1bSMlCo1ZaeW+BJ+D090e4hIIZLBcTDWe4Mh4jvUDajzQ==}
     engines: {node: '>= 0.4'}
-
-  await-lock@2.2.2:
-    resolution: {integrity: sha512-aDczADvlvTGajTDjcjpJMqRkOF6Qdz3YbPZm/PyW6tKPkx2hlYBzxMhEywM/tU72HrVZjgl5VCdRuMlA7pZ8Gw==}
 
   axios@0.27.2:
     resolution: {integrity: sha512-t+yRIyySRTp/wua5xEr+z1q60QmLq8ABsS5O9Me1AsE5dfKqgnCFzwiCZZ/cGNd1lq4/7akDWMxdhVlucjmnOQ==}
@@ -1439,10 +1433,6 @@ packages:
   thread-stream@2.4.1:
     resolution: {integrity: sha512-d/Ex2iWd1whipbT681JmTINKw0ZwOUBZm7+Gjs64DHuX34mmw8vJL2bFAaNacaW72zYiTJxSHi5abUuOi5nsfg==}
 
-  tlds@1.251.0:
-    resolution: {integrity: sha512-yztVk5O1LGKCjPd+7soBQyiKvSBXI5qugc/X0C7pLa0rV5ufBS6xcyX0pdf4NznO8xcZ5fqX248q+jTHd4AQJA==}
-    hasBin: true
-
   to-regex-range@5.0.1:
     resolution: {integrity: sha512-65P7iz6X5yEr1cwcgvQxbbIw7Uk3gOy5dIdtZ4rDveLqhrdJP+Li/Hx6tyK0NEb+2GCyneCMJiGqrADCSNk8sQ==}
     engines: {node: '>=8.0'}
@@ -1599,9 +1589,6 @@ packages:
   zod@3.22.4:
     resolution: {integrity: sha512-iC+8Io04lddc+mVqQ9AZ7OQ2MrUKGN+oIQyq1vemgt46jwCwLfhq7/pwnBnNXXXZb8VTVLKwp9EDkx+ryxIWmg==}
 
-  zod@3.23.8:
-    resolution: {integrity: sha512-XBx9AXhXktjUqnepgTiE5flcKIYWi/rme0Eaj+5Y0lftuGBq+jyRu/md4WnuxqgP1ubdpNCsYEYPxrzVHD8d6g==}
-
   zwitch@2.0.4:
     resolution: {integrity: sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==}
 
@@ -1612,21 +1599,13 @@ snapshots:
   '@atcute/bluesky@1.0.6(@atcute/client@2.0.1)':
     dependencies:
       '@atcute/client': 2.0.1
-    optional: true
 
-  '@atcute/client@2.0.1':
-    optional: true
+  '@atcute/client@2.0.1': {}
 
-  '@atproto/api@0.13.7':
+  '@atcute/ozone@1.0.4(@atcute/bluesky@1.0.6(@atcute/client@2.0.1))(@atcute/client@2.0.1)':
     dependencies:
-      '@atproto/common-web': 0.3.0
-      '@atproto/lexicon': 0.4.1
-      '@atproto/syntax': 0.3.0
-      '@atproto/xrpc': 0.6.2
-      await-lock: 2.2.2
-      multiformats: 9.9.0
-      tlds: 1.251.0
-      zod: 3.23.8
+      '@atcute/bluesky': 1.0.6(@atcute/client@2.0.1)
+      '@atcute/client': 2.0.1
 
   '@atproto/common-web@0.2.3':
     dependencies:
@@ -1635,13 +1614,6 @@ snapshots:
       uint8arrays: 3.0.0
       zod: 3.22.4
     optional: true
-
-  '@atproto/common-web@0.3.0':
-    dependencies:
-      graphemer: 1.4.0
-      multiformats: 9.9.0
-      uint8arrays: 3.0.0
-      zod: 3.23.8
 
   '@atproto/common@0.3.3':
     dependencies:
@@ -1679,14 +1651,6 @@ snapshots:
       zod: 3.22.4
     optional: true
 
-  '@atproto/lexicon@0.4.1':
-    dependencies:
-      '@atproto/common-web': 0.3.0
-      '@atproto/syntax': 0.3.0
-      iso-datestring-validator: 2.2.2
-      multiformats: 9.9.0
-      zod: 3.23.8
-
   '@atproto/repo@0.3.8':
     dependencies:
       '@atproto/common': 0.3.3
@@ -1709,8 +1673,6 @@ snapshots:
       '@atproto/common-web': 0.2.3
     optional: true
 
-  '@atproto/syntax@0.3.0': {}
-
   '@atproto/xrpc-server@0.4.3':
     dependencies:
       '@atproto/common': 0.3.3
@@ -1729,11 +1691,6 @@ snapshots:
       - supports-color
       - utf-8-validate
     optional: true
-
-  '@atproto/xrpc@0.6.2':
-    dependencies:
-      '@atproto/lexicon': 0.4.1
-      zod: 3.23.8
 
   '@cbor-extract/cbor-extract-darwin-arm64@2.2.0':
     optional: true
@@ -2094,8 +2051,6 @@ snapshots:
   available-typed-arrays@1.0.7:
     dependencies:
       possible-typed-array-names: 1.0.0
-
-  await-lock@2.2.2: {}
 
   axios@0.27.2:
     dependencies:
@@ -2837,7 +2792,8 @@ snapshots:
 
   isexe@2.0.0: {}
 
-  iso-datestring-validator@2.2.2: {}
+  iso-datestring-validator@2.2.2:
+    optional: true
 
   js-yaml@4.1.0:
     dependencies:
@@ -2968,7 +2924,8 @@ snapshots:
 
   multiformats@13.1.0: {}
 
-  multiformats@9.9.0: {}
+  multiformats@9.9.0:
+    optional: true
 
   natural-compare@1.4.0: {}
 
@@ -3346,8 +3303,6 @@ snapshots:
       real-require: 0.2.0
     optional: true
 
-  tlds@1.251.0: {}
-
   to-regex-range@5.0.1:
     dependencies:
       is-number: 7.0.0
@@ -3428,6 +3383,7 @@ snapshots:
   uint8arrays@3.0.0:
     dependencies:
       multiformats: 9.9.0
+    optional: true
 
   unbox-primitive@1.0.2:
     dependencies:
@@ -3523,7 +3479,5 @@ snapshots:
 
   zod@3.22.4:
     optional: true
-
-  zod@3.23.8: {}
 
   zwitch@2.0.4: {}

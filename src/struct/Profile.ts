@@ -1,3 +1,4 @@
+import type { At } from "@atcute/client/lexicons";
 import type { AppBskyActorDefs, ComAtprotoLabelDefs } from "@atproto/api";
 import type {
 	Bot,
@@ -75,7 +76,7 @@ export interface ProfileData {
  */
 export class Profile {
 	/** The user's DID. */
-	did: string;
+	did: At.DID;
 
 	/** The user's handle. */
 	handle: string;
@@ -169,7 +170,7 @@ export class Profile {
 		{ did, handle, displayName, description, avatar, banner, followerCount, followingCount, postsCount, labels, indexedAt, followUri, followedByUri, isMuted, blockUri, isBlockedBy, isLabeler, incomingChatPreference }: ProfileData,
 		protected bot: Bot,
 	) {
-		this.did = did;
+		this.did = did as At.DID;
 		this.handle = handle;
 		if (displayName) this.displayName = displayName;
 		if (description) this.description = description;

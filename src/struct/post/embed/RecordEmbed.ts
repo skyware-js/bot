@@ -1,10 +1,6 @@
-import {
-	AppBskyEmbedRecord,
-	AppBskyFeedDefs,
-	AppBskyFeedPost,
-	AppBskyGraphDefs,
-} from "@atproto/api";
+import type { AppBskyEmbedRecord } from "@atcute/client/lexicons";
 import type { Bot } from "../../../bot/Bot.js";
+import { is } from "../../../util/lexicon.js";
 import { FeedGenerator } from "../../FeedGenerator.js";
 import { List } from "../../List.js";
 import { StarterPack } from "../../StarterPack.js";
@@ -33,19 +29,19 @@ export class RecordEmbed extends PostEmbed {
 	 * @param bot The active Bot instance.
 	 */
 	static fromView(recordView: AppBskyEmbedRecord.View, bot: Bot): RecordEmbed {
-		if (AppBskyEmbedRecord.isViewRecord(recordView.record)) {
+		if (recordView.record.$type === "app.bsky.embed.record#viewRecord") {
 			// ViewRecord should only be a post
-			if (!AppBskyFeedPost.isRecord(recordView.record.value)) {
+			if (!is("app.bsky.feed.post", recordView.record.value)) {
 				throw new Error("Invalid post view record");
 			}
 			return new RecordEmbed(
 				Post.fromView({ ...recordView.record, record: recordView.record.value }, bot),
 			);
-		} else if (AppBskyFeedDefs.isGeneratorView(recordView.record)) {
+		} else if (recordView.record.$type === "app.bsky.feed.defs#generatorView") {
 			return new RecordEmbed(FeedGenerator.fromView(recordView.record, bot));
-		} else if (AppBskyGraphDefs.isListView(recordView.record)) {
+		} else if (recordView.record.$type === "app.bsky.graph.defs#listView") {
 			return new RecordEmbed(List.fromView(recordView.record, bot));
-		} else if (AppBskyGraphDefs.isStarterPackViewBasic(recordView.record)) {
+		} else if (recordView.record.$type === "app.bsky.graph.defs#starterPackViewBasic") {
 			return new RecordEmbed(StarterPack.fromView(recordView.record, bot));
 		} else {
 			throw new Error("Invalid embed record");

@@ -1,5 +1,6 @@
-import { AppBskyFeedDefs, AppBskyFeedPost, type ComAtprotoLabelDefs } from "@atproto/api";
+import type { AppBskyFeedDefs, At, Brand, ComAtprotoLabelDefs } from "@atcute/client/lexicons";
 import type { Bot, BotGetPostOptions } from "../../bot/Bot.js";
+import { is } from "../../util/lexicon.js";
 import { Profile } from "../Profile.js";
 import type { PostEmbed } from "./embed/PostEmbed.js";
 import { isEmbedMainRecord, isEmbedView, postEmbedFromView } from "./embed/util.js";
@@ -84,10 +85,10 @@ export class Post extends PostReference {
 	indexedAt?: Date;
 
 	/** The post's like URI, if the bot has liked the post. */
-	likeUri?: string;
+	likeUri?: At.Uri;
 
 	/** The post's repost URI, if the bot has reposted the post. */
-	repostUri?: string;
+	repostUri?: At.Uri;
 
 	/** The post's like count. */
 	likeCount?: number;
@@ -140,15 +141,15 @@ export class Post extends PostReference {
 	}
 
 	private async fetchThreadView(): Promise<AppBskyFeedDefs.ThreadViewPost> {
-		const response = await this.bot.agent.app.bsky.feed.getPostThread({ uri: this.uri }).catch(
-			(e) => {
-				throw new Error("Failed to fetch post like count", { cause: e });
-			},
-		);
-		if (!AppBskyFeedDefs.isThreadViewPost(response.data.thread)) {
+		const response = await this.bot.agent.get("app.bsky.feed.getPostThread", {
+			params: { uri: this.uri },
+		}).catch((e) => {
+			throw new Error("Failed to fetch post like count", { cause: e });
+		});
+		if (response.data.thread.$type !== "app.bsky.feed.defs#threadViewPost") {
 			throw new Error(
-				`Could not fetch post ${this.uri}. `
-					+ AppBskyFeedDefs.isBlockedPost(response.data.thread)
+				`Could not fetch post ${this.uri}. ` + response.data.thread.$type
+						=== "app.bsky.feed.defs#blockedPost"
 					? "User is blocked from viewing this post."
 					: "The post could not be found.",
 			);
@@ -259,10 +260,8 @@ export class Post extends PostReference {
 	async getLikes(
 		cursor?: string,
 	): Promise<{ cursor: string | undefined; likes: Array<Profile> }> {
-		const response = await this.bot.agent.app.bsky.feed.getLikes({
-			uri: this.uri,
-			limit: 100,
-			cursor: cursor ?? "",
+		const response = await this.bot.agent.get("app.bsky.feed.getLikes", {
+			params: { uri: this.uri, limit: 100, cursor: cursor ?? "" },
 		}).catch((e) => {
 			throw new Error("Failed to fetch likes.", { cause: e });
 		});
@@ -280,10 +279,8 @@ export class Post extends PostReference {
 	async getReposts(
 		cursor?: string,
 	): Promise<{ cursor: string | undefined; reposts: Array<Profile> }> {
-		const response = await this.bot.agent.app.bsky.feed.getRepostedBy({
-			uri: this.uri,
-			limit: 100,
-			cursor: cursor ?? "",
+		const response = await this.bot.agent.get("app.bsky.feed.getRepostedBy", {
+			params: { uri: this.uri, limit: 100, cursor: cursor ?? "" },
 		}).catch((e: unknown) => {
 			throw new Error("Failed to fetch reposts.", { cause: e });
 		});
@@ -299,10 +296,8 @@ export class Post extends PostReference {
 	 * @param cursor The cursor to begin fetching from.
 	 */
 	async getQuotes(cursor?: string): Promise<{ cursor: string | undefined; quotes: Array<Post> }> {
-		const response = await this.bot.agent.app.bsky.feed.getQuotes({
-			uri: this.uri,
-			limit: 100,
-			cursor: cursor ?? "",
+		const response = await this.bot.agent.get("app.bsky.feed.getQuotes", {
+			params: { uri: this.uri, limit: 100, cursor: cursor ?? "" },
 		}).catch((e: unknown) => {
 			throw new Error("Failed to fetch quotes.", { cause: e });
 		});
@@ -315,8 +310,8 @@ export class Post extends PostReference {
 	/**
 	 * Constructs an instance from a PostView.
 	 */
-	static fromView(view: AppBskyFeedDefs.PostView, bot: Bot): Post {
-		if ((!AppBskyFeedPost.isRecord(view.record))) throw new Error("Invalid post view record");
+	static fromView(view: Brand.Omit<AppBskyFeedDefs.PostView>, bot: Bot): Post {
+		if (!is("app.bsky.feed.post", view.record)) throw new Error("Invalid post view record");
 		const text = view.record.text;
 		const post = new Post({
 			text,
@@ -351,15 +346,17 @@ export class Post extends PostReference {
 	 * Constructs an instance from a ThreadViewPost.
 	 */
 	static fromThreadView(view: AppBskyFeedDefs.ThreadViewPost, bot: Bot): Post {
-		if (!AppBskyFeedPost.isRecord(view.post.record)) {
+		if (!is("app.bsky.feed.post", view.post.record)) {
 			throw new Error("Invalid post view record");
 		}
 
-		const parent = AppBskyFeedDefs.isThreadViewPost(view.parent)
+		const parent = view.parent?.$type === "app.bsky.feed.defs#threadViewPost"
 			? Post.fromThreadView(view.parent, bot)
 			: undefined;
 		const children = view.replies?.map((reply) =>
-			AppBskyFeedDefs.isThreadViewPost(reply) ? Post.fromThreadView(reply, bot) : undefined
+			reply.$type === "app.bsky.feed.defs#threadViewPost"
+				? Post.fromThreadView(reply, bot)
+				: undefined
 		)?.filter((reply): reply is Post => reply !== undefined);
 
 		return new Post({ ...Post.fromView(view.post, bot), parent, children }, bot);

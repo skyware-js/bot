@@ -1,4 +1,4 @@
-import type { AppBskyEmbedExternal } from "@atproto/api";
+import type { AppBskyEmbedExternal, At } from "@atcute/client/lexicons";
 import { PostEmbed } from "./PostEmbed.js";
 
 /**
@@ -17,7 +17,7 @@ export interface ExternalEmbedData {
  */
 export class ExternalEmbed extends PostEmbed {
 	/** The URI of the external content. */
-	uri: string;
+	uri: At.Uri;
 
 	/** The title of the embed. */
 	title: string;

@@ -1,4 +1,4 @@
-import type { AppBskyEmbedImages } from "@atproto/api";
+import type { AppBskyEmbedImages } from "@atcute/client/lexicons";
 import { EmbedImage } from "./EmbedImage.js";
 import { PostEmbed } from "./PostEmbed.js";
 
@@ -31,7 +31,10 @@ export class ImagesEmbed extends PostEmbed {
 			images.push(
 				new EmbedImage({
 					...imagesView.images[i],
-					cid: imagesRecord.images[i].image.ref.toString(),
+					cid: "cid" in imagesRecord.images[i].image
+						// @ts-expect-error — legacy blob format
+						? imagesRecord.images[i].image.cid
+						: imagesRecord.images[i].image.ref,
 					mimeType: imagesRecord.images[i].image.mimeType,
 					size: imagesRecord.images[i].image.size,
 				}),

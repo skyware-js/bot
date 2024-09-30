@@ -37,6 +37,7 @@ import type { PostPayload } from "../struct/post/PostPayload.js";
 import { PostReference } from "../struct/post/PostReference.js";
 import { type IncomingChatPreference, Profile } from "../struct/Profile.js";
 import { StarterPack } from "../struct/StarterPack.js";
+import { asDid } from "../util/lexicon.js";
 import { parseAtUri } from "../util/parseAtUri.js";
 import { BotChatEmitter } from "./BotChatEmitter.js";
 import { BotEventEmitter, type BotEventEmitterOptions, EventStrategy } from "./BotEventEmitter.js";
@@ -1117,7 +1118,7 @@ export class Bot extends EventEmitter {
 	async follow(did: string): Promise<StrongRef> {
 		if (!this.hasSession) throw new Error(NO_SESSION_ERROR);
 
-		return this.createRecord("app.bsky.graph.follow", { subject: did as At.DID }).catch((e) => {
+		return this.createRecord("app.bsky.graph.follow", { subject: asDid(did) }).catch((e) => {
 			throw new Error(`Failed to follow user ${did}.`, { cause: e });
 		});
 	}
@@ -1178,7 +1179,7 @@ export class Bot extends EventEmitter {
 	 */
 	async block(did: string): Promise<StrongRef> {
 		if (!this.hasSession) throw new Error(NO_SESSION_ERROR);
-		return this.createRecord("app.bsky.graph.block", { subject: did as At.DID }).catch((e) => {
+		return this.createRecord("app.bsky.graph.block", { subject: asDid(did) }).catch((e) => {
 			throw new Error(`Failed to block user ${did}.`, { cause: e });
 		});
 	}
@@ -1388,7 +1389,7 @@ export class Bot extends EventEmitter {
 			);
 		}
 		const subject: ToolsOzoneModerationEmitEvent.Input["subject"] = "did" in reference
-			? { $type: "com.atproto.admin.defs#repoRef", did: reference.did as At.DID }
+			? { $type: "com.atproto.admin.defs#repoRef", did: asDid(reference.did) }
 			: { $type: "com.atproto.repo.strongRef", uri: reference.uri, cid: reference.cid };
 		const response = await this.agent.withProxy("atproto_labeler", this.profile.did).call(
 			"tools.ozone.moderation.emitEvent",
@@ -1411,7 +1412,7 @@ export class Bot extends EventEmitter {
 	 * Subscribe to a labeler while this Bot instance exists.
 	 * @param did The labeler's DID.
 	 */
-	addLabeler(did: string): Promise<void> {
+	addLabeler(did: string): void {
 		this.agent.labelers.add(did);
 	}
 
@@ -1419,7 +1420,7 @@ export class Bot extends EventEmitter {
 	 * Unsubscribe the current Bot instance from a labeler.
 	 * @param did The labeler's DID.
 	 */
-	removeLabeler(did: string): Promise<void> {
+	removeLabeler(did: string): void {
 		this.agent.labelers.delete(did);
 	}
 

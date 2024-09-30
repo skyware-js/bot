@@ -1,4 +1,4 @@
-import type { AppBskyEmbedDefs, AppBskyEmbedVideo } from "@atproto/api";
+import type { AppBskyEmbedDefs, AppBskyEmbedVideo, At } from "@atcute/client/lexicons";
 import { PostEmbed } from "./PostEmbed.js";
 
 /**
@@ -19,7 +19,7 @@ export interface VideoEmbedData {
  */
 export class VideoEmbed extends PostEmbed {
 	/** The video's CID. */
-	cid: string;
+	cid: At.CID;
 
 	/** A link to the [master playlist file](https://jazco.dev/2024/07/05/hls#master-playlists) for the video. */
 	playlist: string;

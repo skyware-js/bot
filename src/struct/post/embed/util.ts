@@ -1,12 +1,14 @@
-import {
+import type {
 	AppBskyEmbedExternal,
 	AppBskyEmbedImages,
 	AppBskyEmbedRecord,
 	AppBskyEmbedRecordWithMedia,
 	AppBskyEmbedVideo,
-	type BlobRef,
-} from "@atproto/api";
+	At,
+	Brand,
+} from "@atcute/client/lexicons";
 import type { Bot } from "../../../bot/Bot.js";
+import { is } from "../../../util/lexicon.js";
 import type { FeedGenerator } from "../../FeedGenerator.js";
 import type { List } from "../../List.js";
 import type { StarterPack } from "../../StarterPack.js";
@@ -23,19 +25,21 @@ import { VideoEmbed } from "./VideoEmbed.js";
  */
 export interface PostEmbedFromViewOptions {
 	/** The embed view. */
-	view:
+	view: Brand.Union<
 		| AppBskyEmbedImages.View
 		| AppBskyEmbedVideo.View
 		| AppBskyEmbedExternal.View
 		| AppBskyEmbedRecord.View
-		| AppBskyEmbedRecordWithMedia.View;
+		| AppBskyEmbedRecordWithMedia.View
+	>;
 	/** The embed record. */
-	record?:
+	record?: Brand.Union<
 		| AppBskyEmbedImages.Main
 		| AppBskyEmbedVideo.Main
 		| AppBskyEmbedExternal.Main
 		| AppBskyEmbedRecord.Main
-		| AppBskyEmbedRecordWithMedia.Main;
+		| AppBskyEmbedRecordWithMedia.Main
+	>;
 	/** The active Bot instance (needed to create Post instance for RecordEmbed and RecordWithMediaEmbed). */
 	bot?: Bot;
 }
@@ -50,23 +54,23 @@ export type EmbeddableRecord = Post | List | FeedGenerator | StarterPack;
  * @param options The options for constructing the embed.
  */
 export function postEmbedFromView({ view, record, bot }: PostEmbedFromViewOptions): PostEmbed {
-	if (AppBskyEmbedImages.isView(view)) {
-		if (!record || !AppBskyEmbedImages.isMain(record)) {
+	if (is("app.bsky.embed.images#view", view)) {
+		if (!record || !is("app.bsky.embed.images", record)) {
 			throw new Error("Cannot construct ImagesEmbed from view without valid embed record");
 		}
 		return ImagesEmbed.fromView(view, record);
-	} else if (AppBskyEmbedVideo.isView(view)) {
-		if (!record || !AppBskyEmbedVideo.isMain(record)) {
+	} else if (is("app.bsky.embed.video#view", view)) {
+		if (!record || !is("app.bsky.embed.video", record)) {
 			throw new Error("Cannot construct VideoEmbed from view without valid embed record");
 		}
 		return VideoEmbed.fromView(view, record);
-	} else if (AppBskyEmbedExternal.isView(view)) {
+	} else if (is("app.bsky.embed.external#view", view)) {
 		return ExternalEmbed.fromView(view);
-	} else if (AppBskyEmbedRecord.isView(view)) {
+	} else if (is("app.bsky.embed.record#view", view)) {
 		if (!bot) throw new Error("Cannot construct RecordEmbed without bot instance");
 		return RecordEmbed.fromView(view, bot);
-	} else if (AppBskyEmbedRecordWithMedia.isView(view)) {
-		if (!record || !AppBskyEmbedRecordWithMedia.isMain(record)) {
+	} else if (is("app.bsky.embed.recordWithMedia#view", view)) {
+		if (!record || !is("app.bsky.embed.recordWithMedia", record)) {
 			throw new Error(
 				"Cannot construct RecordWithMediaEmbed from view without valid embed record",
 			);
@@ -91,11 +95,11 @@ export function isEmbedMainRecord(
 	| AppBskyEmbedRecord.Main
 	| AppBskyEmbedRecordWithMedia.Main
 {
-	return (AppBskyEmbedImages.isMain(embed)
-		|| AppBskyEmbedVideo.isMain(embed)
-		|| AppBskyEmbedExternal.isMain(embed)
-		|| AppBskyEmbedRecord.isMain(embed)
-		|| AppBskyEmbedRecordWithMedia.isMain(embed));
+	return is("app.bsky.embed.images", embed)
+		|| is("app.bsky.embed.video", embed)
+		|| is("app.bsky.embed.external", embed)
+		|| is("app.bsky.embed.record", embed)
+		|| is("app.bsky.embed.recordWithMedia", embed);
 }
 
 /**
@@ -111,11 +115,11 @@ export function isEmbedView(
 	| AppBskyEmbedRecord.View
 	| AppBskyEmbedRecordWithMedia.View
 {
-	return (AppBskyEmbedImages.isView(view)
-		|| AppBskyEmbedVideo.isView(view)
-		|| AppBskyEmbedExternal.isView(view)
-		|| AppBskyEmbedRecord.isView(view)
-		|| AppBskyEmbedRecordWithMedia.isView(view));
+	return is("app.bsky.embed.images#view", view)
+		|| is("app.bsky.embed.video#view", view)
+		|| is("app.bsky.embed.external#view", view)
+		|| is("app.bsky.embed.record#view", view)
+		|| is("app.bsky.embed.recordWithMedia#view", view);
 }
 
 export async function fetchMediaForBlob(
@@ -153,14 +157,13 @@ export async function fetchExternalEmbedData(
 
 	const { title, description } = extractedEmbedData;
 
-	let thumb: BlobRef | undefined;
+	let thumb: At.Blob | undefined;
 	if ("image" in extractedEmbedData && typeof extractedEmbedData.image === "string") {
-		const { type, data: image } = await fetchMediaForBlob(extractedEmbedData.image, "image/")
-			?? {};
+		const { data } = await fetchMediaForBlob(extractedEmbedData.image, "image/") ?? {};
 
-		if (image && type) {
-			const blob = await this.agent.com.atproto.repo.uploadBlob(image, { encoding: type });
-			if (blob.success) {
+		if (data?.length) {
+			const blob = await this.agent.call("com.atproto.repo.uploadBlob", { data });
+			if (blob.data.blob.size) {
 				thumb = blob.data.blob;
 			}
 		}

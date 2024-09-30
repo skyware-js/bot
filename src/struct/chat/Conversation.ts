@@ -1,4 +1,4 @@
-import { type ChatBskyConvoDefs } from "@atproto/api";
+import type { ChatBskyConvoDefs } from "@atcute/client/lexicons";
 import type { Bot, BotSendMessageOptions } from "../../bot/Bot.js";
 import { Profile } from "../Profile.js";
 import { type ChatMessage, type ChatMessagePayload } from "./ChatMessage.js";

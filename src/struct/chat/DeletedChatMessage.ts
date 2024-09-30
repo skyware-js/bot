@@ -1,5 +1,6 @@
-import { type ChatBskyConvoDefs } from "@atproto/api";
+import type { At, ChatBskyConvoDefs } from "@atcute/client/lexicons";
 import type { Bot } from "../../bot/Bot.js";
+import { asDid } from "../../util/lexicon.js";
 import type { Profile } from "../Profile.js";
 import type { Conversation } from "./Conversation.js";
 
@@ -25,7 +26,7 @@ export class DeletedChatMessage {
 	conversationId?: string;
 
 	/** The DID of the message's sender. */
-	senderDid: string;
+	senderDid: At.DID;
 
 	/** When the message was sent. */
 	sentAt: Date;
@@ -46,7 +47,7 @@ export class DeletedChatMessage {
 	) {
 		this.id = id;
 		if (conversationId) this.conversationId = conversationId;
-		this.senderDid = sender.did;
+		this.senderDid = asDid(sender.did);
 		this.sentAt = sentAt;
 	}
 

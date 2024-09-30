@@ -1,4 +1,4 @@
-import type { AppBskyEmbedDefs } from "@atproto/api";
+import type { AppBskyEmbedDefs, At } from "@atcute/client/lexicons";
 
 /**
  * Data used to construct an EmbedImage class.
@@ -23,7 +23,7 @@ export interface ImageData {
  */
 export class EmbedImage {
 	/** The image's CID. */
-	cid: string;
+	cid: At.CID;
 
 	/** The image's alt text. */
 	alt: string;

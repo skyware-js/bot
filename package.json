@@ -22,6 +22,7 @@
 		"prepublishOnly": "pnpm fmt && pnpm lint && pnpm rm-ts-in-deps && pnpm build"
 	},
 	"dependencies": {
+		"@atcute/bluesky-richtext-builder": "^1.0.1",
 		"@atcute/client": "^2.0.1",
 		"quick-lru": "^7.0.0",
 		"rate-limit-threshold": "^0.1.5"

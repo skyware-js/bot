@@ -1,10 +1,10 @@
+import type RichText from "@atcute/bluesky-richtext-builder";
 import type {
 	AppBskyEmbedVideo,
 	AppBskyRichtextFacet,
 	ComAtprotoLabelDefs,
 } from "@atcute/client/lexicons";
 import type { StrongRef } from "../../bot/Bot.js";
-import type { RichText } from "../../richtext/RichText.js";
 import type { List } from "../List.js";
 import type { Facet } from "./Facet.js";
 

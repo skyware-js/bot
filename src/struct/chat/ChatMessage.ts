@@ -1,14 +1,14 @@
+import type RichText from "@atcute/bluesky-richtext-builder";
 import type { AppBskyRichtextFacet, ChatBskyConvoDefs } from "@atcute/client/lexicons";
 import type { Bot, StrongRef } from "../../bot/Bot.js";
-import type { RichText } from "../../richtext/RichText.js";
 import { Facet } from "../post/Facet.js";
-import { DeletedChatMessage, type DeletedChatMessageData } from "./DeletedChatMessage.js";
+import { BaseChatMessage, type BaseChatMessageData } from "./BaseChatMessage.js";
 
 /**
  * Data used to construct a ChatMessage class.
  * @see ChatMessage
  */
-export interface ChatMessageData extends DeletedChatMessageData {
+export interface ChatMessageData extends BaseChatMessageData {
 	text: string;
 	facets?: Array<Facet> | undefined;
 	embed?: StrongRef | undefined;
@@ -17,7 +17,7 @@ export interface ChatMessageData extends DeletedChatMessageData {
 /**
  * Represents a message in a chat conversation.
  */
-export class ChatMessage extends DeletedChatMessage {
+export class ChatMessage extends BaseChatMessage {
 	/** The message's text. */
 	text: string;
 
@@ -41,7 +41,7 @@ export class ChatMessage extends DeletedChatMessage {
 	/**
 	 * Constructs an instance from a MessageView.
 	 */
-	static override fromView(
+	static fromView(
 		view: ChatBskyConvoDefs.MessageView,
 		bot: Bot,
 		conversationId?: string,

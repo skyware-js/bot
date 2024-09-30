@@ -31,7 +31,7 @@ export { RateLimitedAgent } from "./bot/RateLimitedAgent.js";
 export { type CacheOptions } from "./bot/cache.js";
 
 export { facetAwareSegment } from "./richtext/facetAwareSegment.js";
-export { graphemeLength, RichText } from "./richtext/RichText.js";
+export { graphemeLength } from "./richtext/graphemeLength.js";
 
 export {
 	FeedGenerator,
@@ -48,6 +48,7 @@ export {
 } from "./struct/List.js";
 export { IncomingChatPreference, Profile, type ProfileData } from "./struct/Profile.js";
 
+export { BaseChatMessage, type BaseChatMessageData } from "./struct/chat/BaseChatMessage.js";
 export {
 	ChatMessage,
 	type ChatMessageData,
@@ -104,3 +105,5 @@ export {
 	type PostEmbedFromViewOptions,
 } from "./struct/post/embed/util.js";
 export { VideoEmbed, type VideoEmbedData } from "./struct/post/embed/VideoEmbed.js";
+
+export { default as RichText } from "@atcute/bluesky-richtext-builder";

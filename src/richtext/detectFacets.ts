@@ -17,7 +17,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-import type { AppBskyRichtextFacet } from "@atproto/api";
+import type { AppBskyRichtextFacet } from "@atcute/client/lexicons";
+import type { Bot } from "../bot/Bot.js";
+import { asDid } from "../util/lexicon.js";
 
 const MENTION_REGEX = /(^|\s|\()(@)([a-zA-Z0-9.-]+)(\b)/g;
 const URL_REGEX = /(^|\s|\()((https?:\/\/[\S]+)|((?<domain>[a-z][a-z0-9]*(\.[a-z0-9]+)+)[\S]*))/gim;
@@ -46,7 +48,9 @@ export const utf8IndexToUtf16Index = (text: string, i: number) => {
  * JS strings are encoded as UTF-16; `utf16IndexToUtf8Index` is used to get UTF-8 byte indices of facets within text.
  * @param text Text to detect facets in.
  */
-export function detectFacets(text: string): Array<AppBskyRichtextFacet.Main> | undefined {
+export function detectFacetsWithoutResolution(
+	text: string,
+): Array<AppBskyRichtextFacet.Main> | undefined {
 	let match;
 	const facets: Array<AppBskyRichtextFacet.Main> = [];
 	{
@@ -64,7 +68,7 @@ export function detectFacets(text: string): Array<AppBskyRichtextFacet.Main> | u
 				},
 				features: [{
 					$type: "app.bsky.richtext.facet#mention",
-					did: mention, // must be resolved afterwards
+					did: mention as never, // must be resolved afterwards
 				}],
 			});
 		}
@@ -128,4 +132,30 @@ export function detectFacets(text: string): Array<AppBskyRichtextFacet.Main> | u
 		re.lastIndex = 0;
 	}
 	return facets.length > 0 ? facets : undefined;
+}
+
+/**
+ * Returns a RichText instance with all facets (mentions, links, tags, etc) resolved.
+ * @param text The text to detect facets in.
+ * @param bot Used to resolve mentions to DIDs.
+ */
+export async function detectFacetsWithResolution(text: string, bot: Bot) {
+	const facets = detectFacetsWithoutResolution(text) ?? [];
+	for (const facet of facets) {
+		for (const feature of facet.features) {
+			if (feature.$type === "app.bsky.richtext.facet#mention") {
+				const did = await bot.resolveHandle(feature.did).catch((_: unknown) => undefined);
+				if (!did) {
+					// Remove facet if mention could not be resolved
+					facet.features.splice(facet.features.indexOf(feature), 1);
+					if (facet.features.length === 0) {
+						facets.splice(facets.indexOf(facet), 1);
+					}
+				} else {
+					feature.did = asDid(did);
+				}
+			}
+		}
+	}
+	return facets;
 }

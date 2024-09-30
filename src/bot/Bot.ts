@@ -18,12 +18,14 @@ import {
 	type ToolsOzoneModerationEmitEvent,
 } from "@atcute/client/lexicons";
 import "@atcute/ozone/lexicons";
+import RichText from "@atcute/bluesky-richtext-builder";
 import { type AtpSessionData, CredentialManager, type XRPC } from "@atcute/client";
 import { EventEmitter } from "node:events";
 import type QuickLRU from "quick-lru";
 import { RateLimitThreshold } from "rate-limit-threshold";
+import { detectFacetsWithResolution } from "../richtext/detectFacets.js";
 import { facetAwareSegment } from "../richtext/facetAwareSegment.js";
-import { graphemeLength, RichText } from "../richtext/RichText.js";
+import { graphemeLength } from "../richtext/graphemeLength.js";
 import { ChatMessage, type ChatMessagePayload } from "../struct/chat/ChatMessage.js";
 import { Conversation } from "../struct/chat/Conversation.js";
 import { DeletedChatMessage } from "../struct/chat/DeletedChatMessage.js";
@@ -759,7 +761,7 @@ export class Bot extends EventEmitter {
 			({ text, facets } = payload.text.build());
 		} else if (options.resolveFacets) {
 			text = payload.text;
-			facets = await RichText.detectFacets(text, this);
+			facets = await detectFacetsWithResolution(text, this);
 		} else {
 			text = payload.text;
 		}
@@ -1232,7 +1234,7 @@ export class Bot extends EventEmitter {
 			({ text, facets } = payload.text.build());
 		} else if (options.resolveFacets) {
 			text = payload.text;
-			facets = await RichText.detectFacets(text, this);
+			facets = await detectFacetsWithResolution(text, this);
 		} else {
 			text = payload.text;
 		}
@@ -1281,7 +1283,7 @@ export class Bot extends EventEmitter {
 				({ text, facets } = message.text.build());
 			} else if (options.resolveFacets) {
 				text = message.text;
-				facets = await RichText.detectFacets(text, this);
+				facets = await detectFacetsWithResolution(text, this);
 			} else {
 				text = message.text;
 			}

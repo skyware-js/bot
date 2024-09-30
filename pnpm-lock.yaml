@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@atcute/bluesky-richtext-builder':
+        specifier: ^1.0.1
+        version: 1.0.1(@atcute/bluesky@1.0.6(@atcute/client@2.0.1))(@atcute/client@2.0.1)
       '@atcute/client':
         specifier: ^2.0.1
         version: 2.0.1
@@ -67,6 +70,12 @@ packages:
   '@aashutoshrathi/word-wrap@1.2.6':
     resolution: {integrity: sha512-1Yjs2SvM8TflER/OD3cOjhWWOZb58A2t7wpE2S9XfBYTiIl+XFhQG2bjy4Pu1I+EAlCNUzRDYDdFwFYUKvXcIA==}
     engines: {node: '>=0.10.0'}
+
+  '@atcute/bluesky-richtext-builder@1.0.1':
+    resolution: {integrity: sha512-msyKHZa47id7Oe2zHpgPSuL+l9vLQXmKfi6uyMOS5yw6nLpNd5Tdb96wcgwscMmyH8UR4EoM+2oYLvyH89DcEQ==}
+    peerDependencies:
+      '@atcute/bluesky': ^1.0.0
+      '@atcute/client': ^1.0.0 || ^2.0.0
 
   '@atcute/bluesky@1.0.6':
     resolution: {integrity: sha512-RVhFwleInQYj5znVFRRL7Buun3PTTWuC1T0dWlEamkuDrMlmnXZ4LpzERMRyBnvMpFWDJGE2wJfKYrHNAWmY+g==}
@@ -1595,6 +1604,11 @@ packages:
 snapshots:
 
   '@aashutoshrathi/word-wrap@1.2.6': {}
+
+  '@atcute/bluesky-richtext-builder@1.0.1(@atcute/bluesky@1.0.6(@atcute/client@2.0.1))(@atcute/client@2.0.1)':
+    dependencies:
+      '@atcute/bluesky': 1.0.6(@atcute/client@2.0.1)
+      '@atcute/client': 2.0.1
 
   '@atcute/bluesky@1.0.6(@atcute/client@2.0.1)':
     dependencies:

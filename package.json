@@ -42,8 +42,8 @@
 		"typescript": "^5.4.2"
 	},
 	"optionalDependencies": {
-		"@skyware/firehose": "^0.1.3",
-		"@skyware/jetstream": "^0.1.5"
+		"@skyware/firehose": "^0.3.2",
+		"@skyware/jetstream": "^0.1.9"
 	},
 	"files": [
 		"dist"

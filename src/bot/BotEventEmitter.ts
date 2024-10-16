@@ -1,13 +1,4 @@
-import {
-	AppBskyEmbedRecord,
-	AppBskyEmbedRecordWithMedia,
-	AppBskyFeedLike,
-	AppBskyFeedPost,
-	AppBskyFeedRepost,
-	AppBskyGraphFollow,
-	type AppBskyNotificationListNotifications,
-	AtUri,
-} from "@atproto/api";
+import type { AppBskyNotificationListNotifications } from "@atcute/client/lexicons";
 import type { Firehose, FirehoseOptions } from "@skyware/firehose";
 import type { Jetstream, JetstreamOptions } from "@skyware/jetstream";
 import { EventEmitter } from "node:events";
@@ -16,6 +7,8 @@ import type { FeedGenerator } from "../struct/FeedGenerator.js";
 import type { Labeler } from "../struct/Labeler.js";
 import type { Post } from "../struct/post/Post.js";
 import { Profile } from "../struct/Profile.js";
+import { is } from "../util/lexicon.js";
+import { parseAtUri } from "../util/parseAtUri.js";
 import type { Bot } from "./Bot.js";
 
 /**
@@ -63,14 +56,6 @@ export interface BotEventEmitterOptions {
 	 * @default new Date()
 	 */
 	processFrom?: Date;
-
-	/**
-	 * The Relay ("firehose") to connect to. Only used if `strategy` is {@link EventStrategy.Firehose}.
-	 * @default wss://bsky.network
-	 * @deprecated Use `jetstreamUri` instead. This property, along with {@link firehoseOptions} and {@link EventStrategy.Firehose}, will be removed in a future version.
-	 * @see EventStrategy.Jetstream
-	 */
-	relayUri?: string;
 
 	/**
 	 * Options to pass to the Firehose constructor.
@@ -132,10 +117,7 @@ export class BotEventEmitter extends EventEmitter {
 		this.lastSeen = options.processFrom ?? new Date();
 		if (this.strategy === EventStrategy.Firehose) {
 			import("@skyware/firehose").then(({ Firehose }) => {
-				this.firehose = new Firehose(
-					options.relayUri ?? "wss://bsky.network",
-					options.firehoseOptions,
-				);
+				this.firehose = new Firehose(options.firehoseOptions);
 			}).catch(() => {
 				throw new Error(
 					"Failed to import Firehose event emitter. Make sure you have the @skyware/firehose package installed.",
@@ -188,7 +170,7 @@ export class BotEventEmitter extends EventEmitter {
 				for (const op of message.ops) {
 					if (op.action !== "create") continue;
 					const uri = `at://${message.repo}/${op.path}`;
-					if (AppBskyFeedPost.isRecord(op.record)) {
+					if (is("app.bsky.feed.post", op.record)) {
 						// Direct reply
 						if (
 							op.record.reply?.parent.uri.includes(this.bot.profile.did)
@@ -199,9 +181,10 @@ export class BotEventEmitter extends EventEmitter {
 						}
 
 						// Quote post
-						const isQuote = AppBskyEmbedRecord.isMain(op.record.embed)
+						const isQuote = is("app.bsky.embed.record", op.record.embed)
 							&& op.record.embed.record.uri.includes(this.bot.profile.did);
-						const isQuoteWithMedia = AppBskyEmbedRecordWithMedia.isMain(op.record.embed)
+						const isQuoteWithMedia =
+							is("app.bsky.embed.recordWithMedia", op.record.embed)
 							&& op.record.embed.record.record.uri.includes(this.bot.profile.did);
 
 						if ((isQuote || isQuoteWithMedia) && this.listenerCount("quote") >= 1) {
@@ -213,14 +196,15 @@ export class BotEventEmitter extends EventEmitter {
 						if (
 							op.record.facets?.some((facet) =>
 								facet.features.some((feature) =>
-									feature.did === this.bot.profile.did
+									is("app.bsky.richtext.facet#mention", feature)
+									&& feature.did === this.bot.profile.did
 								)
 							) && this.listenerCount("mention") >= 1
 						) {
 							const post = await this.bot.getPost(uri);
 							this.emit("mention", post);
 						}
-					} else if (AppBskyFeedRepost.isRecord(op.record)) {
+					} else if (is("app.bsky.feed.repost", op.record)) {
 						// Repost
 						if (
 							op.record.subject.uri.includes(this.bot.profile.did)
@@ -230,7 +214,7 @@ export class BotEventEmitter extends EventEmitter {
 							const user = await this.bot.getProfile(message.repo);
 							this.emit("repost", { post, user, uri });
 						}
-					} else if (AppBskyFeedLike.isRecord(op.record)) {
+					} else if (is("app.bsky.feed.like", op.record)) {
 						// Like
 						if (
 							op.record.subject.uri.includes(this.bot.profile.did)
@@ -240,7 +224,7 @@ export class BotEventEmitter extends EventEmitter {
 							const user = await this.bot.getProfile(message.repo);
 							this.emit("like", { subject: post, user, uri });
 						}
-					} else if (AppBskyGraphFollow.isRecord(op.record)) {
+					} else if (is("app.bsky.graph.follow", op.record)) {
 						// Follow
 						if (
 							op.record.subject === this.bot.profile.did
@@ -272,19 +256,19 @@ export class BotEventEmitter extends EventEmitter {
 				if (record.reply?.parent?.uri?.includes(`at://${this.bot.profile.did}`)) {
 					this.emit("reply", await this.bot.getPost(uri));
 				} else if (
-					record.embed?.$type === "app.bsky.embed.record"
+					is("app.bsky.embed.record", record.embed)
 					&& record.embed.record.uri.includes(`at://${this.bot.profile.did}`)
 				) {
 					this.emit("quote", await this.bot.getPost(uri));
 				} else if (
-					record.embed?.$type === "app.bsky.embed.recordWithMedia"
+					is("app.bsky.embed.recordWithMedia", record.embed)
 					&& record.embed.record.record.uri.includes(`at://${this.bot.profile.did}`)
 				) {
 					this.emit("quote", await this.bot.getPost(uri));
 				} else if (
 					record.facets?.some((facet) =>
 						facet.features.some((feature) =>
-							feature.$type === "app.bsky.richtext.facet#mention"
+							is("app.bsky.richtext.facet#mention", feature)
 							&& feature.did === this.bot.profile.did
 						)
 					)
@@ -313,7 +297,7 @@ export class BotEventEmitter extends EventEmitter {
 			async ({ commit: { record, rkey }, did }) => {
 				const uri = `at://${did}/app.bsky.feed.like/${rkey}`;
 				if (record.subject?.uri?.includes(`at://${this.bot.profile.did}`)) {
-					const { collection, host } = new AtUri(record.subject.uri);
+					const { collection, host } = parseAtUri(record.subject.uri);
 					let subject: Post | FeedGenerator | Labeler | undefined;
 					switch (collection) {
 						case "app.bsky.feed.post":
@@ -371,16 +355,14 @@ export class BotEventEmitter extends EventEmitter {
 
 	/** Poll the notifications endpoint. */
 	async poll() {
-		const response = await this.bot.agent.app.bsky.notification.listNotifications().catch(
-			(error) => {
-				this.emit("error", error);
-				return { success: false } as const;
-			},
-		);
-		if (!response.success) {
-			this.emit("error", response);
-			return;
-		}
+		const response = await this.bot.agent.get("app.bsky.notification.listNotifications", {
+			params: { limit: 100 },
+		}).catch((error) => {
+			this.emit("error", error);
+			return null;
+		});
+
+		if (!response) return;
 
 		const { notifications } = response.data;
 
@@ -400,14 +382,19 @@ export class BotEventEmitter extends EventEmitter {
 		for (const notification of newNotifications) {
 			switch (notification.reason) {
 				case "reply": {
-					if (!AppBskyFeedPost.isRecord(notification.record)) {
+					if (!is("app.bsky.feed.post", notification.record)) {
 						emitInvalidRecordError(notification);
 						break;
 					}
 					if (notification.record.reply) {
-						const replyParentUri = new AtUri(notification.record.reply.parent.uri);
-						if (replyParentUri && replyParentUri.hostname !== this.bot.profile.did) {
-							// Ignore replies that aren't direct replies to the bot
+						try {
+							const { host } = parseAtUri(notification.record.reply.parent.uri);
+							if (host !== this.bot.profile.did) {
+								// Ignore replies that aren't direct replies to the bot
+								break;
+							}
+						} catch (e) {
+							// Ignore invalid AT URI
 							break;
 						}
 					}
@@ -416,7 +403,7 @@ export class BotEventEmitter extends EventEmitter {
 					break;
 				}
 				case "quote": {
-					if (!AppBskyFeedPost.isRecord(notification.record)) {
+					if (!is("app.bsky.feed.post", notification.record)) {
 						emitInvalidRecordError(notification);
 						break;
 					}
@@ -425,7 +412,7 @@ export class BotEventEmitter extends EventEmitter {
 					break;
 				}
 				case "mention": {
-					if (!AppBskyFeedPost.isRecord(notification.record)) {
+					if (!is("app.bsky.feed.post", notification.record)) {
 						emitInvalidRecordError(notification);
 						break;
 					}
@@ -435,7 +422,7 @@ export class BotEventEmitter extends EventEmitter {
 				}
 				case "repost": {
 					if (
-						!AppBskyFeedRepost.isRecord(notification.record)
+						!is("app.bsky.feed.repost", notification.record)
 						|| !notification.reasonSubject
 					) {
 						emitInvalidRecordError(notification);
@@ -448,7 +435,7 @@ export class BotEventEmitter extends EventEmitter {
 				}
 				case "like": {
 					if (
-						!AppBskyFeedLike.isRecord(notification.record)
+						!is("app.bsky.feed.like", notification.record)
 						|| !notification.reasonSubject
 					) {
 						emitInvalidRecordError(notification);
@@ -458,8 +445,8 @@ export class BotEventEmitter extends EventEmitter {
 					const user = Profile.fromView(notification.author, this.bot);
 
 					let subject: Post | FeedGenerator | Labeler | undefined;
-					const subjectUri = new AtUri(notification.reasonSubject);
-					switch (subjectUri.collection) {
+					const { collection, host } = parseAtUri(notification.reasonSubject);
+					switch (collection) {
 						case "app.bsky.feed.post":
 							subject = await this.bot.getPost(notification.reasonSubject);
 							break;
@@ -467,7 +454,7 @@ export class BotEventEmitter extends EventEmitter {
 							subject = await this.bot.getFeedGenerator(notification.reasonSubject);
 							break;
 						case "app.bsky.labeler.service":
-							subject = await this.bot.getLabeler(subjectUri.host);
+							subject = await this.bot.getLabeler(host);
 							break;
 					}
 

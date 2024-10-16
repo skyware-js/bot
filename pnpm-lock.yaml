@@ -8,12 +8,18 @@ importers:
 
   .:
     dependencies:
+      '@atcute/bluesky':
+        specifier: ^1.0.7
+        version: 1.0.7(@atcute/client@2.0.3)
       '@atcute/bluesky-richtext-builder':
         specifier: ^1.0.1
-        version: 1.0.1(@atcute/bluesky@1.0.6(@atcute/client@2.0.1))(@atcute/client@2.0.1)
+        version: 1.0.1(@atcute/bluesky@1.0.7(@atcute/client@2.0.3))(@atcute/client@2.0.3)
       '@atcute/client':
-        specifier: ^2.0.1
-        version: 2.0.1
+        specifier: ^2.0.3
+        version: 2.0.3
+      '@atcute/ozone':
+        specifier: ^1.0.5
+        version: 1.0.5(@atcute/bluesky@1.0.7(@atcute/client@2.0.3))(@atcute/client@2.0.3)
       quick-lru:
         specifier: ^7.0.0
         version: 7.0.0
@@ -26,14 +32,8 @@ importers:
         version: 0.3.2
       '@skyware/jetstream':
         specifier: ^0.1.9
-        version: 0.1.9(@atcute/client@2.0.1)
+        version: 0.1.9(@atcute/client@2.0.3)
     devDependencies:
-      '@atcute/bluesky':
-        specifier: ^1.0.6
-        version: 1.0.6(@atcute/client@2.0.1)
-      '@atcute/ozone':
-        specifier: ^1.0.4
-        version: 1.0.4(@atcute/bluesky@1.0.6(@atcute/client@2.0.1))(@atcute/client@2.0.1)
       '@types/node':
         specifier: ^20.11.26
         version: 20.11.26
@@ -80,8 +80,8 @@ packages:
       '@atcute/bluesky': ^1.0.0
       '@atcute/client': ^1.0.0 || ^2.0.0
 
-  '@atcute/bluesky@1.0.6':
-    resolution: {integrity: sha512-RVhFwleInQYj5znVFRRL7Buun3PTTWuC1T0dWlEamkuDrMlmnXZ4LpzERMRyBnvMpFWDJGE2wJfKYrHNAWmY+g==}
+  '@atcute/bluesky@1.0.7':
+    resolution: {integrity: sha512-2jPHzl7WbcqRtcAXanJy4Lp638ujqnoGmPCPmBlmpEDP34D7EVKQqjN/mlvglb5n539dThA9xlSgIS8yOxwzDA==}
     peerDependencies:
       '@atcute/client': ^1.0.0 || ^2.0.0
 
@@ -94,11 +94,11 @@ packages:
   '@atcute/cid@1.0.1':
     resolution: {integrity: sha512-92Cor2ruS7y+/wdFutp2qFDjJj4mTcO7HdZ/BhTQRg/nzWdAnTann5DAmYjD+IWRaXd5SYk4dOZnDt4lsGofzg==}
 
-  '@atcute/client@2.0.1':
-    resolution: {integrity: sha512-M4q0QchcjcPTypgXTKc4MO06eJMno5op14qHAMWhKbxROOnxnhLfjG9rbcNr7nOycQb5THmUIEAwvvabrv1AjA==}
+  '@atcute/client@2.0.3':
+    resolution: {integrity: sha512-j9GryA5l+4F0BTQWa6/1XmsuSPSq+bqNCY3mrHUGD592hMqUZxgpYDLgRWL+719V287AW/56AwvFYlbjlENp7A==}
 
-  '@atcute/ozone@1.0.4':
-    resolution: {integrity: sha512-28fL6EQoKRw4PswQOBNC83TZLqbjAO3oKlwIvinQ8d2qx7BCUUtpq19MZqp7X1bSz2oTanlDqoE+NTdEDpDRYA==}
+  '@atcute/ozone@1.0.5':
+    resolution: {integrity: sha512-53+KoRlvzinv1NUESFOHPPK2kF/CFoQc9um1xH3OPhe29x7RP3PNEBXSc53mnbsAg80dTuh83xqwTrpdJ3o33g==}
     peerDependencies:
       '@atcute/bluesky': ^1.0.0
       '@atcute/client': ^1.0.0 || ^2.0.0
@@ -1227,14 +1227,14 @@ snapshots:
   '@atcute/base32@1.0.0':
     optional: true
 
-  '@atcute/bluesky-richtext-builder@1.0.1(@atcute/bluesky@1.0.6(@atcute/client@2.0.1))(@atcute/client@2.0.1)':
+  '@atcute/bluesky-richtext-builder@1.0.1(@atcute/bluesky@1.0.7(@atcute/client@2.0.3))(@atcute/client@2.0.3)':
     dependencies:
-      '@atcute/bluesky': 1.0.6(@atcute/client@2.0.1)
-      '@atcute/client': 2.0.1
+      '@atcute/bluesky': 1.0.7(@atcute/client@2.0.3)
+      '@atcute/client': 2.0.3
 
-  '@atcute/bluesky@1.0.6(@atcute/client@2.0.1)':
+  '@atcute/bluesky@1.0.7(@atcute/client@2.0.3)':
     dependencies:
-      '@atcute/client': 2.0.1
+      '@atcute/client': 2.0.3
 
   '@atcute/car@1.1.0':
     dependencies:
@@ -1256,12 +1256,12 @@ snapshots:
       '@atcute/varint': 1.0.0
     optional: true
 
-  '@atcute/client@2.0.1': {}
+  '@atcute/client@2.0.3': {}
 
-  '@atcute/ozone@1.0.4(@atcute/bluesky@1.0.6(@atcute/client@2.0.1))(@atcute/client@2.0.1)':
+  '@atcute/ozone@1.0.5(@atcute/bluesky@1.0.7(@atcute/client@2.0.3))(@atcute/client@2.0.3)':
     dependencies:
-      '@atcute/bluesky': 1.0.6(@atcute/client@2.0.1)
-      '@atcute/client': 2.0.1
+      '@atcute/bluesky': 1.0.7(@atcute/client@2.0.3)
+      '@atcute/client': 2.0.3
 
   '@atcute/varint@1.0.0':
     optional: true
@@ -1368,9 +1368,9 @@ snapshots:
       - utf-8-validate
     optional: true
 
-  '@skyware/jetstream@0.1.9(@atcute/client@2.0.1)':
+  '@skyware/jetstream@0.1.9(@atcute/client@2.0.3)':
     dependencies:
-      '@atcute/bluesky': 1.0.6(@atcute/client@2.0.1)
+      '@atcute/bluesky': 1.0.7(@atcute/client@2.0.3)
       partysocket: 1.0.2
     transitivePeerDependencies:
       - '@atcute/client'

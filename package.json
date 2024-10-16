@@ -22,14 +22,14 @@
 		"prepublishOnly": "pnpm fmt && pnpm lint && pnpm rm-ts-in-deps && pnpm build"
 	},
 	"dependencies": {
+		"@atcute/bluesky": "^1.0.7",
 		"@atcute/bluesky-richtext-builder": "^1.0.1",
-		"@atcute/client": "^2.0.1",
+		"@atcute/client": "^2.0.3",
+		"@atcute/ozone": "^1.0.5",
 		"quick-lru": "^7.0.0",
 		"rate-limit-threshold": "^0.1.5"
 	},
 	"devDependencies": {
-		"@atcute/bluesky": "^1.0.6",
-		"@atcute/ozone": "^1.0.4",
 		"@types/node": "^20.11.26",
 		"@typescript-eslint/eslint-plugin": "^6.21.0",
 		"@typescript-eslint/parser": "^6.21.0",

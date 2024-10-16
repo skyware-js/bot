@@ -1,25 +1,26 @@
-import {
-	type AppBskyActorDefs,
-	type AppBskyEmbedExternal,
-	type AppBskyEmbedImages,
-	type AppBskyEmbedRecord,
-	type AppBskyEmbedRecordWithMedia,
-	type AppBskyEmbedVideo,
-	type AppBskyFeedPost,
-	type AppBskyFeedThreadgate,
-	type AppBskyRichtextFacet,
-	type At,
-	type Brand,
-	type ComAtprotoLabelDefs,
-	type ComAtprotoServerCreateSession,
-	type ComAtprotoServerGetSession,
-	type Records,
-	type ToolsOzoneModerationDefs,
-	type ToolsOzoneModerationEmitEvent,
-} from "@atcute/client/lexicons";
-import "@atcute/ozone/lexicons";
 import RichText from "@atcute/bluesky-richtext-builder";
 import { type AtpSessionData, CredentialManager, type XRPC } from "@atcute/client";
+import type {
+	AppBskyActorDefs,
+	AppBskyEmbedExternal,
+	AppBskyEmbedImages,
+	AppBskyEmbedRecord,
+	AppBskyEmbedRecordWithMedia,
+	AppBskyEmbedVideo,
+	AppBskyFeedPost,
+	AppBskyFeedThreadgate,
+	AppBskyRichtextFacet,
+	At,
+	Brand,
+	ComAtprotoLabelDefs,
+	ComAtprotoServerCreateSession,
+	ComAtprotoServerGetSession,
+	Records,
+	ToolsOzoneModerationDefs,
+	ToolsOzoneModerationEmitEvent,
+} from "@atcute/client/lexicons";
+import "@atcute/bluesky/lexicons";
+import "@atcute/ozone/lexicons";
 import { EventEmitter } from "node:events";
 import type QuickLRU from "quick-lru";
 import { RateLimitThreshold } from "rate-limit-threshold";

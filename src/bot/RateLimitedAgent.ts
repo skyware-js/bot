@@ -29,7 +29,7 @@ export class RateLimitedAgent extends XRPC {
 	 */
 	withProxy(type: string, service: `did:${string}`): RateLimitedAgent {
 		const agent = new RateLimitedAgent(
-			{ handler: null!, proxy: { type, service } },
+			{ handler: undefined!, proxy: { type, service } },
 			this.limiter,
 		);
 		agent.handle = this.handle;

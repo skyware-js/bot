@@ -1,3 +1,4 @@
+import type { At } from "@atcute/client/lexicons";
 import type { Bot, BotPostOptions, StrongRef } from "../../bot/Bot.js";
 import type { Post } from "./Post.js";
 import type { PostPayload, ReplyRef } from "./PostPayload.js";
@@ -17,10 +18,10 @@ export interface PostReferenceData {
  */
 export class PostReference implements StrongRef {
 	/** The post's AT URI. */
-	uri: string;
+	uri: At.Uri;
 
 	/** The post's CID. */
-	cid: string;
+	cid: At.CID;
 
 	/** A reference to the post's parent and root post. */
 	replyRef?: ReplyRef;

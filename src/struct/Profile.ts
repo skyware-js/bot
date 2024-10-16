@@ -1,4 +1,9 @@
-import type { AppBskyActorDefs, ComAtprotoLabelDefs } from "@atproto/api";
+import type {
+	AppBskyActorDefs,
+	At,
+	ChatBskyActorDefs,
+	ComAtprotoLabelDefs,
+} from "@atcute/client/lexicons";
 import type {
 	Bot,
 	BotGetUserLikesOptions,
@@ -6,6 +11,7 @@ import type {
 	BotGetUserPostsOptions,
 	BotGetUserStarterPacksOptions,
 } from "../bot/Bot.js";
+import { asDid } from "../util/lexicon.js";
 import type { ChatMessagePayload } from "./chat/ChatMessage.js";
 import type { Conversation } from "./chat/Conversation.js";
 import type { List } from "./List.js";
@@ -75,7 +81,7 @@ export interface ProfileData {
  */
 export class Profile {
 	/** The user's DID. */
-	did: string;
+	did: At.DID;
 
 	/** The user's handle. */
 	handle: string;
@@ -111,13 +117,13 @@ export class Profile {
 	 * The AT URI of the follow relationship between the bot and the user.
 	 * Undefined if the bot is not following the user.
 	 */
-	followUri?: string;
+	followUri?: At.Uri;
 
 	/**
 	 * The AT URI of the follow relationship between the bot and the user.
 	 * Undefined if the user is not following the bot.
 	 */
-	followedByUri?: string;
+	followedByUri?: At.Uri;
 
 	/** Whether the user is muted by the bot. */
 	isMuted?: boolean;
@@ -126,7 +132,7 @@ export class Profile {
 	 * The AT URI of the block relationship between the bot and the user.
 	 * Undefined if the user is not blocking the bot.
 	 */
-	blockUri?: string;
+	blockUri?: At.Uri;
 
 	/** Whether the bot is blocked by the user. */
 	blockedBy?: boolean;
@@ -169,7 +175,7 @@ export class Profile {
 		{ did, handle, displayName, description, avatar, banner, followerCount, followingCount, postsCount, labels, indexedAt, followUri, followedByUri, isMuted, blockUri, isBlockedBy, isLabeler, incomingChatPreference }: ProfileData,
 		protected bot: Bot,
 	) {
-		this.did = did;
+		this.did = asDid(did);
 		this.handle = handle;
 		if (displayName) this.displayName = displayName;
 		if (description) this.description = description;
@@ -336,13 +342,11 @@ export class Profile {
 	 * @param comment An optional comment to attach to the label.
 	 */
 	async labelProfile(labels: Array<string>, comment?: string) {
-		const profileRecordResponse = await this.bot.agent.com.atproto.repo.getRecord({
-			repo: this.did,
-			collection: "app.bsky.actor.profile",
-			rkey: "self",
+		const profileRecordResponse = await this.bot.agent.get("com.atproto.repo.getRecord", {
+			params: { repo: this.did, collection: "app.bsky.actor.profile", rkey: "self" },
 		}).catch(() => null);
 
-		if (!profileRecordResponse?.success || !profileRecordResponse.data.cid) {
+		if (!profileRecordResponse?.data?.cid) {
 			throw new Error(`Could not find profile record for user ${this.did}.`);
 		}
 
@@ -357,13 +361,11 @@ export class Profile {
 	 * @param comment An optional comment to attach.
 	 */
 	async negateProfileLabels(labels: Array<string>, comment?: string) {
-		const profileRecordResponse = await this.bot.agent.com.atproto.repo.getRecord({
-			repo: this.did,
-			collection: "app.bsky.actor.profile",
-			rkey: "self",
+		const profileRecordResponse = await this.bot.agent.get("com.atproto.repo.getRecord", {
+			params: { repo: this.did, collection: "app.bsky.actor.profile", rkey: "self" },
 		}).catch(() => null);
 
-		if (!profileRecordResponse?.success || !profileRecordResponse.data.cid) {
+		if (!profileRecordResponse?.data?.cid) {
 			throw new Error(`Could not find profile record for user ${this.did}.`);
 		}
 
@@ -378,20 +380,20 @@ export class Profile {
 	 * @param bot The active Bot instance.
 	 */
 	static fromView(
-		view: AppBskyActorDefs.ProfileView | AppBskyActorDefs.ProfileViewBasic,
+		view:
+			| ChatBskyActorDefs.ProfileViewBasic
+			| AppBskyActorDefs.ProfileViewDetailed
+			| AppBskyActorDefs.ProfileView
+			| AppBskyActorDefs.ProfileViewBasic,
 		bot: Bot,
 	): Profile {
 		return new Profile({
 			...view,
 			labels: view.labels ?? [],
-			indexedAt: view.indexedAt && typeof view.indexedAt === "string"
-				? new Date(view.indexedAt)
-				: undefined,
-			followerCount: typeof view.followersCount === "number"
-				? view.followersCount
-				: undefined,
-			followingCount: typeof view.followsCount === "number" ? view.followsCount : undefined,
-			postsCount: typeof view.postsCount === "number" ? view.postsCount : undefined,
+			indexedAt: "indexedAt" in view ? new Date(view.indexedAt) : undefined,
+			followerCount: "followersCount" in view ? view.followersCount : undefined,
+			followingCount: "followsCount" in view ? view.followsCount : undefined,
+			postsCount: "postsCount" in view ? view.postsCount : undefined,
 			followUri: view.viewer?.following,
 			followedByUri: view.viewer?.followedBy,
 			isMuted: view.viewer?.muted,

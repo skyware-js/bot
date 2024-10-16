@@ -1,6 +1,10 @@
-import type { AppBskyEmbedVideo, AppBskyRichtextFacet, LabelDefinitionMap } from "@atproto/api";
+import type RichText from "@atcute/bluesky-richtext-builder";
+import type {
+	AppBskyEmbedVideo,
+	AppBskyRichtextFacet,
+	ComAtprotoLabelDefs,
+} from "@atcute/client/lexicons";
 import type { StrongRef } from "../../bot/Bot.js";
-import type { RichText } from "../../richtext/RichText.js";
 import type { List } from "../List.js";
 import type { Facet } from "./Facet.js";
 
@@ -122,8 +126,7 @@ export interface VideoPayload {
 	data: Blob | string;
 }
 
-type KnownLabelValue = keyof LabelDefinitionMap;
-type SelfLabelValue = Exclude<KnownLabelValue, `!${string}` /* imperative labels */>;
+type SelfLabelValue = Exclude<ComAtprotoLabelDefs.LabelValue, `!${string}` /* imperative labels */>;
 
 /**
  * Labels that can be self-applied when creating a post.

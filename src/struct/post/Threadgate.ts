@@ -1,5 +1,6 @@
-import { type AppBskyFeedDefs, AppBskyFeedThreadgate } from "@atproto/api";
+import type { AppBskyFeedDefs, At, Brand } from "@atcute/client/lexicons";
 import type { Bot } from "../../bot/Bot.js";
+import { is } from "../../util/lexicon.js";
 import { List } from "../List.js";
 import type { Post } from "./Post.js";
 
@@ -22,10 +23,10 @@ export interface ThreadgateData {
  */
 export class Threadgate {
 	/** The threadgate's CID. */
-	cid: string;
+	cid: At.CID;
 
 	/** The threadgate's AT URI. */
-	uri: string;
+	uri: At.Uri;
 
 	/** When the threadgate was created. */
 	createdAt: Date;
@@ -73,16 +74,20 @@ export class Threadgate {
 	/**
 	 * Constructs an instance from a ThreadgateView.
 	 */
-	static fromView(view: AppBskyFeedDefs.ThreadgateView, post: Post, bot: Bot): Threadgate {
-		if (!AppBskyFeedThreadgate.isRecord(view.record) || !view.cid || !view.uri) {
+	static fromView(
+		view: Brand.Omit<AppBskyFeedDefs.ThreadgateView>,
+		post: Post,
+		bot: Bot,
+	): Threadgate {
+		if (!is("app.bsky.feed.threadgate", view.record) || !view.cid || !view.uri) {
 			throw new Error("Invalid threadgate view");
 		}
 
 		let allowsFollowing = false, allowsMentioned = false;
 		for (const rule of view.record.allow ?? []) {
-			if (AppBskyFeedThreadgate.isFollowingRule(rule)) {
+			if (rule.$type === "app.bsky.feed.threadgate#followingRule") {
 				allowsFollowing = true;
-			} else if (AppBskyFeedThreadgate.isMentionRule(rule)) {
+			} else if (rule.$type === "app.bsky.feed.threadgate#mentionRule") {
 				allowsMentioned = true;
 			}
 		}

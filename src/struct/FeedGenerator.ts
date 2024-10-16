@@ -1,5 +1,6 @@
-import type { AppBskyFeedDefs } from "@atproto/api";
+import type { AppBskyFeedDefs, At, Brand } from "@atcute/client/lexicons";
 import type { Bot } from "../bot/Bot.js";
+import { asDid } from "../util/lexicon.js";
 import { Facet } from "./post/Facet.js";
 import { Post } from "./post/Post.js";
 import { Profile } from "./Profile.js";
@@ -30,13 +31,13 @@ export class FeedGenerator {
 	displayName: string;
 
 	/** The feed generator's AT URI. */
-	uri: string;
+	uri: At.Uri;
 
 	/** The feed generator's CID. */
-	cid: string;
+	cid: At.CID;
 
 	/** The feed generator's DID. */
-	did: string;
+	did: At.DID;
 
 	/** The feed generator's creator. */
 	creator: Profile;
@@ -54,7 +55,7 @@ export class FeedGenerator {
 	isOnline?: boolean;
 
 	/** The URI of the feed generator's like record, if the viewer has liked the feed generator. */
-	likeUri?: string;
+	likeUri?: At.Uri;
 
 	/** The time the feed generator was indexed by the AppView. */
 	indexedAt: Date;
@@ -72,7 +73,7 @@ export class FeedGenerator {
 		this.displayName = displayName;
 		this.uri = uri;
 		this.cid = cid;
-		this.did = did;
+		this.did = asDid(did);
 		this.creator = creator;
 		if (description) this.description = description;
 		if (descriptionFacets) this.descriptionFacets = descriptionFacets;
@@ -110,10 +111,8 @@ export class FeedGenerator {
 	async getPosts(
 		{ limit = 100, cursor = "" }: FeedGeneratorGetPostsOptions = {},
 	): Promise<{ cursor: string | undefined; posts: Array<Post> }> {
-		const response = await this.bot.agent.app.bsky.feed.getFeed({
-			feed: this.uri,
-			limit,
-			cursor,
+		const response = await this.bot.agent.get("app.bsky.feed.getFeed", {
+			params: { feed: this.uri, limit, cursor },
 		}).catch((e) => {
 			throw new Error("Failed to get feed for generator " + this.uri, { cause: e });
 		});
@@ -146,7 +145,7 @@ export class FeedGenerator {
 	 * @param view The GeneratorView to construct from.
 	 * @param bot The active Bot instance.
 	 */
-	static fromView(view: AppBskyFeedDefs.GeneratorView, bot: Bot): FeedGenerator {
+	static fromView(view: Brand.Omit<AppBskyFeedDefs.GeneratorView>, bot: Bot): FeedGenerator {
 		const { descriptionFacets, ...rest } = view;
 		return new FeedGenerator({
 			...rest,

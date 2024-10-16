@@ -1,5 +1,6 @@
-import type { AppBskyRichtextFacet } from "@atproto/api";
+import type { AppBskyRichtextFacet } from "@atcute/client/lexicons";
 import { utf8IndexToUtf16Index } from "../../richtext/detectFacets.js";
+import { asDid, is } from "../../util/lexicon.js";
 
 /**
  * A facet represents a span of text within a string with special meaning (e.g. mentions, links, tags).
@@ -51,10 +52,14 @@ export class Facet {
 		this.sourceText = text;
 		this.byteIndex = { ...facet.index };
 		this.features = facet.features.map((feature) => {
-			if (typeof feature.did === "string") return new MentionFeature(feature.did);
-			else if (typeof feature.uri === "string") return new LinkFeature(feature.uri);
-			else if (typeof feature.tag === "string") return new TagFeature(feature.tag);
-			else throw new Error("Unknown facet feature type " + feature.$type + ".");
+			if (is("app.bsky.richtext.facet#mention", feature)) {
+				return new MentionFeature(feature.did);
+			} else if (is("app.bsky.richtext.facet#link", feature)) {
+				return new LinkFeature(feature.uri);
+			} else if (is("app.bsky.richtext.facet#tag", feature)) {
+				return new TagFeature(feature.tag);
+				// @ts-expect-error — feature.$type is never
+			} else throw new Error("Unknown facet feature type " + feature.$type + ".");
 		});
 	}
 
@@ -66,7 +71,7 @@ export class Facet {
 			index: { ...this.byteIndex },
 			features: this.features.map((feature) => {
 				if (feature.isMention()) {
-					return { $type: "app.bsky.richtext.facet#mention", did: feature.did };
+					return { $type: "app.bsky.richtext.facet#mention", did: asDid(feature.did) };
 				} else if (feature.isLink()) {
 					return { $type: "app.bsky.richtext.facet#link", uri: feature.uri };
 				} else if (feature.isTag()) {

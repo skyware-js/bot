@@ -1,7 +1,7 @@
-import { ChatBskyConvoDefs } from "@atproto/api";
 import { EventEmitter } from "node:events";
 import { setInterval } from "node:timers/promises";
 import { ChatMessage } from "../struct/chat/ChatMessage.js";
+import { is } from "../util/lexicon.js";
 import type { Bot } from "./Bot.js";
 
 /** Options for the bot chat event emitter. */
@@ -68,30 +68,27 @@ export class BotChatEmitter extends EventEmitter {
 	async poll() {
 		if (!this.bot.chatProxy) return;
 
-		const response = await this.bot.chatProxy.chat.bsky.convo.getLog({
-			cursor: this.cursor ?? "",
+		const response = await this.bot.chatProxy.get("chat.bsky.convo.getLog", {
+			params: { cursor: this.cursor ?? "" },
 		}).catch((error) => {
 			this.emit("error", error);
-			return { success: false } as const;
+			return null;
 		});
-		if (!response.success) {
-			this.emit("error", response);
-			return;
-		}
+
+		if (!response) return;
 
 		const { cursor, logs } = response.data;
 
 		if (cursor) this.cursor = cursor;
 
 		for (const log of logs) {
-			if (ChatBskyConvoDefs.isLogCreateMessage(log)) {
+			if (is("chat.bsky.convo.defs#logCreateMessage", log)) {
 				const message = log.message;
-				if (ChatBskyConvoDefs.isMessageView(message)) {
+				if (is("chat.bsky.convo.defs#messageView", message)) {
 					if (message.sender.did === this.bot.profile.did) continue;
 					this.emit("message", ChatMessage.fromView(message, this.bot, log.convoId));
-				} else if (ChatBskyConvoDefs.isDeletedMessageView(message)) {
-					continue;
-				} else {
+				} else if (is("chat.bsky.convo.defs#deletedMessageView", message)) {}
+				else {
 					this.emit(
 						"error",
 						new Error("Unknown chat message received: " + JSON.stringify(message)),

@@ -1,9 +1,4 @@
-import {
-	AppBskyActorDefs,
-	type AppBskyGraphDefs,
-	type AppBskyRichtextFacet,
-	AtUri,
-} from "@atproto/api";
+import { type AppBskyGraphDefs, type AppBskyRichtextFacet } from "@atcute/client/lexicons";
 import type { Bot } from "../bot/Bot.js";
 import { Post } from "./post/Post.js";
 import { Profile } from "./Profile.js";
@@ -157,18 +152,20 @@ export class List {
 	 * Mute all accounts on the list.
 	 */
 	async mute(): Promise<void> {
-		await this.bot.agent.app.bsky.graph.muteActorList({ list: this.uri }).catch((e) => {
-			throw new Error(`Failed to mute list ${this.uri}`, { cause: e });
-		});
+		await this.bot.agent.call("app.bsky.graph.muteActorList", { data: { list: this.uri } })
+			.catch((e) => {
+				throw new Error(`Failed to mute list ${this.uri}`, { cause: e });
+			});
 	}
 
 	/**
 	 * Unmute all accounts on the list.
 	 */
 	async unmute(): Promise<void> {
-		await this.bot.agent.app.bsky.graph.unmuteActorList({ list: this.uri }).catch((e) => {
-			throw new Error(`Failed to unmute list ${this.uri}`, { cause: e });
-		});
+		await this.bot.agent.call("app.bsky.graph.unmuteActorList", { data: { list: this.uri } })
+			.catch((e) => {
+				throw new Error(`Failed to unmute list ${this.uri}`, { cause: e });
+			});
 	}
 
 	/**
@@ -176,11 +173,10 @@ export class List {
 	 * @returns The AT URI of the list block record.
 	 */
 	async block(): Promise<string> {
-		const block = await this.bot.agent.app.bsky.graph.listblock.create({
-			repo: this.bot.profile.did,
-		}, { subject: this.uri, createdAt: new Date().toISOString() }).catch((e) => {
-			throw new Error("Failed to block list " + this.uri, { cause: e });
-		});
+		const block = await this.bot.createRecord("app.bsky.graph.listblock", { subject: this.uri })
+			.catch((e) => {
+				throw new Error("Failed to block list " + this.uri, { cause: e });
+			});
 		this.blockUri = block.uri;
 		return this.blockUri;
 	}
@@ -190,8 +186,7 @@ export class List {
 	 */
 	async unblock(): Promise<void> {
 		if (this.blockUri) {
-			const { host: repo, rkey } = new AtUri(this.blockUri);
-			await this.bot.agent.app.bsky.graph.listblock.delete({ repo, rkey }, {}).catch((e) => {
+			await this.bot.deleteRecord(this.blockUri).catch((e) => {
 				throw new Error("Failed to unblock list " + this.uri, { cause: e });
 			});
 		}
@@ -204,10 +199,8 @@ export class List {
 	async getFeed(
 		{ limit = 100, cursor = "" }: ListGetFeedOptions = {},
 	): Promise<{ cursor: string | undefined; posts: Array<Post> }> {
-		const response = await this.bot.agent.app.bsky.feed.getListFeed({
-			list: this.uri,
-			limit,
-			cursor,
+		const response = await this.bot.agent.get("app.bsky.feed.getListFeed", {
+			params: { list: this.uri, limit, cursor },
 		}).catch((e) => {
 			throw new Error("Failed to get feed for list " + this.uri, { cause: e });
 		});
@@ -246,9 +239,7 @@ export class List {
 	): List {
 		return new List({
 			...view,
-			creator: AppBskyActorDefs.isProfileView(view.creator)
-				? Profile.fromView(view.creator, bot)
-				: undefined,
+			creator: "creator" in view ? Profile.fromView(view.creator, bot) : undefined,
 			blockUri: view.viewer?.blocked,
 			muted: view.viewer?.muted,
 			indexedAt: view.indexedAt ? new Date(view.indexedAt) : undefined,

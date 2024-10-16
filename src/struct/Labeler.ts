@@ -1,5 +1,4 @@
-import type { AppBskyLabelerDefs, ComAtprotoLabelDefs } from "@atproto/api";
-import type { LabelValueDefinition } from "@atproto/api/dist/client/types/com/atproto/label/defs.js";
+import type { AppBskyLabelerDefs, At, ComAtprotoLabelDefs } from "@atcute/client/lexicons";
 import type { Bot } from "../bot/Bot.js";
 import { Profile } from "./Profile.js";
 
@@ -34,10 +33,10 @@ export interface LabelerData {
  */
 export class Labeler {
 	/** The labeler record's AT URI. */
-	uri: string;
+	uri: At.Uri;
 
 	/** The labeler record's CID. */
-	cid: string;
+	cid: At.CID;
 
 	/** The labeler's user profile. */
 	profile: Profile;
@@ -73,13 +72,13 @@ export class Labeler {
 	}
 
 	/** Subscribe to the labeler. */
-	async subscribe() {
-		return this.bot.addLabeler(this.profile.did);
+	subscribe() {
+		this.bot.addLabeler(this.profile.did);
 	}
 
 	/** Unsubscribe from the labeler. */
-	async unsubscribe() {
-		return this.bot.removeLabeler(this.profile.did);
+	unsubscribe() {
+		this.bot.removeLabeler(this.profile.did);
 	}
 
 	/**
@@ -91,20 +90,13 @@ export class Labeler {
 		view: AppBskyLabelerDefs.LabelerView | AppBskyLabelerDefs.LabelerViewDetailed,
 		bot: Bot,
 	): Labeler {
-		const policies = view.policies;
-		const labelDefinitions: Array<LabelValueDefinition> | undefined =
-			typeof policies === "object" && policies && "labelValueDefinitions" in policies
-				&& Array.isArray(policies.labelValueDefinitions)
-				? policies.labelValueDefinitions
-				: undefined;
-
 		return new Labeler({
 			uri: view.uri,
 			cid: view.cid,
 			profile: Profile.fromView(view.creator, bot),
 			likeCount: view.likeCount,
 			indexedAt: new Date(view.indexedAt),
-			labelDefinitions,
+			labelDefinitions: "policies" in view ? view.policies.labelValueDefinitions : undefined,
 			labels: view.labels,
 		}, bot);
 	}

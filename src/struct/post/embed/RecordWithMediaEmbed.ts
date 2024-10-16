@@ -1,13 +1,6 @@
-import {
-	AppBskyEmbedExternal,
-	AppBskyEmbedImages,
-	AppBskyEmbedRecord,
-	type AppBskyEmbedRecordWithMedia,
-	AppBskyFeedDefs,
-	AppBskyFeedPost,
-	AppBskyGraphDefs,
-} from "@atproto/api";
+import type { AppBskyEmbedRecordWithMedia } from "@atcute/client/lexicons";
 import type { Bot } from "../../../bot/Bot.js";
+import { is } from "../../../util/lexicon.js";
 import { FeedGenerator } from "../../FeedGenerator.js";
 import { List } from "../../List.js";
 import { StarterPack } from "../../StarterPack.js";
@@ -46,10 +39,14 @@ export class RecordWithMediaEmbed extends PostEmbed {
 	): RecordWithMediaEmbed {
 		let embeddedMedia: ImagesEmbed | ExternalEmbed;
 
-		if (AppBskyEmbedImages.isView(view.media) && AppBskyEmbedImages.isMain(record.media)) {
+		if (
+			view.media.$type === "app.bsky.embed.images#view"
+			&& record.media.$type === "app.bsky.embed.images"
+		) {
 			embeddedMedia = ImagesEmbed.fromView(view.media, record.media);
 		} else if (
-			AppBskyEmbedExternal.isView(view.media) && AppBskyEmbedExternal.isMain(record.media)
+			view.media.$type === "app.bsky.embed.external#view"
+			&& record.media.$type === "app.bsky.embed.external"
 		) {
 			embeddedMedia = ExternalEmbed.fromView(view.media);
 		} else {
@@ -57,21 +54,21 @@ export class RecordWithMediaEmbed extends PostEmbed {
 		}
 
 		if (
-			AppBskyEmbedRecord.isViewRecord(view.record.record)
-			&& AppBskyFeedPost.isRecord(view.record.record.value)
+			view.record.record.$type === "app.bsky.embed.record#viewRecord"
+			&& is("app.bsky.feed.post", view.record.record.value)
 		) {
 			return new RecordWithMediaEmbed(
 				Post.fromView({ ...view.record.record, record: view.record.record.value }, bot),
 				embeddedMedia,
 			);
-		} else if (AppBskyFeedDefs.isGeneratorView(view.record.record)) {
+		} else if (view.record.record.$type === "app.bsky.feed.defs#generatorView") {
 			return new RecordWithMediaEmbed(
 				FeedGenerator.fromView(view.record.record, bot),
 				embeddedMedia,
 			);
-		} else if (AppBskyGraphDefs.isListView(view.record.record)) {
+		} else if (view.record.record.$type === "app.bsky.graph.defs#listView") {
 			return new RecordWithMediaEmbed(List.fromView(view.record.record, bot), embeddedMedia);
-		} else if (AppBskyGraphDefs.isStarterPackViewBasic(view.record.record)) {
+		} else if (view.record.record.$type === "app.bsky.graph.defs#starterPackViewBasic") {
 			return new RecordWithMediaEmbed(
 				StarterPack.fromView(view.record.record, bot),
 				embeddedMedia,

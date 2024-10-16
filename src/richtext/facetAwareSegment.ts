@@ -1,4 +1,4 @@
-import type { AppBskyRichtextFacet } from "@atproto/api";
+import type { AppBskyRichtextFacet } from "@atcute/client/lexicons";
 import { utf16IndexToUtf8Index } from "./detectFacets.js";
 
 const segmenter = new Intl.Segmenter();

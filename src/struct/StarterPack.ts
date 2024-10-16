@@ -1,10 +1,11 @@
 import {
-	AppBskyGraphDefs,
-	AppBskyGraphStarterpack,
+	type AppBskyGraphDefs,
 	type AppBskyRichtextFacet,
+	type At,
 	type ComAtprotoLabelDefs,
-} from "@atproto/api";
+} from "@atcute/client/lexicons";
 import type { BaseBotGetMethodOptions, Bot } from "../bot/Bot.js";
+import { is } from "../util/lexicon.js";
 import { FeedGenerator } from "./FeedGenerator.js";
 import { List } from "./List.js";
 import { Profile } from "./Profile.js";
@@ -64,10 +65,10 @@ export class StarterPack {
 	name: string;
 
 	/** The starter pack's AT URI. */
-	uri: string;
+	uri: At.Uri;
 
 	/** The starter pack's CID. */
-	cid: string;
+	cid: At.CID;
 
 	/** The starter pack's description. */
 	description?: string;
@@ -82,13 +83,13 @@ export class StarterPack {
 	userList?: List;
 
 	/** The starter pack's user list's AT URI. */
-	private userListUri: string;
+	private userListUri: At.Uri;
 
 	/** Feeds associated with the starter pack. */
 	feeds?: Array<FeedGenerator>;
 
 	/** The starter pack's feeds' AT URIs. */
-	private feedUris?: Array<string>;
+	private feedUris?: Array<At.Uri>;
 
 	/** The number of users who joined using the starter pack in the past week. */
 	joinedWeekCount?: number;
@@ -178,19 +179,8 @@ export class StarterPack {
 		view: AppBskyGraphDefs.StarterPackView | AppBskyGraphDefs.StarterPackViewBasic,
 		bot: Bot,
 	): StarterPack {
-		if (!AppBskyGraphStarterpack.isRecord(view.record) || !view.cid || !view.uri) {
+		if (!is("app.bsky.graph.starterpack", view.record) || !view.cid || !view.uri) {
 			throw new Error("Invalid starter pack view");
-		}
-
-		let userList: List | undefined,
-			feeds: Array<FeedGenerator> | undefined,
-			joinedWeekCount: number | undefined,
-			joinedAllTimeCount: number | undefined;
-		if (AppBskyGraphDefs.isStarterPackView(view)) {
-			if (view.list) userList = List.fromView(view.list, bot);
-			if (view.feeds) feeds = view.feeds.map((feed) => FeedGenerator.fromView(feed, bot));
-			joinedWeekCount = view.joinedWeekCount;
-			joinedAllTimeCount = view.joinedAllTimeCount;
 		}
 
 		return new StarterPack({
@@ -200,12 +190,14 @@ export class StarterPack {
 			description: view.record.description,
 			descriptionFacets: view.record.descriptionFacets,
 			creator: Profile.fromView(view.creator, bot),
-			userList,
+			userList: "list" in view ? List.fromView(view.list, bot) : undefined,
 			userListUri: view.record.list,
-			feeds,
+			feeds: "feeds" in view
+				? view.feeds.map((feed) => FeedGenerator.fromView(feed, bot))
+				: undefined,
 			feedUris: view.record.feeds?.map((feed) => feed.uri) ?? [],
-			joinedWeekCount,
-			joinedAllTimeCount,
+			joinedWeekCount: "joinedWeekCount" in view ? view.joinedWeekCount : undefined,
+			joinedAllTimeCount: "joinedAllTimeCount" in view ? view.joinedAllTimeCount : undefined,
 			indexedAt: new Date(view.indexedAt),
 			labels: view.labels,
 		}, bot);

@@ -86,7 +86,7 @@ export interface BotOptions {
 	/** Options for the event emitter. */
 	eventEmitterOptions?: BotEventEmitterOptions;
 
-	/** Options for the chat emitter. If this isn't set, the bot will use `eventEmitterOptions`. */
+	/** Options for the chat emitter. If this isn't set, the bot will use {@link eventEmitterOptions}. */
 	chatEmitterOptions?: BotChatEmitterOptions;
 }
 

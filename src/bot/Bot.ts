@@ -42,7 +42,7 @@ import { type IncomingChatPreference, Profile } from "../struct/Profile.js";
 import { StarterPack } from "../struct/StarterPack.js";
 import { asDid } from "../util/lexicon.js";
 import { parseAtUri } from "../util/parseAtUri.js";
-import { BotChatEmitter } from "./BotChatEmitter.js";
+import { BotChatEmitter, type BotChatEmitterOptions } from "./BotChatEmitter.js";
 import { BotEventEmitter, type BotEventEmitterOptions, EventStrategy } from "./BotEventEmitter.js";
 import { type CacheOptions, makeCache } from "./cache.js";
 import { RateLimitedAgent } from "./RateLimitedAgent.js";
@@ -85,6 +85,9 @@ export interface BotOptions {
 
 	/** Options for the event emitter. */
 	eventEmitterOptions?: BotEventEmitterOptions;
+
+	/** Options for the chat emitter. If this isn't set, the bot will use `eventEmitterOptions`. */
+	chatEmitterOptions?: BotChatEmitterOptions;
 }
 
 /**
@@ -128,6 +131,7 @@ export class Bot extends EventEmitter {
 			rateLimitOptions,
 			cacheOptions,
 			eventEmitterOptions = { strategy: EventStrategy.Polling },
+			chatEmitterOptions,
 		}: BotOptions = {},
 	) {
 		super();
@@ -164,7 +168,7 @@ export class Bot extends EventEmitter {
 		}
 
 		if (emitChatEvents) {
-			this.chatEventEmitter = new BotChatEmitter(eventEmitterOptions, this);
+			this.chatEventEmitter = new BotChatEmitter(chatEmitterOptions ?? eventEmitterOptions, this);
 			this.chatEventEmitter.on("message", (event) => this.emit("message", event));
 			this.chatEventEmitter.on("error", (error) => this.emit("error", error));
 		}

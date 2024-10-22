@@ -832,40 +832,43 @@ export class Bot extends EventEmitter {
 			throw new Error("A post can only contain one of images or video.");
 		}
 
+		const uploadMedia = async (media: string | Blob) => {
+			let blob;
+			if (typeof media === "string") {
+				blob = await fetchMediaForBlob(media, "image/").catch((e) => {
+					// eslint-disable-next-line @typescript-eslint/no-base-to-string, @typescript-eslint/restrict-template-expressions
+					throw new Error(`Failed to fetch media at ${media}.`, { cause: e });
+				}) ?? {};
+			} else {
+				blob = { data: new Uint8Array(await media.arrayBuffer()), type: media.type };
+			}
+
+			if (!blob.data?.length) throw new Error("Invalid media data provided.");
+			if (!blob.type) throw new Error("Must provide a content type for media data.");
+
+			const uploadedBlob = await this.agent.call("com.atproto.repo.uploadBlob", {
+				data: blob.data,
+				headers: { "content-type": blob.type },
+			}).then((res) => res.data.blob).catch((e) => {
+				throw new Error("Failed to upload media.", { cause: e });
+			});
+
+			if (!uploadedBlob?.size) throw new Error("Failed to upload media.");
+			return uploadedBlob;
+		};
+
 		// Upload image blobs
 		const images: Array<AppBskyEmbedImages.Image> = [];
 		if (payload.images?.length) {
 			for (const image of payload.images) {
 				if (!image) continue;
-				if (image?.data instanceof Blob) {
-					if (!image?.data.size) throw new Error("Can't upload an empty image");
-					if (!image.data.type.startsWith("image/")) {
-						throw new Error("Image blob is not an image");
-					}
+				if (image?.data instanceof Blob && !image.data.type.startsWith("image/")) {
+					throw new Error("Image blob is not an image");
 				}
 
 				image.alt ??= "";
 
-				let blob: Uint8Array | undefined;
-				if (typeof image.data === "string") {
-					({ data: blob } = await fetchMediaForBlob(image.data, "image/").catch((e) => {
-						// eslint-disable-next-line @typescript-eslint/no-base-to-string, @typescript-eslint/restrict-template-expressions
-						throw new Error(`Failed to fetch image at ${image.data}\n` + e);
-					}) ?? {});
-				} else {
-					blob = new Uint8Array(await image.data.arrayBuffer());
-				}
-
-				if (!blob?.length) throw new Error("Invalid image provided.");
-
-				const { data: { blob: imageBlob } = {} } = await this.agent.call(
-					"com.atproto.repo.uploadBlob",
-					{ data: blob },
-				).catch((e) => {
-					throw new Error("Failed to upload image\n" + e);
-				});
-
-				if (!imageBlob?.size) throw new Error("Failed to upload image.");
+				const imageBlob = await uploadMedia(image.data);
 
 				images.push({ ...image, alt: image.alt, image: imageBlob });
 			}
@@ -899,32 +902,14 @@ export class Bot extends EventEmitter {
 					>;
 				}
 			} else {
-				let thumbBlob: At.Blob | undefined;
+				let thumb: At.Blob | undefined;
 
 				const image = payload.external.thumb?.data;
-
 				if (image) {
 					if (image instanceof Blob && !image.type.startsWith("image/")) {
 						throw new Error("Image blob is not an image");
 					}
-
-					let blob: Uint8Array | undefined;
-					if (typeof image === "string") {
-						({ data: blob } = await fetchMediaForBlob(image, "image/").catch((e) => {
-							throw new Error(
-								`Failed to fetch payload.external.thumb at ${image}\n` + e,
-							);
-						}) ?? {});
-					} else {
-						blob = new Uint8Array(await image.arrayBuffer());
-					}
-
-					if (!blob?.length) throw new Error("Invalid image provided.");
-
-					thumbBlob = await this.agent.call("com.atproto.repo.uploadBlob", { data: blob })
-						.then((res) => res.data.blob).catch((e) => {
-							throw new Error("Failed to upload thumbnail\n" + e);
-						});
+					thumb = await uploadMedia(image);
 				}
 
 				embed = {
@@ -933,7 +918,7 @@ export class Bot extends EventEmitter {
 						title: payload.external.title,
 						uri: payload.external.uri,
 						description: payload.external.description,
-						...(thumbBlob ? { thumb: thumbBlob } : {}),
+						...(thumb ? { thumb } : {}),
 					},
 				} satisfies Brand.Union<AppBskyEmbedExternal.Main>;
 			}
@@ -942,32 +927,15 @@ export class Bot extends EventEmitter {
 				AppBskyEmbedImages.Main
 			>;
 		} else if (payload.video) {
-			if (payload.video?.data instanceof Blob) {
-				if (!payload.video?.data.size) throw new Error("Can't upload an empty video");
-				if (!payload.video.data.type.startsWith("video/")) {
-					throw new Error("Video blob is not a video");
-				}
+			if (
+				payload.video?.data instanceof Blob && !payload.video.data.type.startsWith("video/")
+			) {
+				throw new Error("Video blob is not a video");
 			}
 
 			payload.video.alt ??= "";
 
-			let blob: Uint8Array | undefined;
-			if (typeof payload.video.data === "string") {
-				({ data: blob } =
-					await fetchMediaForBlob(payload.video.data, "video/").catch((e) => {
-						// eslint-disable-next-line @typescript-eslint/no-base-to-string, @typescript-eslint/restrict-template-expressions
-						throw new Error(`Failed to fetch video at ${payload.video?.data}\n` + e);
-					}) ?? {});
-			} else {
-				blob = new Uint8Array(await payload.video.data.arrayBuffer());
-			}
-
-			if (!blob) throw new Error("Invalid video provided.");
-
-			const videoBlob = await this.agent.call("com.atproto.repo.uploadBlob", { data: blob })
-				.then((res) => res.data.blob).catch((e) => {
-					throw new Error("Failed to upload video\n" + e);
-				});
+			const videoBlob = await uploadMedia(payload.video.data);
 
 			embed = {
 				...payload.video,
@@ -976,7 +944,6 @@ export class Bot extends EventEmitter {
 			} satisfies Brand.Union<AppBskyEmbedVideo.Main>;
 		}
 
-		// Put together the post record
 		const postRecord: AppBskyFeedPost.Record = {
 			$type: "app.bsky.feed.post",
 			text,

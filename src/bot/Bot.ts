@@ -168,7 +168,10 @@ export class Bot extends EventEmitter {
 		}
 
 		if (emitChatEvents) {
-			this.chatEventEmitter = new BotChatEmitter(chatEmitterOptions ?? eventEmitterOptions, this);
+			this.chatEventEmitter = new BotChatEmitter(
+				chatEmitterOptions ?? eventEmitterOptions,
+				this,
+			);
 			this.chatEventEmitter.on("message", (event) => this.emit("message", event));
 			this.chatEventEmitter.on("error", (error) => this.emit("error", error));
 		}
@@ -198,7 +201,7 @@ export class Bot extends EventEmitter {
 		this.chatProxy = this.agent.withProxy("bsky_chat", "did:web:api.bsky.chat");
 
 		this.profile = await this.getProfile(response.did).catch((e) => {
-			throw new Error("Failed to fetch bot profile. Error:\n" + e);
+			throw new Error("Failed to fetch bot profile.", { cause: e });
 		});
 
 		return response;
@@ -270,7 +273,8 @@ export class Bot extends EventEmitter {
 		const postViews = await this.agent.get("app.bsky.feed.getPosts", { params: { uris } })
 			.catch((e) => {
 				throw new Error(
-					"Failed to fetch posts at URIs:\n" + uris.slice(0, 3).join("\n") + "\n...",
+					"Failed to fetch posts at URIs:\n- " + uris.slice(0, 3).join("\n- ")
+						+ "\n- ...",
 					{ cause: e },
 				);
 			});
@@ -381,8 +385,9 @@ export class Bot extends EventEmitter {
 			params: { actors: identifiers },
 		}).catch((e) => {
 			throw new Error(
-				"Failed to fetch profiles at identifiers:\n" + identifiers.slice(0, 3).join("\n")
-					+ "\n...",
+				"Failed to fetch profiles at identifiers:\n- "
+					+ identifiers.slice(0, 3).join("\n- ")
+					+ "\n- ...",
 				{ cause: e },
 			);
 		});
@@ -484,8 +489,8 @@ export class Bot extends EventEmitter {
 			params: { feeds: uris },
 		}).catch((e) => {
 			throw new Error(
-				"Failed to fetch feed generators at URIs:\n" + uris.slice(0, 3).join("\n")
-					+ "\n...",
+				"Failed to fetch feed generators at URIs:\n- " + uris.slice(0, 3).join("\n- ")
+					+ "\n- ...",
 				{ cause: e },
 			);
 		});
@@ -544,9 +549,10 @@ export class Bot extends EventEmitter {
 		const response = await this.agent.get("app.bsky.labeler.getServices", {
 			params: { dids: dids as Array<At.DID>, detailed: true },
 		}).catch((e) => {
-			throw new Error("Failed to fetch labelers:\n" + dids.slice(0, 3).join("\n") + "\n...", {
-				cause: e,
-			});
+			throw new Error(
+				"Failed to fetch labelers:\n- " + dids.slice(0, 3).join("\n- ") + "\n- ...",
+				{ cause: e },
+			);
 		});
 
 		return response.data.views.map((labelerView) => {
@@ -592,7 +598,8 @@ export class Bot extends EventEmitter {
 			params: { uris },
 		}).catch((e) => {
 			throw new Error(
-				"Failed to fetch starter packs at URIs:\n" + uris.slice(0, 3).join("\n") + "\n...",
+				"Failed to fetch starter packs at URIs:\n- " + uris.slice(0, 3).join("\n- ")
+					+ "\n- ...",
 				{ cause: e },
 			);
 		});
@@ -1323,9 +1330,10 @@ export class Bot extends EventEmitter {
 				negateLabelVals: [],
 				...(comment ? { comment } : {}),
 			}, blobCids);
-		} catch {
+		} catch (e) {
 			throw new Error(
 				`Failed to label record ${"did" in reference ? reference.did : reference.uri}.`,
+				{ cause: e },
 			);
 		}
 	}
@@ -1343,11 +1351,12 @@ export class Bot extends EventEmitter {
 				negateLabelVals: labels,
 				...(comment ? { comment } : {}),
 			}, blobCids);
-		} catch {
+		} catch (e) {
 			throw new Error(
 				`Failed to negate label on record ${
 					"did" in reference ? reference.did : reference.uri
 				}.`,
+				{ cause: e },
 			);
 		}
 	}
@@ -1356,7 +1365,7 @@ export class Bot extends EventEmitter {
 		reference: RepoRef | StrongRef,
 		event: ToolsOzoneModerationDefs.ModEventLabel,
 		subjectBlobCids: Array<string>,
-	): Promise<void> {
+	): Promise<ToolsOzoneModerationDefs.ModEventView> {
 		if (!this.profile.isLabeler) {
 			throw new Error(
 				"The bot doesn't seem to have a labeler service declared.\nFor more information, see https://skyware.js.org/guides/labeler/introduction/getting-started/",
@@ -1365,7 +1374,7 @@ export class Bot extends EventEmitter {
 		const subject: ToolsOzoneModerationEmitEvent.Input["subject"] = "did" in reference
 			? { $type: "com.atproto.admin.defs#repoRef", did: asDid(reference.did) }
 			: { $type: "com.atproto.repo.strongRef", uri: reference.uri, cid: reference.cid };
-		const response = await this.agent.withProxy("atproto_labeler", this.profile.did).call(
+		return this.agent.withProxy("atproto_labeler", this.profile.did).call(
 			"tools.ozone.moderation.emitEvent",
 			{
 				data: {
@@ -1378,8 +1387,9 @@ export class Bot extends EventEmitter {
 					subjectBlobCids,
 				},
 			},
-		);
-		if (!response.data) throw new Error("Failed to emit label event.");
+		).then((res) => res.data).catch((e) => {
+			throw new Error("Failed to emit label event.", { cause: e });
+		});
 	}
 
 	/**

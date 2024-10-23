@@ -1323,19 +1323,17 @@ export class Bot extends EventEmitter {
 	 */
 	async label(
 		{ reference, labels, blobCids = [], comment }: BotLabelRecordOptions,
-	): Promise<void> {
-		try {
-			await this.emitLabelEvent(reference, {
-				createLabelVals: labels,
-				negateLabelVals: [],
-				...(comment ? { comment } : {}),
-			}, blobCids);
-		} catch (e) {
+	): Promise<ToolsOzoneModerationDefs.ModEventView> {
+		return this.emitLabelEvent(reference, {
+			createLabelVals: labels,
+			negateLabelVals: [],
+			...(comment ? { comment } : {}),
+		}, blobCids).catch((e) => {
 			throw new Error(
 				`Failed to label record ${"did" in reference ? reference.did : reference.uri}.`,
 				{ cause: e },
 			);
-		}
+		});
 	}
 
 	/**
@@ -1344,21 +1342,19 @@ export class Bot extends EventEmitter {
 	 */
 	async negateLabels(
 		{ reference, labels, blobCids = [], comment }: BotLabelRecordOptions,
-	): Promise<void> {
-		try {
-			await this.emitLabelEvent(reference, {
-				createLabelVals: [],
-				negateLabelVals: labels,
-				...(comment ? { comment } : {}),
-			}, blobCids);
-		} catch (e) {
+	): Promise<ToolsOzoneModerationDefs.ModEventView> {
+		return this.emitLabelEvent(reference, {
+			createLabelVals: [],
+			negateLabelVals: labels,
+			...(comment ? { comment } : {}),
+		}, blobCids).catch((e) => {
 			throw new Error(
 				`Failed to negate label on record ${
 					"did" in reference ? reference.did : reference.uri
 				}.`,
 				{ cause: e },
 			);
-		}
+		});
 	}
 
 	private async emitLabelEvent(

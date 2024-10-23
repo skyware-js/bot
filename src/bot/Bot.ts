@@ -772,8 +772,9 @@ export class Bot extends EventEmitter {
 		if (payload.text instanceof RichText) {
 			({ text, facets } = payload.text.build());
 		} else if (options.resolveFacets) {
-			text = payload.text;
-			facets = await detectFacetsWithResolution(text, this);
+			({ text, facets } = await detectFacetsWithResolution(payload.text, this, {
+				shortenLinks: options.shortenLinks,
+			}));
 		} else {
 			text = payload.text;
 		}
@@ -1212,8 +1213,7 @@ export class Bot extends EventEmitter {
 		if (payload.text instanceof RichText) {
 			({ text, facets } = payload.text.build());
 		} else if (options.resolveFacets) {
-			text = payload.text;
-			facets = await detectFacetsWithResolution(text, this);
+			({ text, facets } = await detectFacetsWithResolution(payload.text, this));
 		} else {
 			text = payload.text;
 		}
@@ -1261,8 +1261,7 @@ export class Bot extends EventEmitter {
 			if (message.text instanceof RichText) {
 				({ text, facets } = message.text.build());
 			} else if (options.resolveFacets) {
-				text = message.text;
-				facets = await detectFacetsWithResolution(text, this);
+				({ text, facets } = await detectFacetsWithResolution(message.text, this));
 			} else {
 				text = message.text;
 			}
@@ -1870,6 +1869,12 @@ export interface BotPostOptions {
 	 * @default false
 	 */
 	splitLongPost?: boolean;
+
+	/**
+	 * Whether to shorten inline links.
+	 * @default false
+	 */
+	shortenLinks?: boolean;
 }
 
 /**

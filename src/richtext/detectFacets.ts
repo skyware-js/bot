@@ -42,15 +42,25 @@ export const utf8IndexToUtf16Index = (text: string, i: number) => {
 };
 
 /**
+ * Options for the {@link detectFacetsWithoutResolution} and {@link detectFacetsWithResolution} functions.
+ */
+export interface DetectFacetsOptions {
+	/** Whether to shorten inline links. */
+	shortenLinks?: boolean | undefined;
+}
+
+/**
  * This is a modified version of the {@link import("@atproto/api").RichText#detectFacets} function that doesn't use the UnicodeString class.
  * This allows us to avoid importing `graphemer`, instead using the `Intl.Segmenter` builtin (see {@link graphemeLength}), which saves ~800kB in bundle size (200kB gzipped).
  *
  * JS strings are encoded as UTF-16; `utf16IndexToUtf8Index` is used to get UTF-8 byte indices of facets within text.
  * @param text Text to detect facets in.
+ * @param options Configuration options.
  */
 export function detectFacetsWithoutResolution(
 	text: string,
-): Array<AppBskyRichtextFacet.Main> | undefined {
+	options?: DetectFacetsOptions,
+): { text: string; facets: Array<AppBskyRichtextFacet.Main> } {
 	let match;
 	const facets: Array<AppBskyRichtextFacet.Main> = [];
 	{
@@ -97,6 +107,14 @@ export function detectFacetsWithoutResolution(
 				uri = uri.slice(0, -1);
 				index.end--;
 			}
+
+			if (options?.shortenLinks) {
+				const shortenedUri = toShortUrl(uri);
+				text = text.slice(0, index.start) + shortenedUri + text.slice(index.end);
+				const lengthDifference = uri.length - shortenedUri.length;
+				index.end -= lengthDifference;
+			}
+
 			facets.push({
 				index: {
 					byteStart: utf16IndexToUtf8Index(text, index.start),
@@ -131,16 +149,21 @@ export function detectFacetsWithoutResolution(
 		}
 		re.lastIndex = 0;
 	}
-	return facets.length > 0 ? facets : undefined;
+	return { text, facets };
 }
 
 /**
  * Returns a RichText instance with all facets (mentions, links, tags, etc) resolved.
  * @param text The text to detect facets in.
  * @param bot Used to resolve mentions to DIDs.
+ * @param options Configuration options.
  */
-export async function detectFacetsWithResolution(text: string, bot: Bot) {
-	const facets = detectFacetsWithoutResolution(text) ?? [];
+export async function detectFacetsWithResolution(
+	text: string,
+	bot: Bot,
+	options?: DetectFacetsOptions,
+) {
+	const { text: detectedText, facets } = detectFacetsWithoutResolution(text, options);
 	for (const facet of facets) {
 		for (const feature of facet.features) {
 			if (feature.$type === "app.bsky.richtext.facet#mention") {
@@ -157,5 +180,22 @@ export async function detectFacetsWithResolution(text: string, bot: Bot) {
 			}
 		}
 	}
-	return facets;
+	return { text: detectedText, facets };
+}
+
+// https://github.com/bluesky-social/social-app/blob/090ac041c30f4ef887e6a2b17aa254d029cba9ce/src/lib/strings/url-helpers.ts#L63
+function toShortUrl(url: string): string {
+	try {
+		const urlp = new URL(url);
+		if (urlp.protocol !== "http:" && urlp.protocol !== "https:") {
+			return url;
+		}
+		const path = (urlp.pathname === "/" ? "" : urlp.pathname) + urlp.search + urlp.hash;
+		if (path.length > 15) {
+			return urlp.host + path.slice(0, 13) + "...";
+		}
+		return urlp.host + path;
+	} catch (e) {
+		return url;
+	}
 }

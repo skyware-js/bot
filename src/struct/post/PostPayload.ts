@@ -75,7 +75,7 @@ export interface ReplyRef {
 	parent: StrongRef;
 
 	/** A reference to the root post. */
-	root?: StrongRef;
+	root: StrongRef;
 }
 
 /**

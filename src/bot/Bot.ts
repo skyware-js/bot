@@ -959,7 +959,7 @@ export class Bot extends EventEmitter {
 			createdAt: payload.createdAt.toISOString(),
 			langs: payload.langs,
 		};
-		// @ts-expect-error — AppBskyFeedPost.ReplyRef has a string index signature
+
 		if (payload.replyRef) postRecord.reply = payload.replyRef;
 		if (embed) postRecord.embed = embed;
 		if (labels) postRecord.labels = labels;

@@ -34,10 +34,10 @@ export class PostReference implements StrongRef {
 		this.uri = uri;
 		this.cid = cid;
 		if (replyRef) {
-			this.replyRef = { parent: { uri: replyRef.parent.uri, cid: replyRef.parent.cid } };
-			if (replyRef.root) {
-				this.replyRef.root = { uri: replyRef.root.uri, cid: replyRef.root.cid };
-			}
+			this.replyRef = {
+				parent: { uri: replyRef.parent.uri, cid: replyRef.parent.cid },
+				root: { uri: replyRef.root.uri, cid: replyRef.root.cid },
+			};
 		}
 	}
 

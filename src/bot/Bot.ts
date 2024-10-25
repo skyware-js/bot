@@ -840,10 +840,10 @@ export class Bot extends EventEmitter {
 			throw new Error("A post can only contain one of images or video.");
 		}
 
-		const uploadMedia = async (media: string | Blob) => {
+		const uploadMedia = async (media: string | Blob, mimeTypePrefix: string) => {
 			let blob;
 			if (typeof media === "string") {
-				blob = await fetchMediaForBlob(media, "image/").catch((e) => {
+				blob = await fetchMediaForBlob(media, mimeTypePrefix).catch((e) => {
 					// eslint-disable-next-line @typescript-eslint/no-base-to-string, @typescript-eslint/restrict-template-expressions
 					throw new Error(`Failed to fetch media at ${media}.`, { cause: e });
 				}) ?? {};
@@ -876,7 +876,7 @@ export class Bot extends EventEmitter {
 
 				image.alt ??= "";
 
-				const imageBlob = await uploadMedia(image.data);
+				const imageBlob = await uploadMedia(image.data, "image/");
 
 				images.push({ ...image, alt: image.alt, image: imageBlob });
 			}
@@ -917,7 +917,7 @@ export class Bot extends EventEmitter {
 					if (image instanceof Blob && !image.type.startsWith("image/")) {
 						throw new Error("Image blob is not an image");
 					}
-					thumb = await uploadMedia(image);
+					thumb = await uploadMedia(image, "image/");
 				}
 
 				embed = {
@@ -943,7 +943,7 @@ export class Bot extends EventEmitter {
 
 			payload.video.alt ??= "";
 
-			const videoBlob = await uploadMedia(payload.video.data);
+			const videoBlob = await uploadMedia(payload.video.data, "video/");
 
 			embed = {
 				...payload.video,

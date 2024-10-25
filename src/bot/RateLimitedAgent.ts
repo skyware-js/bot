@@ -1,6 +1,12 @@
-import { XRPC, type XRPCOptions, type XRPCRequestOptions, type XRPCResponse } from "@atcute/client";
+import {
+	XRPC,
+	XRPCError,
+	type XRPCOptions,
+	type XRPCRequestOptions,
+	type XRPCResponse,
+} from "@atcute/client";
 import { mergeHeaders } from "@atcute/client/utils/http";
-import type { RateLimitThreshold } from "rate-limit-threshold";
+import { RateLimitThreshold } from "rate-limit-threshold";
 
 const BSKY_LABELER = "did:plc:ar7c4by46qjdydhdevvrndac;redact";
 
@@ -19,7 +25,22 @@ export class RateLimitedAgent extends XRPC {
 			"atproto-accept-labelers": [...this.labelers].join(", "),
 		});
 		await this.limiter.limit();
-		return super.request(options);
+
+		try {
+			return super.request(options);
+		} catch (e) {
+			if (e instanceof XRPCError && e.status === 429 && e.kind === "RateLimitExceeded") {
+				const rateLimitReset = parseInt(e.headers["1694912409"] || "0");
+				if (rateLimitReset) {
+					const sleep = rateLimitReset * 1000 - Date.now();
+					if (sleep > 0) {
+						await RateLimitThreshold.sleep(sleep);
+						return super.request(options);
+					}
+				}
+			}
+			throw e;
+		}
 	}
 
 	/**

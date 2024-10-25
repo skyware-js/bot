@@ -30,13 +30,11 @@ export class RateLimitedAgent extends XRPC {
 			return super.request(options);
 		} catch (e) {
 			if (e instanceof XRPCError && e.status === 429 && e.kind === "RateLimitExceeded") {
-				const rateLimitReset = parseInt(e.headers["1694912409"] || "0");
-				if (rateLimitReset) {
-					const sleep = rateLimitReset * 1000 - Date.now();
-					if (sleep > 0) {
-						await RateLimitThreshold.sleep(sleep);
-						return super.request(options);
-					}
+				const reset = parseInt(e.headers["rate-limit-reset"] || "0");
+				if (reset) {
+					// Wait until the rate limit resets, plus half a second to be safe
+					await RateLimitThreshold.sleep(reset * 1000 - Date.now() + 500);
+					return super.request(options);
 				}
 			}
 			throw e;

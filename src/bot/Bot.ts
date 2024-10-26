@@ -768,23 +768,23 @@ export class Bot extends EventEmitter {
 		payload.createdAt ??= new Date();
 
 		// Resolve facets if necessary
-		let text: string, facets: Array<AppBskyRichtextFacet.Main> = [];
+		let text: string, facets: Array<AppBskyRichtextFacet.Main>;
 		if (payload.text instanceof RichText) {
 			({ text, facets } = payload.text.build());
-		} else if (options.resolveFacets) {
+		} else if (options.resolveFacets && !payload.facets?.length) {
 			({ text, facets } = await detectFacetsWithResolution(payload.text, this, {
 				shortenLinks: options.shortenLinks,
 			}));
 		} else {
 			text = payload.text;
+			facets = [];
 		}
 
-		// Override facets if provided
+		// Overwrite facets if provided
 		if (payload.facets?.length) {
-			for (const facet of payload.facets) {
-				if (facet instanceof Facet) facets.push(facet.toRecord());
-				else facets.push(facet);
-			}
+			facets = payload.facets.map((facet) =>
+				facet instanceof Facet ? facet.toRecord() : facet
+			);
 		}
 
 		if (graphemeLength(text) > 300) {
@@ -1209,13 +1209,14 @@ export class Bot extends EventEmitter {
 			throw new Error("Chat proxy does not exist. Make sure to log in first.");
 		}
 
-		let text: string, facets: Array<AppBskyRichtextFacet.Main> = [];
+		let text: string, facets: Array<AppBskyRichtextFacet.Main>;
 		if (payload.text instanceof RichText) {
 			({ text, facets } = payload.text.build());
-		} else if (options.resolveFacets) {
+		} else if (options.resolveFacets && !payload.facets?.length) {
 			({ text, facets } = await detectFacetsWithResolution(payload.text, this));
 		} else {
 			text = payload.text;
+			facets = payload.facets ?? [];
 		}
 
 		if (graphemeLength(text) > 1000) {
@@ -1257,13 +1258,14 @@ export class Bot extends EventEmitter {
 		}
 
 		const messages = await Promise.all(payload.map(async (message) => {
-			let text: string, facets: Array<AppBskyRichtextFacet.Main> = [];
+			let text: string, facets: Array<AppBskyRichtextFacet.Main>;
 			if (message.text instanceof RichText) {
 				({ text, facets } = message.text.build());
-			} else if (options.resolveFacets) {
+			} else if (options.resolveFacets && !message.facets?.length) {
 				({ text, facets } = await detectFacetsWithResolution(message.text, this));
 			} else {
 				text = message.text;
+				facets = message.facets ?? [];
 			}
 
 			if (graphemeLength(text) > 1000) {

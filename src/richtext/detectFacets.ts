@@ -113,6 +113,7 @@ export function detectFacetsWithoutResolution(
 				text = text.slice(0, index.start) + shortenedUri + text.slice(index.end);
 				const lengthDifference = uri.length - shortenedUri.length;
 				index.end -= lengthDifference;
+				re.lastIndex -= lengthDifference;
 			}
 
 			facets.push({

@@ -901,7 +901,7 @@ export class Bot extends EventEmitter {
 			if (typeof payload.external === "string") {
 				const external = await fetchExternalEmbedData.call(this, payload.external).catch(
 					(e) => {
-						throw new Error("Failed to resolve external embed\n" + e);
+						throw new Error("Failed to resolve external embed.", { cause: e });
 					},
 				);
 				if (external) {

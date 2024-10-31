@@ -159,10 +159,13 @@ export async function fetchExternalEmbedData(
 
 	let thumb: At.Blob | undefined;
 	if ("image" in extractedEmbedData && typeof extractedEmbedData.image === "string") {
-		const { data } = await fetchMediaForBlob(extractedEmbedData.image, "image/") ?? {};
+		const { data, type } = await fetchMediaForBlob(extractedEmbedData.image, "image/") ?? {};
 
 		if (data?.length) {
-			const blob = await this.agent.call("com.atproto.repo.uploadBlob", { data });
+			const blob = await this.agent.call("com.atproto.repo.uploadBlob", {
+				data,
+				headers: { "Content-Type": type },
+			});
 			if (blob.data.blob.size) {
 				thumb = blob.data.blob;
 			}

@@ -13,7 +13,6 @@ import type {
 	At,
 	Brand,
 	ComAtprotoLabelDefs,
-	ComAtprotoServerCreateSession,
 	ComAtprotoServerGetSession,
 	Records,
 	ToolsOzoneModerationDefs,
@@ -187,9 +186,7 @@ export class Bot extends EventEmitter {
 	 * @param options The bot account's identifier and password.
 	 * @returns Session data.
 	 */
-	async login(
-		{ identifier, password }: BotLoginOptions,
-	): Promise<ComAtprotoServerCreateSession.Output> {
+	async login({ identifier, password }: BotLoginOptions): Promise<AtpSessionData> {
 		if (identifier[0] === "@") identifier = identifier.slice(1);
 
 		const response = await this.handler.login({ identifier, password }).catch((e) => {

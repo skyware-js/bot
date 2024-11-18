@@ -195,7 +195,7 @@ export class Bot extends EventEmitter {
 			});
 		});
 
-		this.chatProxy = this.agent.withProxy("bsky_chat", "did:web:api.bsky.chat");
+		this.chatProxy ??= this.agent.withProxy("bsky_chat", "did:web:api.bsky.chat");
 
 		this.profile = await this.getProfile(response.did).catch((e) => {
 			throw new Error("Failed to fetch bot profile.", { cause: e });
@@ -213,6 +213,13 @@ export class Bot extends EventEmitter {
 		const response = await this.handler.resume(session).catch((e) => {
 			throw new Error("Failed to resume session.", { cause: e });
 		});
+
+		this.chatProxy ??= this.agent.withProxy("bsky_chat", "did:web:api.bsky.chat");
+
+		this.profile = await this.getProfile(response.did).catch((e) => {
+			throw new Error("Failed to fetch bot profile.", { cause: e });
+		});
+
 		this.profile = await this.getProfile(response.did);
 		return response;
 	}

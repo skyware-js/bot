@@ -118,10 +118,14 @@ export class BotEventEmitter extends EventEmitter {
 		if (this.strategy === EventStrategy.Firehose) {
 			import("@skyware/firehose").then(({ Firehose }) => {
 				this.firehose = new Firehose(options.firehoseOptions);
-			}).catch(() => {
-				throw new Error(
-					"Failed to import Firehose event emitter. Make sure you have the @skyware/firehose package installed.",
-				);
+			}).catch((e) => {
+				// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+				if (e?.code?.includes?.("MODULE_NOT_FOUND")) {
+					throw new Error(
+						"Failed to import Firehose event emitter. Make sure you have the @skyware/firehose package installed.",
+					);
+				}
+				throw e;
 			});
 		} else if (this.strategy === EventStrategy.Jetstream) {
 			import("@skyware/jetstream").then(({ Jetstream }) => {
@@ -129,10 +133,14 @@ export class BotEventEmitter extends EventEmitter {
 					...options.jetstreamOptions,
 					wantedCollections: JETSTREAM_EVENTS,
 				});
-			}).catch(() => {
-				throw new Error(
-					"Failed to import Jetstream event emitter. Make sure you have the @skyware/jetstream package installed.",
-				);
+			}).catch((e) => {
+				// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+				if (e?.code?.includes?.("MODULE_NOT_FOUND")) {
+					throw new Error(
+						"Failed to import Jetstream event emitter. Make sure you have the @skyware/jetstream package installed.",
+					);
+				}
+				throw e;
 			});
 		} else if (this.strategy === EventStrategy.Polling) {
 			this.startPolling();

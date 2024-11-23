@@ -836,7 +836,10 @@ export class Bot extends EventEmitter {
 			} satisfies Brand.Union<ComAtprotoLabelDefs.SelfLabels>
 			: undefined;
 
-		if (payload.images?.length && payload.quoted && !(payload.quoted instanceof Post)) {
+		if (
+			payload.images?.length && payload.quoted
+			&& !payload.quoted.uri.includes("app.bsky.feed.post")
+		) {
 			throw new Error("Only a post can be embedded alongside images.");
 		}
 

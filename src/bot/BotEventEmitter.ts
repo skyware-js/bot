@@ -388,12 +388,15 @@ export class BotEventEmitter extends EventEmitter {
 						emitInvalidRecordError(notification);
 						break;
 					}
+					let isRootReply = false;
 					if (notification.record.reply) {
 						try {
-							const { host } = parseAtUri(notification.record.reply.parent.uri);
-							if (host !== this.bot.profile.did) {
-								// Ignore replies that aren't direct replies to the bot
-								break;
+							const { host: parentHost } = parseAtUri(notification.record.reply.parent.uri);
+							const { host: rootHost } = parseAtUri(notification.record.reply.parent.uri);
+							if (parentHost !== this.bot.profile.did && rootHost === this.bot.profile.did) {
+								isRootReply = true; // This reply is only a root-reply
+							} else if (parentHost !== this.bot.profile.did) {
+								break; // Ignore non-parent & non-root replies
 							}
 						} catch (e) {
 							// Ignore invalid AT URI
@@ -401,7 +404,7 @@ export class BotEventEmitter extends EventEmitter {
 						}
 					}
 					const reply = await this.bot.getPost(notification.uri);
-					if (reply) this.emit("reply", reply);
+					if (reply) this.emit(isRootReply ? "reply_root" : "reply", reply);
 					break;
 				}
 				case "quote": {

@@ -165,8 +165,8 @@ export async function detectFacetsWithResolution(
 	options?: DetectFacetsOptions,
 ) {
 	const { text: detectedText, facets } = detectFacetsWithoutResolution(text, options);
-	for (const facet of facets) {
-		for (const feature of facet.features) {
+	for (const facet of [...facets]) {
+		for (const feature of [...facet.features]) {
 			if (feature.$type === "app.bsky.richtext.facet#mention") {
 				const did = await bot.resolveHandle(feature.did).catch((_: unknown) => undefined);
 				if (!did) {

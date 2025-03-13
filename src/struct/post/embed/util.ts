@@ -126,6 +126,8 @@ export async function fetchMediaForBlob(
 	url: string,
 	mimeTypePrefix: string,
 ): Promise<{ type: string; data: Uint8Array } | null> {
+	if (!url.length || !url.startsWith("http")) return null;
+
 	const res = await fetch(url);
 	if (!res || !res.ok) return null;
 
@@ -158,7 +160,10 @@ export async function fetchExternalEmbedData(
 	const { title, description } = extractedEmbedData;
 
 	let thumb: At.Blob | undefined;
-	if ("image" in extractedEmbedData && typeof extractedEmbedData.image === "string") {
+	if (
+		"image" in extractedEmbedData && typeof extractedEmbedData.image === "string"
+		&& extractedEmbedData.image.length
+	) {
 		const { data, type } = await fetchMediaForBlob(extractedEmbedData.image, "image/") ?? {};
 
 		if (data?.length) {

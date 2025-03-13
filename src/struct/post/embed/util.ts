@@ -170,8 +170,8 @@ export async function fetchExternalEmbedData(
 			const blob = await this.agent.call("com.atproto.repo.uploadBlob", {
 				data,
 				headers: { "Content-Type": type },
-			});
-			if (blob.data.blob.size) {
+			}).catch(() => null);
+			if (blob?.data.blob.size) {
 				thumb = blob.data.blob;
 			}
 		}

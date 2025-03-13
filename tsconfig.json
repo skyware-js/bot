@@ -10,7 +10,7 @@
 		"declaration": true,
 
 		"skipLibCheck": true,
-		"composite": true,
+		"incremental": false,
 		"newLine": "lf",
 
 		"forceConsistentCasingInFileNames": true,

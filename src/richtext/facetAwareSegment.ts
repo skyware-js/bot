@@ -1,6 +1,7 @@
 import type { AppBskyRichtextFacet } from "@atcute/client/lexicons";
 import { utf16IndexToUtf8Index } from "./detectFacets.js";
 
+const encoder = new TextEncoder();
 const segmenter = new Intl.Segmenter();
 
 /**
@@ -57,13 +58,15 @@ export function facetAwareSegment(
 			// We can now safely push the current substring
 			const substring = currentSubstring.map((s) => s.segment).join("");
 
+			// Calculate the total UTF-8 byte length of the current substring
+			const substringByteLength = encoder.encode(substring).length;
+
 			// Alongside it, we include the facets that are contained within the substring
 			const substringFacets = facets.reduce<Array<AppBskyRichtextFacet.Main>>(
 				(acc, facet) => {
 					const { byteStart, byteEnd } = facet.index;
 					if (
-						byteStart >= utf16IndexToUtf8Index(text, currentSubstring[0].index)
-						&& byteEnd <= utf16IndexToUtf8Index(text, lastSegment.index) + 1 // byteEnd is exclusive, so if it's at the end of a string, it will be 1 greater than the last index
+						byteStart >= byteOffset && byteEnd <= byteOffset + substringByteLength + 1 // byteEnd is exclusive, so if it's at the end of a string, it will be 1 greater than the last index
 					) {
 						acc.push({
 							...facet,
@@ -81,28 +84,28 @@ export function facetAwareSegment(
 			substrings.push({ text: substring, facets: substringFacets });
 			currentSubstring = [];
 
-			byteOffset = currentGraphemeUtf8Index + 1;
+			byteOffset += substringByteLength;
 		}
 	}
 
 	// Push the remaining substring
-	const substring = currentSubstring.map((s) => s.segment).join("");
-	const substringFacets = facets.reduce<Array<AppBskyRichtextFacet.Main>>((acc, facet) => {
-		const { byteStart, byteEnd } = facet.index;
-		if (
-			byteStart >= utf16IndexToUtf8Index(text, currentSubstring[0].index)
-			&& byteEnd
-				<= utf16IndexToUtf8Index(text, currentSubstring[currentSubstring.length - 1].index)
-					+ 1 // byteEnd is exclusive, so if it's at the end of a string, it will be 1 greater than the last index
-		) {
-			acc.push({
-				...facet,
-				index: { byteStart: byteStart - byteOffset, byteEnd: byteEnd - byteOffset },
-			});
-		}
-		return acc;
-	}, []);
-	substrings.push({ text: substring, facets: substringFacets });
+	if (currentSubstring.length) {
+		const substring = currentSubstring.map((s) => s.segment).join("");
+		const substringByteLength = encoder.encode(substring).length;
+		const substringFacets = facets.reduce<Array<AppBskyRichtextFacet.Main>>((acc, facet) => {
+			const { byteStart, byteEnd } = facet.index;
+			if (
+				byteStart >= byteOffset && byteEnd <= byteOffset + substringByteLength + 1 // byteEnd is exclusive, so if it's at the end of a string, it will be 1 greater than the last index
+			) {
+				acc.push({
+					...facet,
+					index: { byteStart: byteStart - byteOffset, byteEnd: byteEnd - byteOffset },
+				});
+			}
+			return acc;
+		}, []);
+		substrings.push({ text: substring, facets: substringFacets });
+	}
 
 	return substrings;
 }

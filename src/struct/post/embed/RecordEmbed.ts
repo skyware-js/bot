@@ -33,7 +33,9 @@ export class RecordEmbed extends PostEmbed {
 		if (recordView.record.$type === "app.bsky.embed.record#viewRecord") {
 			// ViewRecord should only be a post
 			if (!is("app.bsky.feed.post", recordView.record.value)) {
-				throw new Error("Invalid post view record");
+				throw new Error(
+					"Invalid post view record type: " + (recordView.record.value as any).$type,
+				);
 			}
 			return new RecordEmbed(
 				Post.fromView({ ...recordView.record, record: recordView.record.value }, bot),
@@ -47,7 +49,7 @@ export class RecordEmbed extends PostEmbed {
 		} else if (recordView.record.$type === "app.bsky.labeler.defs#labelerView") {
 			return new RecordEmbed(Labeler.fromView(recordView.record, bot));
 		} else {
-			throw new Error("Invalid embed record");
+			throw new Error("Invalid embed record type: " + recordView.record.$type);
 		}
 	}
 }

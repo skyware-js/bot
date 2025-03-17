@@ -60,7 +60,7 @@ export class RecordWithMediaEmbed extends PostEmbed {
 		) {
 			embeddedMedia = ExternalEmbed.fromView(view.media);
 		} else {
-			throw new Error("Invalid embed media record");
+			throw new Error("Invalid embed media record type: " + record.media.$type);
 		}
 
 		if (
@@ -89,7 +89,7 @@ export class RecordWithMediaEmbed extends PostEmbed {
 				embeddedMedia,
 			);
 		} else {
-			throw new Error("Invalid post view record");
+			throw new Error("Invalid post view record type: " + view.record.record.$type);
 		}
 	}
 }

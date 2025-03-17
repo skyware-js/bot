@@ -2,6 +2,7 @@ import type { AppBskyEmbedRecordWithMedia } from "@atcute/client/lexicons";
 import type { Bot } from "../../../bot/Bot.js";
 import { is } from "../../../util/lexicon.js";
 import { FeedGenerator } from "../../FeedGenerator.js";
+import { Labeler } from "../../Labeler.js";
 import { List } from "../../List.js";
 import { StarterPack } from "../../StarterPack.js";
 import { Post } from "../Post.js";
@@ -71,6 +72,11 @@ export class RecordWithMediaEmbed extends PostEmbed {
 		} else if (view.record.record.$type === "app.bsky.graph.defs#starterPackViewBasic") {
 			return new RecordWithMediaEmbed(
 				StarterPack.fromView(view.record.record, bot),
+				embeddedMedia,
+			);
+		} else if (view.record.record.$type === "app.bsky.labeler.defs#labelerView") {
+			return new RecordWithMediaEmbed(
+				Labeler.fromView(view.record.record, bot),
 				embeddedMedia,
 			);
 		} else {

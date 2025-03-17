@@ -10,6 +10,7 @@ import type {
 import type { Bot } from "../../../bot/Bot.js";
 import { is } from "../../../util/lexicon.js";
 import type { FeedGenerator } from "../../FeedGenerator.js";
+import type { Labeler } from "../../Labeler.js";
 import type { List } from "../../List.js";
 import type { StarterPack } from "../../StarterPack.js";
 import type { Post } from "../Post.js";
@@ -49,7 +50,7 @@ export interface PostEmbedFromViewOptions {
 /**
  * Types of records that can be embedded in a post.
  */
-export type EmbeddableRecord = Post | List | FeedGenerator | StarterPack;
+export type EmbeddableRecord = Post | List | FeedGenerator | StarterPack | Labeler;
 
 /**
  * Constructs the appropriate embed type from an embed view and record.

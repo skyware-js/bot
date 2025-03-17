@@ -2,6 +2,7 @@ import type { AppBskyEmbedRecord } from "@atcute/client/lexicons";
 import type { Bot } from "../../../bot/Bot.js";
 import { is } from "../../../util/lexicon.js";
 import { FeedGenerator } from "../../FeedGenerator.js";
+import { Labeler } from "../../Labeler.js";
 import { List } from "../../List.js";
 import { StarterPack } from "../../StarterPack.js";
 import { Post } from "../Post.js";
@@ -43,6 +44,8 @@ export class RecordEmbed extends PostEmbed {
 			return new RecordEmbed(List.fromView(recordView.record, bot));
 		} else if (recordView.record.$type === "app.bsky.graph.defs#starterPackViewBasic") {
 			return new RecordEmbed(StarterPack.fromView(recordView.record, bot));
+		} else if (recordView.record.$type === "app.bsky.labeler.defs#labelerView") {
+			return new RecordEmbed(Labeler.fromView(recordView.record, bot));
 		} else {
 			throw new Error("Invalid embed record");
 		}

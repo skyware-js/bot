@@ -10,6 +10,7 @@ import { ExternalEmbed } from "./ExternalEmbed.js";
 import { ImagesEmbed } from "./ImagesEmbed.js";
 import { PostEmbed } from "./PostEmbed.js";
 import type { EmbeddableRecord } from "./util.js";
+import { VideoEmbed } from "./VideoEmbed.js";
 
 /**
  * A post embed that links to a record in addition to either images or external content.
@@ -19,7 +20,10 @@ export class RecordWithMediaEmbed extends PostEmbed {
 	 * @param record The embedded post record.
 	 * @param media The media within this embed.
 	 */
-	constructor(public record: EmbeddableRecord, public media: ImagesEmbed | ExternalEmbed) {
+	constructor(
+		public record: EmbeddableRecord,
+		public media: ImagesEmbed | VideoEmbed | ExternalEmbed,
+	) {
 		super();
 	}
 
@@ -38,13 +42,18 @@ export class RecordWithMediaEmbed extends PostEmbed {
 		record: AppBskyEmbedRecordWithMedia.Main,
 		bot: Bot,
 	): RecordWithMediaEmbed {
-		let embeddedMedia: ImagesEmbed | ExternalEmbed;
+		let embeddedMedia: ImagesEmbed | VideoEmbed | ExternalEmbed;
 
 		if (
 			view.media.$type === "app.bsky.embed.images#view"
 			&& record.media.$type === "app.bsky.embed.images"
 		) {
 			embeddedMedia = ImagesEmbed.fromView(view.media, record.media);
+		} else if (
+			view.media.$type === "app.bsky.embed.video#view"
+			&& record.media.$type === "app.bsky.embed.video"
+		) {
+			embeddedMedia = VideoEmbed.fromView(view.media, record.media);
 		} else if (
 			view.media.$type === "app.bsky.embed.external#view"
 			&& record.media.$type === "app.bsky.embed.external"

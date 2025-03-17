@@ -20,6 +20,8 @@ import { RecordEmbed } from "./RecordEmbed.js";
 import { RecordWithMediaEmbed } from "./RecordWithMediaEmbed.js";
 import { VideoEmbed } from "./VideoEmbed.js";
 
+const MAX_EMBED_IMAGE_SIZE_BYTES = 1_000_000;
+
 /**
  * Options for constructing a PostEmbed from an embed view.
  */
@@ -166,7 +168,7 @@ export async function fetchExternalEmbedData(
 	) {
 		const { data, type } = await fetchMediaForBlob(extractedEmbedData.image, "image/") ?? {};
 
-		if (data?.length) {
+		if (data?.length && data.byteLength < MAX_EMBED_IMAGE_SIZE_BYTES) {
 			const blob = await this.agent.call("com.atproto.repo.uploadBlob", {
 				data,
 				headers: { "Content-Type": type },

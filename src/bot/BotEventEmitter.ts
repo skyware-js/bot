@@ -292,7 +292,7 @@ export class BotEventEmitter extends EventEmitter {
 				const uri = `at://${did}/app.bsky.feed.repost/${rkey}`;
 				if (record.subject?.uri?.includes(`at://${this.bot.profile.did}`)) {
 					this.emit("repost", {
-						post: await this.bot.getPost(uri),
+						post: await this.bot.getPost(record.subject.uri),
 						user: await this.bot.getProfile(did),
 						uri,
 					});
@@ -320,11 +320,7 @@ export class BotEventEmitter extends EventEmitter {
 					}
 
 					if (subject) {
-						this.emit("like", {
-							subject: await this.bot.getPost(uri),
-							user: await this.bot.getProfile(did),
-							uri,
-						});
+						this.emit("like", { subject, user: await this.bot.getProfile(did), uri });
 					}
 				}
 			},

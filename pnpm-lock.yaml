@@ -31,8 +31,8 @@ importers:
         specifier: ^0.3.2
         version: 0.3.2
       '@skyware/jetstream':
-        specifier: ^0.1.9
-        version: 0.1.9(@atcute/client@2.0.3)
+        specifier: ^0.2.2
+        version: 0.2.2(@atcute/client@2.0.3)
     devDependencies:
       '@types/node':
         specifier: ^20.11.26
@@ -195,8 +195,8 @@ packages:
   '@skyware/firehose@0.3.2':
     resolution: {integrity: sha512-CmRaw3lFPEd9euFGV+K/n/TF/o0Rre87oJP5pswC8IExj/qQnWVoncIulAJbL3keUCm5mlt49jCiiqfQXVjigg==}
 
-  '@skyware/jetstream@0.1.9':
-    resolution: {integrity: sha512-87NGqRSmEYmvEuVY0DKZ2ZRbL72tExtDuV+PDvywYqukSp3F/it+9wnU5Xb/Is/pf+KSbd6lWvrnE31HgxJpJg==}
+  '@skyware/jetstream@0.2.2':
+    resolution: {integrity: sha512-d1MtWPTIFEciSzV8OClXZCJoz0DJ7aupt4EZSwpGAASYG0ZIPmZTt7RVJkoFzQyqRPHAMD7CvEwu0ut3MHX1og==}
 
   '@types/hast@3.0.4':
     resolution: {integrity: sha512-WPs+bbQw5aCj+x6laNGWLH3wviHtoCv/P3+otBhbOhJgG8qtpdAMlTCxLtsTWA7LH1Oh/bFCHsBn0TPS5m30EQ==}
@@ -1368,7 +1368,7 @@ snapshots:
       - utf-8-validate
     optional: true
 
-  '@skyware/jetstream@0.1.9(@atcute/client@2.0.3)':
+  '@skyware/jetstream@0.2.2(@atcute/client@2.0.3)':
     dependencies:
       '@atcute/bluesky': 1.0.7(@atcute/client@2.0.3)
       partysocket: 1.0.2

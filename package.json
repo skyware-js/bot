@@ -43,7 +43,7 @@
 	},
 	"optionalDependencies": {
 		"@skyware/firehose": "^0.3.2",
-		"@skyware/jetstream": "^0.1.9"
+		"@skyware/jetstream": "^0.2.2"
 	},
 	"files": [
 		"dist"

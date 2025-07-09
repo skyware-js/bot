@@ -225,6 +225,15 @@ export class Bot extends EventEmitter {
 	}
 
 	/**
+	 * Shut down any event emitters & listeners associated with the bot.
+	 */
+	shutdown(): void {
+		this.eventEmitter?.stop();
+		this.chatEventEmitter?.stop();
+		this.removeAllListeners();
+	}
+
+	/**
 	 * Fetch a post by its AT URI.
 	 * @param uri The post's AT URI.
 	 * @param options Optional configuration.

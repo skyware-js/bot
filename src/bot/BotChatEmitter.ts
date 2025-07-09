@@ -61,6 +61,7 @@ export class BotChatEmitter extends EventEmitter {
 	/** Stop emitting events. */
 	stop() {
 		this.pollingController?.abort();
+		this.removeAllListeners();
 		this.emitting = false;
 	}
 

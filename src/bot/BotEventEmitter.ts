@@ -162,6 +162,7 @@ export class BotEventEmitter extends EventEmitter {
 		this.firehose?.close();
 		this.jetstream?.close();
 		this.pollingController?.abort();
+		this.removeAllListeners();
 		this.emitting = false;
 	}
 

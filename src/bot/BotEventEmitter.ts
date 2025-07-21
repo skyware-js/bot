@@ -262,16 +262,18 @@ export class BotEventEmitter extends EventEmitter {
 			"app.bsky.feed.post",
 			async ({ commit: { record, rkey }, did }) => {
 				const uri = `at://${did}/app.bsky.feed.post/${rkey}`;
-				if (record.reply?.parent?.uri?.includes(`at://${this.bot.profile.did}`)) {
+				if (record.reply?.parent?.uri?.startsWith(`at://${this.bot.profile.did}/`)) {
 					this.emit("reply", await this.bot.getPost(uri));
+				} else if (record.reply?.root?.uri?.startsWith(`at://${this.bot.profile.did}/`)) {
+					this.emit("reply_root", await this.bot.getPost(uri));
 				} else if (
 					is("app.bsky.embed.record", record.embed)
-					&& record.embed.record.uri.includes(`at://${this.bot.profile.did}`)
+					&& record.embed.record.uri.startsWith(`at://${this.bot.profile.did}/`)
 				) {
 					this.emit("quote", await this.bot.getPost(uri));
 				} else if (
 					is("app.bsky.embed.recordWithMedia", record.embed)
-					&& record.embed.record.record.uri.includes(`at://${this.bot.profile.did}`)
+					&& record.embed.record.record.uri.startsWith(`at://${this.bot.profile.did}/`)
 				) {
 					this.emit("quote", await this.bot.getPost(uri));
 				} else if (
@@ -291,7 +293,7 @@ export class BotEventEmitter extends EventEmitter {
 			"app.bsky.feed.repost",
 			async ({ commit: { record, rkey }, did }) => {
 				const uri = `at://${did}/app.bsky.feed.repost/${rkey}`;
-				if (record.subject?.uri?.includes(`at://${this.bot.profile.did}`)) {
+				if (record.subject?.uri?.startsWith(`at://${this.bot.profile.did}/`)) {
 					this.emit("repost", {
 						post: await this.bot.getPost(record.subject.uri),
 						user: await this.bot.getProfile(did),
@@ -305,7 +307,7 @@ export class BotEventEmitter extends EventEmitter {
 			"app.bsky.feed.like",
 			async ({ commit: { record, rkey }, did }) => {
 				const uri = `at://${did}/app.bsky.feed.like/${rkey}`;
-				if (record.subject?.uri?.includes(`at://${this.bot.profile.did}`)) {
+				if (record.subject?.uri?.startsWith(`at://${this.bot.profile.did}/`)) {
 					const { collection, host } = parseAtUri(record.subject.uri);
 					let subject: Post | FeedGenerator | Labeler | undefined;
 					switch (collection) {
@@ -391,12 +393,15 @@ export class BotEventEmitter extends EventEmitter {
 						emitInvalidRecordError(notification);
 						break;
 					}
+					let isRootReply = false;
 					if (notification.record.reply) {
 						try {
-							const { host } = parseAtUri(notification.record.reply.parent.uri);
-							if (host !== this.bot.profile.did) {
-								// Ignore replies that aren't direct replies to the bot
-								break;
+							const { host: parentHost } = parseAtUri(notification.record.reply.parent.uri);
+							const { host: rootHost } = parseAtUri(notification.record.reply.parent.uri);
+							if (parentHost !== this.bot.profile.did && rootHost === this.bot.profile.did) {
+								isRootReply = true; // This reply is only a root-reply
+							} else if (parentHost !== this.bot.profile.did) {
+								break; // Ignore non-parent & non-root replies
 							}
 						} catch (e) {
 							// Ignore invalid AT URI
@@ -404,7 +409,7 @@ export class BotEventEmitter extends EventEmitter {
 						}
 					}
 					const reply = await this.bot.getPost(notification.uri);
-					if (reply) this.emit("reply", reply);
+					if (reply) this.emit(isRootReply ? "reply_root" : "reply", reply);
 					break;
 				}
 				case "quote": {

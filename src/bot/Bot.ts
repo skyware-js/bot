@@ -159,6 +159,7 @@ export class Bot extends EventEmitter {
 			this.eventEmitter.on("error", (error) => this.emit("error", error));
 			this.eventEmitter.on("close", () => this.emit("close"));
 			this.eventEmitter.on("reply", (event) => this.emit("reply", event));
+			this.eventEmitter.on("reply_root", (event) => this.emit("reply_root", event));
 			this.eventEmitter.on("quote", (event) => this.emit("quote", event));
 			this.eventEmitter.on("mention", (event) => this.emit("mention", event));
 			this.eventEmitter.on("repost", (event) => this.emit("repost", event));
@@ -1538,6 +1539,8 @@ export class Bot extends EventEmitter {
 	override on(event: "close", listener: () => void): this;
 	/** Emitted when the bot receives a reply. */
 	override on(event: "reply", listener: (post: Post) => void): this;
+	/** Emitted when the bot receives a reply inside a post thread initiated by the bot. */
+	override on(event: "reply_root", listener: (post: Post) => void): this;
 	/** Emitted when the bot receives a quote post. */
 	override on(event: "quote", listener: (post: Post) => void): this;
 	/** Emitted when the bot is mentioned. */
@@ -1589,6 +1592,7 @@ export class Bot extends EventEmitter {
 	override addListener(event: "error", listener: (error: unknown) => void): this;
 	override addListener(event: "close", listener: () => void): this;
 	override addListener(event: "reply", listener: (post: Post) => void): this;
+	override addListener(event: "reply_root", listener: (post: Post) => void): this;
 	override addListener(event: "quote", listener: (post: Post) => void): this;
 	override addListener(event: "mention", listener: (post: Post) => void): this;
 	override addListener(

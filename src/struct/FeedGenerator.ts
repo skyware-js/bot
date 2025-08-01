@@ -1,8 +1,10 @@
-import type { AppBskyFeedDefs, At, Brand } from "@atcute/client/lexicons";
+import type { AppBskyFeedDefs } from "@atcute/bluesky";
+import type { Did, ResourceUri } from "@atcute/lexicons";
+import type { ToolsOzoneModerationDefs } from "@atcute/ozone";
 import type { Bot } from "../bot/Bot.js";
-import { asDid } from "../util/lexicon.js";
-import { Facet } from "./post/Facet.js";
+import { asDid, asUri } from "../util/lexicon.js";
 import { makeIterableWithCursorInOptions } from "../util/makeIterable.js";
+import { Facet } from "./post/Facet.js";
 import { Post } from "./post/Post.js";
 import { Profile } from "./Profile.js";
 
@@ -16,9 +18,9 @@ export interface FeedGeneratorData {
 	cid: string;
 	did: string;
 	creator: Profile;
-	description?: string;
-	descriptionFacets?: Array<Facet>;
-	avatar?: string;
+	description?: string | undefined;
+	descriptionFacets?: Array<Facet> | undefined;
+	avatar?: string | undefined;
 	isOnline?: boolean;
 	likeUri?: string;
 	indexedAt: Date;
@@ -32,13 +34,13 @@ export class FeedGenerator {
 	displayName: string;
 
 	/** The feed generator's AT URI. */
-	uri: At.Uri;
+	uri: ResourceUri;
 
 	/** The feed generator's CID. */
-	cid: At.CID;
+	cid: string;
 
 	/** The feed generator's DID. */
-	did: At.DID;
+	did: Did;
 
 	/** The feed generator's creator. */
 	creator: Profile;
@@ -56,7 +58,7 @@ export class FeedGenerator {
 	isOnline?: boolean;
 
 	/** The URI of the feed generator's like record, if the viewer has liked the feed generator. */
-	likeUri?: At.Uri;
+	likeUri?: ResourceUri;
 
 	/** The time the feed generator was indexed by the AppView. */
 	indexedAt: Date;
@@ -72,7 +74,7 @@ export class FeedGenerator {
 		protected bot: Bot,
 	) {
 		this.displayName = displayName;
-		this.uri = uri;
+		this.uri = asUri(uri);
 		this.cid = cid;
 		this.did = asDid(did);
 		this.creator = creator;
@@ -80,7 +82,7 @@ export class FeedGenerator {
 		if (descriptionFacets) this.descriptionFacets = descriptionFacets;
 		if (avatar) this.avatar = avatar;
 		if (isOnline != undefined) this.isOnline = isOnline;
-		if (likeUri) this.likeUri = likeUri;
+		if (likeUri) this.likeUri = asUri(likeUri);
 		this.indexedAt = indexedAt;
 	}
 
@@ -89,7 +91,7 @@ export class FeedGenerator {
 	 * @returns The like record's AT URI.
 	 */
 	async like() {
-		return this.likeUri = (await this.bot.like({ uri: this.uri, cid: this.cid })).uri;
+		return this.likeUri = asUri((await this.bot.like({ uri: this.uri, cid: this.cid })).uri);
 	}
 
 	/**
@@ -118,8 +120,8 @@ export class FeedGenerator {
 			throw new Error("Failed to get feed for generator " + this.uri, { cause: e });
 		});
 		return {
-			posts: response.data.feed.map(({ post }) => Post.fromView(post, this.bot)),
-			...(response.data.cursor ? { cursor: response.data.cursor } : {}),
+			posts: response.feed.map(({ post }) => Post.fromView(post, this.bot)),
+			...(response.cursor ? { cursor: response.cursor } : {}),
 		};
 	}
 
@@ -136,7 +138,10 @@ export class FeedGenerator {
 	 * @param labels The labels to apply.
 	 * @param comment An optional comment.
 	 */
-	async label(labels: Array<string>, comment?: string) {
+	async label(
+		labels: Array<string>,
+		comment?: string,
+	): Promise<ToolsOzoneModerationDefs.ModEventView> {
 		return this.bot.label({ reference: this, labels, comment });
 	}
 
@@ -145,7 +150,10 @@ export class FeedGenerator {
 	 * @param labels The labels to negate.
 	 * @param comment An optional comment.
 	 */
-	async negateLabels(labels: Array<string>, comment?: string) {
+	async negateLabels(
+		labels: Array<string>,
+		comment?: string,
+	): Promise<ToolsOzoneModerationDefs.ModEventView> {
 		return this.bot.negateLabels({ reference: this, labels, comment });
 	}
 
@@ -154,19 +162,15 @@ export class FeedGenerator {
 	 * @param view The GeneratorView to construct from.
 	 * @param bot The active Bot instance.
 	 */
-	static fromView(view: Brand.Omit<AppBskyFeedDefs.GeneratorView>, bot: Bot): FeedGenerator {
+	static fromView(view: AppBskyFeedDefs.GeneratorView, bot: Bot): FeedGenerator {
 		const { descriptionFacets, ...rest } = view;
 		return new FeedGenerator({
 			...rest,
 			creator: Profile.fromView(view.creator, bot),
 			indexedAt: new Date(view.indexedAt),
-			...(descriptionFacets?.length && view.description?.length
-				? {
-					descriptionFacets: descriptionFacets.map((facet) =>
-						new Facet(view.description!, facet)
-					),
-				}
-				: {}),
+			descriptionFacets: descriptionFacets?.map((facet) =>
+				new Facet(view.description!, facet)
+			),
 		}, bot);
 	}
 }

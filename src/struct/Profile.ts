@@ -1,9 +1,8 @@
+import type { ComAtprotoLabelDefs } from "@atcute/atproto";
 import type {
 	AppBskyActorDefs,
-	At,
 	ChatBskyActorDefs,
-	ComAtprotoLabelDefs,
-} from "@atcute/client/lexicons";
+} from "@atcute/bluesky";
 import type {
 	Bot,
 	BotGetUserLikesOptions,
@@ -11,12 +10,14 @@ import type {
 	BotGetUserPostsOptions,
 	BotGetUserStarterPacksOptions,
 } from "../bot/Bot.js";
-import { asDid } from "../util/lexicon.js";
+import { asDid, asUri } from "../util/lexicon.js";
+import { makeIterableWithCursorInOptions } from "../util/makeIterable.js";
 import type { ChatMessagePayload } from "./chat/ChatMessage.js";
 import type { Conversation } from "./chat/Conversation.js";
 import type { List } from "./List.js";
-import { makeIterableWithCursorInOptions } from "../util/makeIterable.js";
 import type { Post } from "./post/Post.js";
+import type { Did, ResourceUri } from "@atcute/lexicons";
+import type { ToolsOzoneModerationDefs } from "@atcute/ozone";
 
 /**
  * Data used to construct a Profile class.
@@ -82,7 +83,7 @@ export interface ProfileData {
  */
 export class Profile {
 	/** The user's DID. */
-	did: At.DID;
+	did: Did;
 
 	/** The user's handle. */
 	handle: string;
@@ -118,13 +119,13 @@ export class Profile {
 	 * The AT URI of the follow relationship between the bot and the user.
 	 * Undefined if the bot is not following the user.
 	 */
-	followUri?: At.Uri;
+	followUri?: ResourceUri;
 
 	/**
 	 * The AT URI of the follow relationship between the bot and the user.
 	 * Undefined if the user is not following the bot.
 	 */
-	followedByUri?: At.Uri;
+	followedByUri?: ResourceUri;
 
 	/** Whether the user is muted by the bot. */
 	isMuted?: boolean;
@@ -133,7 +134,7 @@ export class Profile {
 	 * The AT URI of the block relationship between the bot and the user.
 	 * Undefined if the user is not blocking the bot.
 	 */
-	blockUri?: At.Uri;
+	blockUri?: ResourceUri;
 
 	/** Whether the bot is blocked by the user. */
 	blockedBy?: boolean;
@@ -187,10 +188,10 @@ export class Profile {
 		if (postsCount != undefined) this.postsCount = postsCount;
 		this.labels = labels ?? [];
 		if (indexedAt) this.indexedAt = indexedAt;
-		if (followUri != undefined) this.followUri = followUri;
-		if (followedByUri != undefined) this.followedByUri = followedByUri;
+		if (followUri != undefined) this.followUri = asUri(followUri)
+		if (followedByUri != undefined) this.followedByUri = asUri(followedByUri)
 		if (isMuted != undefined) this.isMuted = isMuted;
-		if (blockUri != undefined) this.blockUri = blockUri;
+		if (blockUri != undefined) this.blockUri = asUri(blockUri)
 		if (isBlockedBy != undefined) this.blockedBy = isBlockedBy;
 		if (isLabeler != undefined) this.isLabeler = isLabeler;
 		if (incomingChatPreference) this.incomingChatPreference = incomingChatPreference;
@@ -201,7 +202,7 @@ export class Profile {
 	 * @returns The AT URI of the follow relationship.
 	 */
 	async follow(): Promise<string> {
-		return this.followUri = (await this.bot.follow(this.did)).uri;
+		return this.followUri = asUri((await this.bot.follow(this.did)).uri)
 	}
 
 	/**
@@ -230,7 +231,7 @@ export class Profile {
 	 * @returns The AT URI of the block relationship.
 	 */
 	async block(): Promise<string> {
-		return this.blockUri = (await this.bot.block(this.did)).uri;
+		return this.blockUri = asUri((await this.bot.block(this.did)).uri)
 	}
 
 	/**
@@ -344,7 +345,7 @@ export class Profile {
 	 * @param labels The labels to apply.
 	 * @param comment An optional comment to attach to the label.
 	 */
-	async labelAccount(labels: Array<string>, comment?: string) {
+	async labelAccount(labels: Array<string>, comment?: string): Promise<ToolsOzoneModerationDefs.ModEventView> {
 		return this.bot.label({ reference: { did: this.did }, labels, comment });
 	}
 
@@ -368,11 +369,11 @@ export class Profile {
 			params: { repo: this.did, collection: "app.bsky.actor.profile", rkey: "self" },
 		}).catch(() => null);
 
-		if (!profileRecordResponse?.data?.cid) {
+		if (!profileRecordResponse?.cid) {
 			throw new Error(`Could not find profile record for user ${this.did}.`);
 		}
 
-		const { uri, cid } = profileRecordResponse.data;
+		const { uri, cid } = profileRecordResponse;
 
 		return this.bot.label({ reference: { uri, cid }, labels, comment });
 	}
@@ -387,11 +388,11 @@ export class Profile {
 			params: { repo: this.did, collection: "app.bsky.actor.profile", rkey: "self" },
 		}).catch(() => null);
 
-		if (!profileRecordResponse?.data?.cid) {
+		if (!profileRecordResponse?.cid) {
 			throw new Error(`Could not find profile record for user ${this.did}.`);
 		}
 
-		const { uri, cid } = profileRecordResponse.data;
+		const { uri, cid } = profileRecordResponse;
 
 		return this.bot.negateLabels({ reference: { uri, cid }, labels, comment });
 	}
@@ -412,7 +413,7 @@ export class Profile {
 		return new Profile({
 			...view,
 			labels: view.labels ?? [],
-			indexedAt: "indexedAt" in view ? new Date(view.indexedAt) : undefined,
+			indexedAt: "indexedAt" in view && view.indexedAt ? new Date(view.indexedAt) : undefined,
 			followerCount: "followersCount" in view ? view.followersCount : undefined,
 			followingCount: "followsCount" in view ? view.followsCount : undefined,
 			postsCount: "postsCount" in view ? view.postsCount : undefined,

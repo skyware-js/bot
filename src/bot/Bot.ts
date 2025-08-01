@@ -1,5 +1,4 @@
-import RichText from "@atcute/bluesky-richtext-builder";
-import { type AtpSessionData, CredentialManager, type XRPC } from "@atcute/client";
+import type { ComAtprotoLabelDefs } from "@atcute/atproto";
 import type {
 	AppBskyActorDefs,
 	AppBskyEmbedExternal,
@@ -10,16 +9,13 @@ import type {
 	AppBskyFeedPost,
 	AppBskyFeedThreadgate,
 	AppBskyRichtextFacet,
-	At,
-	Brand,
-	ComAtprotoLabelDefs,
-	ComAtprotoServerGetSession,
-	Records,
-	ToolsOzoneModerationDefs,
-	ToolsOzoneModerationEmitEvent,
-} from "@atcute/client/lexicons";
-import "@atcute/bluesky/lexicons";
-import "@atcute/ozone/lexicons";
+} from "@atcute/bluesky";
+import RichText from "@atcute/bluesky-richtext-builder";
+import { type AtpSessionData, CredentialManager } from "@atcute/client";
+import type { Did } from "@atcute/lexicons";
+import type { Blob as AtBlob } from "@atcute/lexicons/interfaces";
+import type { InferOutput } from "@atcute/lexicons/validations";
+import type { ToolsOzoneModerationDefs, ToolsOzoneModerationEmitEvent } from "@atcute/ozone";
 import { EventEmitter } from "node:events";
 import type QuickLRU from "quick-lru";
 import { RateLimitThreshold } from "rate-limit-threshold";
@@ -39,13 +35,13 @@ import type { PostPayload } from "../struct/post/PostPayload.js";
 import { PostReference } from "../struct/post/PostReference.js";
 import { type IncomingChatPreference, Profile } from "../struct/Profile.js";
 import { StarterPack } from "../struct/StarterPack.js";
-import { asDid } from "../util/lexicon.js";
+import { asDid, asIdentifier, asStrongRef, asUri, type lexicons } from "../util/lexicon.js";
+import { makeIterableWithCursorInOptions } from "../util/makeIterable.js";
 import { parseAtUri } from "../util/parseAtUri.js";
 import { BotChatEmitter, type BotChatEmitterOptions } from "./BotChatEmitter.js";
 import { BotEventEmitter, type BotEventEmitterOptions, EventStrategy } from "./BotEventEmitter.js";
 import { type CacheOptions, makeCache } from "./cache.js";
 import { RateLimitedAgent } from "./RateLimitedAgent.js";
-import { makeIterableWithCursorInOptions } from "../util/makeIterable.js";
 
 const NO_SESSION_ERROR = "Active session not found. Make sure to call the login method first.";
 
@@ -110,7 +106,7 @@ export class Bot extends EventEmitter {
 	private readonly chatEventEmitter?: BotChatEmitter;
 
 	/** The proxy agent for chat-related requests. */
-	chatProxy?: XRPC;
+	chatProxy?: RateLimitedAgent;
 
 	/** The default list of languages to attach to posts. */
 	langs: Array<string> = [];
@@ -196,7 +192,7 @@ export class Bot extends EventEmitter {
 			});
 		});
 
-		this.chatProxy ??= this.agent.withProxy("bsky_chat", "did:web:api.bsky.chat");
+		this.chatProxy ??= this.agent.withProxy("did:web:api.bsky.chat", "#bsky_chat");
 
 		this.profile = await this.getProfile(response.did).catch((e) => {
 			throw new Error("Failed to fetch bot profile.", { cause: e });
@@ -210,12 +206,12 @@ export class Bot extends EventEmitter {
 	 * @param session Session data.
 	 * @returns Updated session data.
 	 */
-	async resumeSession(session: AtpSessionData): Promise<ComAtprotoServerGetSession.Output> {
+	async resumeSession(session: AtpSessionData): Promise<AtpSessionData> {
 		const response = await this.handler.resume(session).catch((e) => {
 			throw new Error("Failed to resume session.", { cause: e });
 		});
 
-		this.chatProxy ??= this.agent.withProxy("bsky_chat", "did:web:api.bsky.chat");
+		this.chatProxy ??= this.agent.withProxy("did:web:api.bsky.chat", "#bsky_chat");
 
 		this.profile = await this.getProfile(response.did).catch((e) => {
 			throw new Error("Failed to fetch bot profile.", { cause: e });
@@ -245,14 +241,14 @@ export class Bot extends EventEmitter {
 		if (!options.skipCache && this.cache.posts.has(uri)) return this.cache.posts.get(uri)!;
 
 		const postThread = await this.agent.get("app.bsky.feed.getPostThread", {
-			params: { uri, parentHeight: options.parentHeight!, depth: options.depth! },
+			params: { uri: asUri(uri), parentHeight: options.parentHeight!, depth: options.depth! },
 		}).catch((e) => {
 			throw new Error(`Failed to fetch post ${uri}`, { cause: e });
 		});
 
-		switch (postThread.data.thread?.$type) {
+		switch (postThread.thread?.$type) {
 			case "app.bsky.feed.defs#threadViewPost": {
-				const post = Post.fromThreadView(postThread.data.thread, this);
+				const post = Post.fromThreadView(postThread.thread, this);
 				if (!options.noCacheResponse) this.cache.posts.set(uri, post);
 				return post;
 			}
@@ -284,17 +280,17 @@ export class Bot extends EventEmitter {
 			return uris.map((uri) => this.cache.posts.get(uri)!);
 		}
 
-		const postViews = await this.agent.get("app.bsky.feed.getPosts", { params: { uris } })
-			.catch((e) => {
-				throw new Error(
-					"Failed to fetch posts at URIs:\n- " + uris.slice(0, 3).join("\n- ")
-						+ "\n- ...",
-					{ cause: e },
-				);
-			});
+		const postViews = await this.agent.get("app.bsky.feed.getPosts", {
+			params: { uris: uris.map(asUri) },
+		}).catch((e) => {
+			throw new Error(
+				"Failed to fetch posts at URIs:\n- " + uris.slice(0, 3).join("\n- ") + "\n- ...",
+				{ cause: e },
+			);
+		});
 
 		const posts: Array<Post> = [];
-		for (const postView of postViews.data.posts) {
+		for (const postView of postViews.posts) {
 			const post = Post.fromView(postView, this);
 			if (!options.noCacheResponse) this.cache.posts.set(post.uri, post);
 			posts.push(post);
@@ -314,19 +310,23 @@ export class Bot extends EventEmitter {
 		options: BotGetUserPostsOptions = {},
 	): Promise<{ cursor?: string; posts: Array<Post> }> {
 		const response = await this.agent.get("app.bsky.feed.getAuthorFeed", {
-			params: { actor: did, filter: GetUserPostsFilter.PostsWithReplies, ...options },
+			params: {
+				actor: asIdentifier(did),
+				filter: GetUserPostsFilter.PostsWithReplies,
+				...options,
+			},
 		}).catch((e) => {
 			throw new Error("Failed to fetch user posts.", { cause: e });
 		});
 
 		const posts: Array<Post> = [];
-		for (const feedViewPost of response.data.feed) {
+		for (const feedViewPost of response.feed) {
 			const post = Post.fromView(feedViewPost.post, this);
 			if (!options.noCacheResponse) this.cache.posts.set(post.uri, post);
 			posts.push(post);
 		}
 
-		return { posts, ...(response.data.cursor ? { cursor: response.data.cursor } : {}) };
+		return { posts, ...(response.cursor ? { cursor: response.cursor } : {}) };
 	}
 
 	/**
@@ -351,19 +351,19 @@ export class Bot extends EventEmitter {
 		options: BotGetUserLikesOptions = {},
 	): Promise<{ cursor?: string; posts: Array<Post> }> {
 		const response = await this.agent.get("app.bsky.feed.getActorLikes", {
-			params: { actor: did, ...options },
+			params: { actor: asIdentifier(did), ...options },
 		}).catch((e) => {
 			throw new Error("Failed to fetch user likes.", { cause: e });
 		});
 
 		const posts: Array<Post> = [];
-		for (const feedViewPost of response.data.feed) {
+		for (const feedViewPost of response.feed) {
 			const post = Post.fromView(feedViewPost.post, this);
 			if (!options.noCacheResponse) this.cache.posts.set(post.uri, post);
 			posts.push(post);
 		}
 
-		return { posts, ...(response.data.cursor ? { cursor: response.data.cursor } : {}) };
+		return { posts, ...(response.cursor ? { cursor: response.cursor } : {}) };
 	}
 
 	/**
@@ -389,12 +389,12 @@ export class Bot extends EventEmitter {
 		}
 
 		const profileView = await this.agent.get("app.bsky.actor.getProfile", {
-			params: { actor: didOrHandle },
+			params: { actor: asIdentifier(didOrHandle) },
 		}).catch((e) => {
 			throw new Error(`Failed to fetch profile ${didOrHandle}.`, { cause: e });
 		});
 
-		const profile = Profile.fromView(profileView.data, this);
+		const profile = Profile.fromView(profileView, this);
 		if (!options.noCacheResponse) this.cache.profiles.set(didOrHandle, profile);
 		return profile;
 	}
@@ -419,8 +419,8 @@ export class Bot extends EventEmitter {
 			return identifiers.map((didOrHandle) => this.cache.profiles.get(didOrHandle)!);
 		}
 
-		const { data } = await this.agent.get("app.bsky.actor.getProfiles", {
-			params: { actors: identifiers },
+		const { profiles } = await this.agent.get("app.bsky.actor.getProfiles", {
+			params: { actors: identifiers.map(asIdentifier) },
 		}).catch((e) => {
 			throw new Error(
 				"Failed to fetch profiles at identifiers:\n- "
@@ -430,7 +430,7 @@ export class Bot extends EventEmitter {
 			);
 		});
 
-		return data.profiles.map((profileView) => {
+		return profiles.map((profileView) => {
 			const profile = Profile.fromView(profileView, this);
 			if (!options.noCacheResponse) this.cache.profiles.set(profile.did, profile);
 			return profile;
@@ -447,13 +447,14 @@ export class Bot extends EventEmitter {
 			return this.cache.lists.get(uri)!;
 		}
 
-		const response = await this.agent.get("app.bsky.graph.getList", { params: { list: uri } })
-			.catch((e) => {
-				throw new Error(`Failed to fetch list ${uri}`, { cause: e });
-			});
+		const response = await this.agent.get("app.bsky.graph.getList", {
+			params: { list: asUri(uri) },
+		}).catch((e) => {
+			throw new Error(`Failed to fetch list ${uri}`, { cause: e });
+		});
 
-		const list = List.fromView(response.data.list, this);
-		list.items = response.data.items.map(({ subject }) => {
+		const list = List.fromView(response.list, this);
+		list.items = response.items.map(({ subject }) => {
 			const profile = Profile.fromView(subject, this);
 			if (!options.noCacheResponse) this.cache.profiles.set(profile.did, profile);
 			return profile;
@@ -473,18 +474,18 @@ export class Bot extends EventEmitter {
 		options: BotGetUserListsOptions,
 	): Promise<{ cursor?: string; lists: Array<List> }> {
 		const response = await this.agent.get("app.bsky.graph.getLists", {
-			params: { actor: did, ...options },
+			params: { actor: asIdentifier(did), ...options },
 		}).catch((e) => {
 			throw new Error(`Failed to fetch user lists for ${did}.`, { cause: e });
 		});
 
-		const lists = response.data.lists.map((listView) => {
+		const lists = response.lists.map((listView) => {
 			const list = List.fromView(listView, this);
 			this.cache.lists.set(list.uri, list);
 			return list;
 		});
 
-		return { lists, ...(response.data.cursor ? { cursor: response.data.cursor } : {}) };
+		return { lists, ...(response.cursor ? { cursor: response.cursor } : {}) };
 	}
 
 	/**
@@ -513,13 +514,13 @@ export class Bot extends EventEmitter {
 		}
 
 		const response = await this.agent.get("app.bsky.feed.getFeedGenerator", {
-			params: { feed: uri },
+			params: { feed: asUri(uri) },
 		}).catch((e) => {
 			throw new Error(`Failed to fetch feed generator ${uri}`, { cause: e });
 		});
 
-		const feed = FeedGenerator.fromView(response.data.view, this);
-		feed.isOnline = response.data.isOnline;
+		const feed = FeedGenerator.fromView(response.view, this);
+		feed.isOnline = response.isOnline;
 		if (!options.noCacheResponse) this.cache.feeds.set(uri, feed);
 		return feed;
 	}
@@ -536,7 +537,7 @@ export class Bot extends EventEmitter {
 		if (!uris.length) return [];
 
 		const feedViews = await this.agent.get("app.bsky.feed.getFeedGenerators", {
-			params: { feeds: uris },
+			params: { feeds: uris.map(asUri) },
 		}).catch((e) => {
 			throw new Error(
 				"Failed to fetch feed generators at URIs:\n- " + uris.slice(0, 3).join("\n- ")
@@ -545,7 +546,7 @@ export class Bot extends EventEmitter {
 			);
 		});
 
-		return feedViews.data.feeds.map((feedView) => {
+		return feedViews.feeds.map((feedView) => {
 			const feed = FeedGenerator.fromView(feedView, this);
 			if (!options.noCacheResponse) this.cache.feeds.set(feed.uri, feed);
 			return feed;
@@ -562,7 +563,7 @@ export class Bot extends EventEmitter {
 				throw new Error("Failed to fetch timeline.", { cause: e });
 			});
 
-		return response.data.feed.map((feedViewPost) => {
+		return response.feed.map((feedViewPost) => {
 			const post = Post.fromView(feedViewPost.post, this);
 			if (!options.noCacheResponse) this.cache.posts.set(post.uri, post);
 			return post;
@@ -597,7 +598,7 @@ export class Bot extends EventEmitter {
 		options: BaseBotGetMethodOptions = {},
 	): Promise<Array<Labeler>> {
 		const response = await this.agent.get("app.bsky.labeler.getServices", {
-			params: { dids: dids as Array<At.DID>, detailed: true },
+			params: { dids: dids as Array<Did>, detailed: true },
 		}).catch((e) => {
 			throw new Error(
 				"Failed to fetch labelers:\n- " + dids.slice(0, 3).join("\n- ") + "\n- ...",
@@ -605,7 +606,7 @@ export class Bot extends EventEmitter {
 			);
 		});
 
-		return response.data.views.map((labelerView) => {
+		return response.views.map((labelerView) => {
 			const labeler = Labeler.fromView(labelerView, this);
 			if (!options.noCacheResponse) this.cache.labelers.set(labeler.uri, labeler);
 			return labeler;
@@ -623,16 +624,16 @@ export class Bot extends EventEmitter {
 		}
 
 		const response = await this.agent.get("app.bsky.graph.getStarterPack", {
-			params: { starterPack: uri },
+			params: { starterPack: asUri(uri) },
 		}).catch((e) => {
 			throw new Error(`Failed to fetch starter pack ${uri}`, { cause: e });
 		});
 
 		if (!options.noCacheResponse) {
-			this.cache.starterPacks.set(uri, StarterPack.fromView(response.data.starterPack, this));
+			this.cache.starterPacks.set(uri, StarterPack.fromView(response.starterPack, this));
 		}
 
-		return StarterPack.fromView(response.data.starterPack, this);
+		return StarterPack.fromView(response.starterPack, this);
 	}
 
 	/**
@@ -645,7 +646,7 @@ export class Bot extends EventEmitter {
 		options: BaseBotGetMethodOptions = {},
 	): Promise<Array<StarterPack>> {
 		const response = await this.agent.get("app.bsky.graph.getStarterPacks", {
-			params: { uris },
+			params: { uris: uris.map(asUri) },
 		}).catch((e) => {
 			throw new Error(
 				"Failed to fetch starter packs at URIs:\n- " + uris.slice(0, 3).join("\n- ")
@@ -654,7 +655,7 @@ export class Bot extends EventEmitter {
 			);
 		});
 
-		return response.data.starterPacks.map((starterPackView) => {
+		return response.starterPacks.map((starterPackView) => {
 			const starterPack = StarterPack.fromView(starterPackView, this);
 			if (!options.noCacheResponse) this.cache.starterPacks.set(starterPack.uri, starterPack);
 			return starterPack;
@@ -671,12 +672,16 @@ export class Bot extends EventEmitter {
 		options: BotGetUserStarterPacksOptions = {},
 	): Promise<Array<StarterPack>> {
 		const response = await this.agent.get("app.bsky.graph.getActorStarterPacks", {
-			params: { actor: did, limit: options.limit ?? 100, cursor: options.cursor ?? "" },
+			params: {
+				actor: asIdentifier(did),
+				limit: options.limit ?? 100,
+				cursor: options.cursor ?? "",
+			},
 		}).catch((e) => {
 			throw new Error(`Failed to fetch starter packs for creator ${did}.`, { cause: e });
 		});
 
-		return response.data.starterPacks.map((starterPackView) => {
+		return response.starterPacks.map((starterPackView) => {
 			const starterPack = StarterPack.fromView(starterPackView, this);
 			if (!options.noCacheResponse) this.cache.starterPacks.set(starterPack.uri, starterPack);
 			return starterPack;
@@ -697,12 +702,12 @@ export class Bot extends EventEmitter {
 		}
 
 		const response = await this.chatProxy.get("chat.bsky.convo.getConvoForMembers", {
-			params: { members: members as Array<At.DID> },
+			params: { members: members as Array<Did> },
 		}).catch((e) => {
 			throw new Error("Failed to create conversation.", { cause: e });
 		});
 
-		const convo = Conversation.fromView(response.data.convo, this);
+		const convo = Conversation.fromView(response.convo, this);
 
 		if (!options.noCacheResponse) this.cache.conversations.set(convo.id, convo);
 
@@ -732,7 +737,7 @@ export class Bot extends EventEmitter {
 			throw new Error(`Failed to fetch conversation ${id}.`, { cause: e });
 		});
 
-		const convo = Conversation.fromView(response.data.convo, this);
+		const convo = Conversation.fromView(response.convo, this);
 		if (!options.noCacheResponse) this.cache.conversations.set(convo.id, convo);
 		return convo;
 	}
@@ -755,13 +760,13 @@ export class Bot extends EventEmitter {
 				throw new Error("Failed to list conversations.", { cause: e });
 			});
 
-		const conversations = response.data.convos.map((convoView) => {
+		const conversations = response.convos.map((convoView) => {
 			const convo = Conversation.fromView(convoView, this);
 			if (!options.noCacheResponse) this.cache.conversations.set(convo.id, convo);
 			return convo;
 		});
 
-		return { conversations, ...(response.data.cursor ? { cursor: response.data.cursor } : {}) };
+		return { conversations, ...(response.cursor ? { cursor: response.cursor } : {}) };
 	}
 
 	/**
@@ -798,7 +803,7 @@ export class Bot extends EventEmitter {
 			});
 		});
 
-		const messages = response.data.messages.map((view) => {
+		const messages = response.messages.map((view) => {
 			if (view.$type === "chat.bsky.convo.defs#messageView") {
 				return ChatMessage.fromView(view, this, conversationId);
 			}
@@ -808,7 +813,7 @@ export class Bot extends EventEmitter {
 			throw new Error(`Invalid message view: ${JSON.stringify(view)}`);
 		});
 
-		return { messages, ...(response.data.cursor ? { cursor: response.data.cursor } : {}) };
+		return { messages, ...(response.cursor ? { cursor: response.cursor } : {}) };
 	}
 
 	/**
@@ -820,7 +825,10 @@ export class Bot extends EventEmitter {
 		conversationId: string,
 		options: BotGetConversationMessagesOptions = {},
 	): AsyncIterableIterator<ChatMessage | DeletedChatMessage> {
-		return makeIterableWithCursorInOptions(this.getConversationMessages.bind(this))(conversationId, options);
+		return makeIterableWithCursorInOptions(this.getConversationMessages.bind(this))(
+			conversationId,
+			options,
+		);
 	}
 
 	/**
@@ -901,7 +909,7 @@ export class Bot extends EventEmitter {
 			? {
 				$type: "com.atproto.label.defs#selfLabels",
 				values: payload.labels.map((label) => ({ val: label })),
-			} satisfies Brand.Union<ComAtprotoLabelDefs.SelfLabels>
+			} satisfies ComAtprotoLabelDefs.SelfLabels
 			: undefined;
 
 		if (
@@ -929,10 +937,10 @@ export class Bot extends EventEmitter {
 			if (!blob.data?.length) throw new Error("Invalid media data provided.");
 			if (!blob.type) throw new Error("Must provide a content type for media data.");
 
-			const uploadedBlob = await this.agent.call("com.atproto.repo.uploadBlob", {
-				data: blob.data,
+			const uploadedBlob = await this.agent.post("com.atproto.repo.uploadBlob", {
+				input: blob.data,
 				headers: { "content-type": blob.type },
-			}).then((res) => res.data.blob).catch((e) => {
+			}).then((res) => res.blob).catch((e) => {
 				throw new Error("Failed to upload media.", { cause: e });
 			});
 
@@ -945,7 +953,7 @@ export class Bot extends EventEmitter {
 		if (payload.images?.length) {
 			for (const image of payload.images) {
 				if (!image) continue;
-				if (image?.data instanceof Blob && !image.data.type.startsWith("image/")) {
+				if (image?.data instanceof Blob && !image.data?.type?.startsWith("image/")) {
 					throw new Error("Image blob is not an image");
 				}
 
@@ -958,19 +966,19 @@ export class Bot extends EventEmitter {
 		}
 
 		// Construct the post embed
-		let embed: AppBskyFeedPost.Record["embed"] | undefined;
+		let embed: AppBskyFeedPost.Main["embed"] | undefined;
 
 		if (payload.quoted) {
 			const record = {
 				$type: "app.bsky.embed.record",
-				record: { uri: payload.quoted.uri, cid: payload.quoted.cid },
-			} satisfies Brand.Union<AppBskyEmbedRecord.Main>;
+				record: { uri: asUri(payload.quoted.uri), cid: payload.quoted.cid },
+			} satisfies AppBskyEmbedRecord.Main;
 			embed = images.length
 				? {
 					$type: "app.bsky.embed.recordWithMedia",
 					record,
 					media: { $type: "app.bsky.embed.images", images },
-				} satisfies Brand.Union<AppBskyEmbedRecordWithMedia.Main>
+				} satisfies AppBskyEmbedRecordWithMedia.Main
 				: record;
 		} else if (payload.external) {
 			if (typeof payload.external === "string") {
@@ -980,12 +988,13 @@ export class Bot extends EventEmitter {
 					},
 				);
 				if (external) {
-					embed = { $type: "app.bsky.embed.external", external } satisfies Brand.Union<
-						AppBskyEmbedExternal.Main
-					>;
+					embed = {
+						$type: "app.bsky.embed.external",
+						external,
+					} satisfies AppBskyEmbedExternal.Main;
 				}
 			} else {
-				let thumb: At.Blob | undefined;
+				let thumb: AtBlob | undefined;
 
 				const image = payload.external.thumb?.data;
 				if (image) {
@@ -999,19 +1008,18 @@ export class Bot extends EventEmitter {
 					$type: "app.bsky.embed.external",
 					external: {
 						title: payload.external.title,
-						uri: payload.external.uri,
+						uri: payload.external.uri as `${string}:${string}`,
 						description: payload.external.description,
 						...(thumb ? { thumb } : {}),
 					},
-				} satisfies Brand.Union<AppBskyEmbedExternal.Main>;
+				} satisfies AppBskyEmbedExternal.Main;
 			}
 		} else if (images.length) {
-			embed = { $type: "app.bsky.embed.images", images } satisfies Brand.Union<
-				AppBskyEmbedImages.Main
-			>;
+			embed = { $type: "app.bsky.embed.images", images } satisfies AppBskyEmbedImages.Main;
 		} else if (payload.video) {
 			if (
-				payload.video?.data instanceof Blob && !payload.video.data.type.startsWith("video/")
+				payload.video?.data instanceof Blob
+				&& !payload.video.data?.type?.startsWith("video/")
 			) {
 				throw new Error("Video blob is not a video");
 			}
@@ -1024,10 +1032,10 @@ export class Bot extends EventEmitter {
 				...payload.video,
 				$type: "app.bsky.embed.video",
 				video: videoBlob,
-			} satisfies Brand.Union<AppBskyEmbedVideo.Main>;
+			} satisfies AppBskyEmbedVideo.Main;
 		}
 
-		const postRecord: AppBskyFeedPost.Record = {
+		const postRecord: AppBskyFeedPost.Main = {
 			$type: "app.bsky.feed.post",
 			text,
 			facets,
@@ -1035,13 +1043,19 @@ export class Bot extends EventEmitter {
 			langs: payload.langs,
 		};
 
-		if (payload.replyRef) postRecord.reply = payload.replyRef;
+		if (payload.replyRef) {
+			postRecord.reply = {
+				root: { ...payload.replyRef.root, uri: asUri(payload.replyRef.root.uri) },
+				parent: { ...payload.replyRef.parent, uri: asUri(payload.replyRef.parent.uri) },
+			};
+		}
 		if (embed) postRecord.embed = embed;
 		if (labels) postRecord.labels = labels;
 		if (payload.tags?.length) postRecord.tags = payload.tags;
 
 		const { uri: postUri, cid: postCid } = await this.createRecord(
 			"app.bsky.feed.post",
+			// @ts-expect-error — does not like the legacy blob format?
 			postRecord,
 		).catch((e) => {
 			throw new Error("Error when uploading post.", { cause: e });
@@ -1050,7 +1064,7 @@ export class Bot extends EventEmitter {
 		// Threadgate is a separate record
 		if (payload.threadgate) {
 			const rkey = postUri.split("/").pop()!;
-			const allow: AppBskyFeedThreadgate.Record["allow"] = [];
+			const allow: AppBskyFeedThreadgate.Main["allow"] = [];
 
 			if (payload.threadgate.allowFollowing) {
 				allow.push({ $type: "app.bsky.feed.threadgate#followingRule" });
@@ -1061,14 +1075,14 @@ export class Bot extends EventEmitter {
 			payload.threadgate.allowLists?.forEach((list) => {
 				allow.push({
 					$type: "app.bsky.feed.threadgate#listRule",
-					list: typeof list === "string" ? list : list.uri,
+					list: asUri(typeof list === "string" ? list : list.uri),
 				});
 			});
 
-			const threadgateRecord: AppBskyFeedThreadgate.Record = {
+			const threadgateRecord: AppBskyFeedThreadgate.Main = {
 				$type: "app.bsky.feed.threadgate",
 				createdAt: new Date().toISOString(),
-				post: postUri,
+				post: asUri(postUri),
 				allow,
 			};
 
@@ -1105,9 +1119,11 @@ export class Bot extends EventEmitter {
 	async like({ uri, cid }: StrongRef): Promise<StrongRef> {
 		if (!this.hasSession) throw new Error(NO_SESSION_ERROR);
 
-		return this.createRecord("app.bsky.feed.like", { subject: { uri, cid } }).catch((e) => {
-			throw new Error(`Failed to like post ${uri}.`, { cause: e });
-		});
+		return this.createRecord("app.bsky.feed.like", { subject: { uri: asUri(uri), cid } }).catch(
+			(e) => {
+				throw new Error(`Failed to like post ${uri}.`, { cause: e });
+			},
+		);
 	}
 
 	/**
@@ -1140,9 +1156,10 @@ export class Bot extends EventEmitter {
 	async repost({ uri, cid }: StrongRef): Promise<StrongRef> {
 		if (!this.hasSession) throw new Error(NO_SESSION_ERROR);
 
-		return this.createRecord("app.bsky.feed.repost", { subject: { uri, cid } }).catch((e) => {
-			throw new Error(`Failed to repost post ${uri}.`, { cause: e });
-		});
+		return this.createRecord("app.bsky.feed.repost", { subject: { uri: asUri(uri), cid } })
+			.catch((e) => {
+				throw new Error(`Failed to repost post ${uri}.`, { cause: e });
+			});
 	}
 
 	/**
@@ -1213,7 +1230,10 @@ export class Bot extends EventEmitter {
 	 */
 	async mute(did: string): Promise<void> {
 		if (!this.hasSession) throw new Error(NO_SESSION_ERROR);
-		await this.agent.call("app.bsky.graph.muteActor", { data: { actor: did } }).catch((e) => {
+		await this.agent.post("app.bsky.graph.muteActor", {
+			input: { actor: asDid(did) },
+			as: "json",
+		}).catch((e) => {
 			throw new Error(`Failed to mute user ${did}.`, { cause: e });
 		});
 	}
@@ -1224,7 +1244,10 @@ export class Bot extends EventEmitter {
 	 */
 	async unmute(did: string): Promise<void> {
 		if (!this.hasSession) throw new Error(NO_SESSION_ERROR);
-		await this.agent.call("app.bsky.graph.unmuteActor", { data: { actor: did } }).catch((e) => {
+		await this.agent.post("app.bsky.graph.unmuteActor", {
+			input: { actor: asDid(did) },
+			as: "json",
+		}).catch((e) => {
 			throw new Error(`Failed to delete mute for user ${did}.`, { cause: e });
 		});
 	}
@@ -1298,14 +1321,19 @@ export class Bot extends EventEmitter {
 			throw new Error("Message exceeds maximum length of 1000 graphemes.");
 		}
 
-		const response = await this.chatProxy.call("chat.bsky.convo.sendMessage", {
-			data: {
+		const response = await this.chatProxy.post("chat.bsky.convo.sendMessage", {
+			input: {
 				convoId: payload.conversationId,
 				message: {
 					text,
 					facets,
 					...(payload.embed
-						? { embed: { $type: "app.bsky.embed.record", record: payload.embed } }
+						? {
+							embed: {
+								$type: "app.bsky.embed.record",
+								record: asStrongRef(payload.embed),
+							},
+						}
 						: {}),
 				},
 			},
@@ -1313,7 +1341,7 @@ export class Bot extends EventEmitter {
 			throw new Error("Failed to send message.", { cause: e });
 		});
 
-		return ChatMessage.fromView(response.data, this, payload.conversationId);
+		return ChatMessage.fromView(response, this, payload.conversationId);
 	}
 
 	/**
@@ -1356,7 +1384,7 @@ export class Bot extends EventEmitter {
 						? {
 							embed: {
 								$type: "app.bsky.embed.record" as const,
-								record: message.embed,
+								record: asStrongRef(message.embed),
 							},
 						}
 						: {}),
@@ -1364,15 +1392,13 @@ export class Bot extends EventEmitter {
 			};
 		}));
 
-		const response = await this.chatProxy.call("chat.bsky.convo.sendMessageBatch", {
-			data: { items: messages },
+		const response = await this.chatProxy.post("chat.bsky.convo.sendMessageBatch", {
+			input: { items: messages },
 		}).catch((e) => {
 			throw new Error("Failed to send messages.", { cause: e });
 		});
 
-		return response.data.items.map((view) =>
-			ChatMessage.fromView(view, this, messages[0].convoId)
-		);
+		return response.items.map((view) => ChatMessage.fromView(view, this, messages[0].convoId));
 	}
 
 	/**
@@ -1384,7 +1410,7 @@ export class Bot extends EventEmitter {
 			throw new Error("Chat proxy does not exist. Make sure to log in first.");
 		}
 
-		await this.chatProxy.call("chat.bsky.convo.leaveConvo", { data: { convoId: id } }).catch(
+		await this.chatProxy.post("chat.bsky.convo.leaveConvo", { input: { convoId: id } }).catch(
 			(e) => {
 				throw new Error(`Failed to leave conversation ${id}.`, { cause: e });
 			},
@@ -1443,23 +1469,24 @@ export class Bot extends EventEmitter {
 				"The bot doesn't seem to have a labeler service declared.\nFor more information, see https://skyware.js.org/guides/labeler/introduction/getting-started/",
 			);
 		}
-		const subject: ToolsOzoneModerationEmitEvent.Input["subject"] = "did" in reference
+		const subject: ToolsOzoneModerationEmitEvent.$input["subject"] = "did" in reference
 			? { $type: "com.atproto.admin.defs#repoRef", did: asDid(reference.did) }
-			: { $type: "com.atproto.repo.strongRef", uri: reference.uri, cid: reference.cid };
-		return this.agent.withProxy("atproto_labeler", this.profile.did).call(
+			: {
+				$type: "com.atproto.repo.strongRef",
+				uri: asUri(reference.uri),
+				cid: reference.cid,
+			};
+		return this.agent.withProxy(this.profile.did, "#atproto_labeler").post(
 			"tools.ozone.moderation.emitEvent",
 			{
-				data: {
-					event: {
-						$type: "tools.ozone.moderation.defs#modEventLabel" as const,
-						...event,
-					} satisfies Brand.Union<ToolsOzoneModerationDefs.ModEventLabel>,
+				input: {
+					event: { ...event, $type: "tools.ozone.moderation.defs#modEventLabel" },
 					subject,
 					createdBy: this.profile.did,
 					subjectBlobCids,
 				},
 			},
-		).then((res) => res.data).catch((e) => {
+		).catch((e) => {
 			throw new Error("Failed to emit label event.", { cause: e });
 		});
 	}
@@ -1487,11 +1514,11 @@ export class Bot extends EventEmitter {
 	 */
 	async resolveHandle(handle: string): Promise<string> {
 		const response = await this.agent.get("com.atproto.identity.resolveHandle", {
-			params: { handle },
+			params: { handle: handle as `${string}.${string}` },
 		}).catch((e) => {
 			throw new Error(`Failed to resolve handle ${handle}`, { cause: e });
 		});
-		return response.data.did;
+		return response.did;
 	}
 
 	/**
@@ -1500,11 +1527,12 @@ export class Bot extends EventEmitter {
 	 */
 	async updateHandle(handle: string): Promise<void> {
 		if (!this.hasSession) throw new Error(NO_SESSION_ERROR);
-		await this.agent.call("com.atproto.identity.updateHandle", { data: { handle } }).catch(
-			(e) => {
-				throw new Error("Failed to update handle.", { cause: e });
-			},
-		);
+		await this.agent.post("com.atproto.identity.updateHandle", {
+			input: { handle: handle as `${string}.${string}` },
+			as: "json",
+		}).catch((e) => {
+			throw new Error("Failed to update handle.", { cause: e });
+		});
 		this.profile.handle = handle;
 	}
 
@@ -1524,21 +1552,20 @@ export class Bot extends EventEmitter {
 	 * @param rkey The rkey to use.
 	 * @returns The record's AT URI and CID.
 	 */
-	async createRecord<NSID extends keyof Records>(
+	async createRecord<NSID extends keyof typeof lexicons>(
 		nsid: NSID,
-		record: Omit<Records[NSID], "$type" | "createdAt">,
+		record: Omit<InferOutput<(typeof lexicons)[NSID]>, "$type" | "createdAt">,
 		rkey?: string,
 	): Promise<StrongRef> {
 		if (!this.hasSession) throw new Error(NO_SESSION_ERROR);
-		const response = await this.agent.call("com.atproto.repo.createRecord", {
-			data: {
+		return this.agent.post("com.atproto.repo.createRecord", {
+			input: {
 				collection: nsid,
 				record: { $type: nsid, createdAt: new Date().toISOString(), ...record },
 				repo: this.profile.did,
 				...(rkey ? { rkey } : {}),
 			},
 		});
-		return response.data;
 	}
 
 	/**
@@ -1550,15 +1577,14 @@ export class Bot extends EventEmitter {
 	 */
 	async putRecord(nsid: string, record: object, rkey: string): Promise<StrongRef> {
 		if (!this.hasSession) throw new Error(NO_SESSION_ERROR);
-		const response = await this.agent.call("com.atproto.repo.putRecord", {
-			data: {
-				collection: nsid,
+		return this.agent.post("com.atproto.repo.putRecord", {
+			input: {
+				collection: nsid as `${string}.${string}.${string}`,
 				record: { $type: nsid, createdAt: new Date().toISOString(), ...record },
 				repo: this.profile.did,
 				rkey,
 			},
 		});
-		return response.data;
 	}
 
 	/**
@@ -1566,10 +1592,10 @@ export class Bot extends EventEmitter {
 	 * @param uri The record's AT URI.
 	 */
 	async deleteRecord(uri: string): Promise<void> {
-		const { host: repo, collection, rkey } = parseAtUri(uri);
+		const { repo, collection, rkey } = parseAtUri(uri);
 		if (repo !== this.profile.did) throw new Error("Can only delete own record.");
-		await this.agent.call("com.atproto.repo.deleteRecord", {
-			data: { collection, repo, rkey },
+		await this.agent.post("com.atproto.repo.deleteRecord", {
+			input: { collection, repo, rkey },
 		});
 	}
 
@@ -1582,11 +1608,13 @@ export class Bot extends EventEmitter {
 		callback: (preferences: AppBskyActorDefs.Preferences) => AppBskyActorDefs.Preferences,
 	): Promise<AppBskyActorDefs.Preferences> {
 		if (!this.hasSession) throw new Error(NO_SESSION_ERROR);
-		const currentPrefs = await this.agent.get("app.bsky.actor.getPreferences", {});
-		const updatedPrefs = callback(currentPrefs.data.preferences);
-		return this.agent.call("app.bsky.actor.putPreferences", {
-			data: { preferences: updatedPrefs },
-		}).then((r) => r.data);
+		const currentPrefs = await this.agent.get("app.bsky.actor.getPreferences", { params: {} });
+		const updatedPrefs = callback(currentPrefs.preferences);
+		// @ts-expect-error — no idea why this is returning unknown
+		return this.agent.post("app.bsky.actor.putPreferences", {
+			input: { preferences: updatedPrefs },
+			as: "json",
+		});
 	}
 
 	/** Emitted when the bot begins listening for events. */

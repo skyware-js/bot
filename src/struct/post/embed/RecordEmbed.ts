@@ -1,4 +1,4 @@
-import type { AppBskyEmbedRecord } from "@atcute/client/lexicons";
+import type { AppBskyEmbedRecord } from "@atcute/bluesky";
 import type { Bot } from "../../../bot/Bot.js";
 import { is } from "../../../util/lexicon.js";
 import { FeedGenerator } from "../../FeedGenerator.js";
@@ -16,7 +16,7 @@ export class RecordEmbed extends PostEmbed {
 	/**
 	 * @param record The embedded record.
 	 */
-	constructor(public record: EmbeddableRecord | null) {
+	constructor(public record?: EmbeddableRecord) {
 		super();
 	}
 
@@ -33,12 +33,10 @@ export class RecordEmbed extends PostEmbed {
 		if (recordView.record.$type === "app.bsky.embed.record#viewRecord") {
 			// Record should only be a post
 			if (!is("app.bsky.feed.post", recordView.record.value)) {
-				throw new Error(
-					"Invalid post view record type: " + (recordView.record.value as any).$type,
-				);
+				throw new Error("Invalid post view record type: " + recordView.record.value.$type);
 			}
 			return new RecordEmbed(
-				Post.fromView({ ...recordView.record, record: recordView.record.value }, bot),
+				Post.fromView({ ...recordView.record, record: recordView.record.value, $type: "app.bsky.feed.defs#postView" }, bot),
 			);
 		} else if (recordView.record.$type === "app.bsky.feed.defs#generatorView") {
 			return new RecordEmbed(FeedGenerator.fromView(recordView.record, bot));
@@ -53,7 +51,7 @@ export class RecordEmbed extends PostEmbed {
 			|| recordView.record.$type === "app.bsky.embed.record#viewBlocked"
 			|| recordView.record.$type === "app.bsky.embed.record#viewDetached"
 		) {
-			return new RecordEmbed(null);
+			return new RecordEmbed();
 		} else {
 			// @ts-expect-error — exhaustiveness check
 			throw new Error("Invalid embed record type: " + recordView.record.$type);

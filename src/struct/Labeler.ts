@@ -1,6 +1,9 @@
-import type { AppBskyLabelerDefs, At, ComAtprotoLabelDefs } from "@atcute/client/lexicons";
+import type { ComAtprotoLabelDefs } from "@atcute/atproto";
+import type { AppBskyLabelerDefs } from "@atcute/bluesky";
 import type { Bot } from "../bot/Bot.js";
 import { Profile } from "./Profile.js";
+import type { ResourceUri } from "@atcute/lexicons";
+import { asUri } from "../util/lexicon.js";
 
 /**
  * Data used to construct a Labeler class.
@@ -33,10 +36,10 @@ export interface LabelerData {
  */
 export class Labeler {
 	/** The labeler record's AT URI. */
-	uri: At.Uri;
+	uri: ResourceUri;
 
 	/** The labeler record's CID. */
-	cid: At.CID;
+	cid: string;
 
 	/** The labeler's user profile. */
 	profile: Profile;
@@ -62,7 +65,7 @@ export class Labeler {
 		{ uri, cid, profile, likeCount, indexedAt, labelDefinitions, labels }: LabelerData,
 		protected bot: Bot,
 	) {
-		this.uri = uri;
+		this.uri = asUri(uri);
 		this.cid = cid;
 		this.profile = profile;
 		if (likeCount) this.likeCount = likeCount;

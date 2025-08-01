@@ -1,4 +1,4 @@
-import type { AppBskyRichtextFacet } from "@atcute/client/lexicons";
+import type { AppBskyRichtextFacet } from "@atcute/bluesky";
 import { utf8IndexToUtf16Index } from "../../richtext/detectFacets.js";
 import { asDid, is } from "../../util/lexicon.js";
 
@@ -73,7 +73,10 @@ export class Facet {
 				if (feature.isMention()) {
 					return { $type: "app.bsky.richtext.facet#mention", did: asDid(feature.did) };
 				} else if (feature.isLink()) {
-					return { $type: "app.bsky.richtext.facet#link", uri: feature.uri };
+					return {
+						$type: "app.bsky.richtext.facet#link",
+						uri: feature.uri as `${string}:${string}`,
+					};
 				} else if (feature.isTag()) {
 					return { $type: "app.bsky.richtext.facet#tag", tag: feature.tag };
 				} else throw new Error("Unknown facet feature type.");

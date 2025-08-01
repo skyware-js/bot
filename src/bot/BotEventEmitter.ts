@@ -1,4 +1,4 @@
-import type { AppBskyNotificationListNotifications } from "@atcute/client/lexicons";
+import type { AppBskyNotificationListNotifications } from "@atcute/bluesky";
 import type { Firehose, FirehoseOptions } from "@skyware/firehose";
 import type { Jetstream, JetstreamOptions } from "@skyware/jetstream";
 import { EventEmitter } from "node:events";
@@ -189,9 +189,10 @@ export class BotEventEmitter extends EventEmitter {
 						}
 
 						// Quote post
-						const isQuote = is("app.bsky.embed.record", op.record.embed)
+						const isQuote = op.record.embed &&  is("app.bsky.embed.record", op.record.embed)
 							&& op.record.embed.record.uri.includes(this.bot.profile.did);
 						const isQuoteWithMedia =
+							op.record.embed &&
 							is("app.bsky.embed.recordWithMedia", op.record.embed)
 							&& op.record.embed.record.record.uri.includes(this.bot.profile.did);
 
@@ -260,15 +261,18 @@ export class BotEventEmitter extends EventEmitter {
 		this.jetstream?.onCreate(
 			"app.bsky.feed.post",
 			async ({ commit: { record, rkey }, did }) => {
+				if (!is("app.bsky.feed.post", record)) return;
 				const uri = `at://${did}/app.bsky.feed.post/${rkey}`;
 				if (record.reply?.parent?.uri?.includes(`at://${this.bot.profile.did}`)) {
 					this.emit("reply", await this.bot.getPost(uri));
 				} else if (
+					record.embed &&
 					is("app.bsky.embed.record", record.embed)
 					&& record.embed.record.uri.includes(`at://${this.bot.profile.did}`)
 				) {
 					this.emit("quote", await this.bot.getPost(uri));
 				} else if (
+					record.embed &&
 					is("app.bsky.embed.recordWithMedia", record.embed)
 					&& record.embed.record.record.uri.includes(`at://${this.bot.profile.did}`)
 				) {
@@ -289,6 +293,7 @@ export class BotEventEmitter extends EventEmitter {
 		this.jetstream?.onCreate(
 			"app.bsky.feed.repost",
 			async ({ commit: { record, rkey }, did }) => {
+				if (!is("app.bsky.feed.repost", record)) return;
 				const uri = `at://${did}/app.bsky.feed.repost/${rkey}`;
 				if (record.subject?.uri?.includes(`at://${this.bot.profile.did}`)) {
 					this.emit("repost", {
@@ -303,9 +308,10 @@ export class BotEventEmitter extends EventEmitter {
 		this.jetstream?.onCreate(
 			"app.bsky.feed.like",
 			async ({ commit: { record, rkey }, did }) => {
+				if (!is("app.bsky.feed.like", record)) return;
 				const uri = `at://${did}/app.bsky.feed.like/${rkey}`;
 				if (record.subject?.uri?.includes(`at://${this.bot.profile.did}`)) {
-					const { collection, host } = parseAtUri(record.subject.uri);
+					const { collection, repo } = parseAtUri(record.subject.uri);
 					let subject: Post | FeedGenerator | Labeler | undefined;
 					switch (collection) {
 						case "app.bsky.feed.post":
@@ -315,7 +321,7 @@ export class BotEventEmitter extends EventEmitter {
 							subject = await this.bot.getFeedGenerator(record.subject.uri);
 							break;
 						case "app.bsky.labeler.service":
-							subject = await this.bot.getLabeler(host);
+							subject = await this.bot.getLabeler(repo);
 							break;
 					}
 
@@ -329,6 +335,7 @@ export class BotEventEmitter extends EventEmitter {
 		this.jetstream?.onCreate(
 			"app.bsky.graph.follow",
 			async ({ commit: { record, rkey }, did }) => {
+				if (!is("app.bsky.graph.follow", record)) return;
 				const uri = `at://${did}/app.bsky.graph.follow/${rkey}`;
 				if (record.subject === this.bot.profile.did) {
 					this.emit("follow", { user: await this.bot.getProfile(did), uri });
@@ -368,7 +375,7 @@ export class BotEventEmitter extends EventEmitter {
 
 		if (!response) return;
 
-		const { notifications } = response.data;
+		const { notifications } = response;
 
 		const newNotifications = notifications.filter((notification) =>
 			new Date(notification.indexedAt) > this.lastSeen!
@@ -392,8 +399,8 @@ export class BotEventEmitter extends EventEmitter {
 					}
 					if (notification.record.reply) {
 						try {
-							const { host } = parseAtUri(notification.record.reply.parent.uri);
-							if (host !== this.bot.profile.did) {
+							const { repo } = parseAtUri(notification.record.reply.parent.uri);
+							if (repo !== this.bot.profile.did) {
 								// Ignore replies that aren't direct replies to the bot
 								break;
 							}
@@ -449,7 +456,7 @@ export class BotEventEmitter extends EventEmitter {
 					const user = Profile.fromView(notification.author, this.bot);
 
 					let subject: Post | FeedGenerator | Labeler | undefined;
-					const { collection, host } = parseAtUri(notification.reasonSubject);
+					const { collection, repo } = parseAtUri(notification.reasonSubject);
 					switch (collection) {
 						case "app.bsky.feed.post":
 							subject = await this.bot.getPost(notification.reasonSubject);
@@ -458,7 +465,7 @@ export class BotEventEmitter extends EventEmitter {
 							subject = await this.bot.getFeedGenerator(notification.reasonSubject);
 							break;
 						case "app.bsky.labeler.service":
-							subject = await this.bot.getLabeler(host);
+							subject = await this.bot.getLabeler(repo);
 							break;
 					}
 

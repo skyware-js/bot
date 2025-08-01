@@ -1,4 +1,4 @@
-import type { ChatBskyConvoDefs } from "@atcute/client/lexicons";
+import type { ChatBskyConvoDefs } from "@atcute/bluesky";
 import type { Bot } from "../../bot/Bot.js";
 import { BaseChatMessage, type BaseChatMessageData } from "./BaseChatMessage.js";
 

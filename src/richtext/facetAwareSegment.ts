@@ -1,4 +1,4 @@
-import type { AppBskyRichtextFacet } from "@atcute/client/lexicons";
+import type { AppBskyRichtextFacet } from "@atcute/bluesky";
 import { utf16IndexToUtf8Index } from "./detectFacets.js";
 
 const encoder = new TextEncoder();

@@ -1,5 +1,5 @@
+import type { AppBskyRichtextFacet, ChatBskyConvoDefs } from "@atcute/bluesky";
 import type RichText from "@atcute/bluesky-richtext-builder";
-import type { AppBskyRichtextFacet, ChatBskyConvoDefs } from "@atcute/client/lexicons";
 import type { Bot, StrongRef } from "../../bot/Bot.js";
 import { Facet } from "../post/Facet.js";
 import { BaseChatMessage, type BaseChatMessageData } from "./BaseChatMessage.js";

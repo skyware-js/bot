@@ -1,4 +1,4 @@
-import type { At } from "@atcute/client/lexicons";
+import type { Did } from "@atcute/lexicons";
 import type { Bot } from "../../bot/Bot.js";
 import { asDid } from "../../util/lexicon.js";
 import type { Profile } from "../Profile.js";
@@ -28,7 +28,7 @@ export class BaseChatMessage {
 	conversationId?: string;
 
 	/** The DID of the message's sender. */
-	senderDid: At.DID;
+	senderDid: Did;
 
 	/** When the message was sent. */
 	sentAt: Date;

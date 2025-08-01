@@ -1,9 +1,9 @@
-import type { ChatBskyConvoDefs } from "@atcute/client/lexicons";
+import type { ChatBskyConvoDefs } from "@atcute/bluesky";
 import type { Bot, BotSendMessageOptions } from "../../bot/Bot.js";
+import { makeIterableWithCursorParameter } from "../../util/makeIterable.js";
 import { Profile } from "../Profile.js";
 import { type ChatMessage, type ChatMessagePayload } from "./ChatMessage.js";
 import { type DeletedChatMessage } from "./DeletedChatMessage.js";
-import { makeIterableWithCursorParameter } from "../../util/makeIterable.js";
 
 /**
  * Data used to construct a Conversation class.

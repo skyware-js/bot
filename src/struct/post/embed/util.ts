@@ -4,9 +4,8 @@ import type {
 	AppBskyEmbedRecord,
 	AppBskyEmbedRecordWithMedia,
 	AppBskyEmbedVideo,
-	At,
-	Brand,
-} from "@atcute/client/lexicons";
+} from "@atcute/bluesky";
+import type { Blob } from "@atcute/lexicons/interfaces";
 import type { Bot } from "../../../bot/Bot.js";
 import { is } from "../../../util/lexicon.js";
 import type { FeedGenerator } from "../../FeedGenerator.js";
@@ -28,21 +27,20 @@ const MAX_EMBED_IMAGE_SIZE_BYTES = 1_000_000;
  */
 export interface PostEmbedFromViewOptions {
 	/** The embed view. */
-	view: Brand.Union<
+	view:
 		| AppBskyEmbedImages.View
 		| AppBskyEmbedVideo.View
 		| AppBskyEmbedExternal.View
 		| AppBskyEmbedRecord.View
-		| AppBskyEmbedRecordWithMedia.View
-	>;
+		| AppBskyEmbedRecordWithMedia.View;
+
 	/** The embed record. */
-	record?: Brand.Union<
+	record?:
 		| AppBskyEmbedImages.Main
 		| AppBskyEmbedVideo.Main
 		| AppBskyEmbedExternal.Main
 		| AppBskyEmbedRecord.Main
-		| AppBskyEmbedRecordWithMedia.Main
-	>;
+		| AppBskyEmbedRecordWithMedia.Main;
 	/** The active Bot instance (needed to create Post instance for RecordEmbed and RecordWithMediaEmbed). */
 	bot?: Bot;
 }
@@ -162,7 +160,7 @@ export async function fetchExternalEmbedData(
 
 	const { title, description } = extractedEmbedData;
 
-	let thumb: At.Blob | undefined;
+	let thumb: Blob | undefined;
 	if (
 		"image" in extractedEmbedData && typeof extractedEmbedData.image === "string"
 		&& extractedEmbedData.image.length
@@ -170,15 +168,15 @@ export async function fetchExternalEmbedData(
 		const { data, type } = await fetchMediaForBlob(extractedEmbedData.image, "image/") ?? {};
 
 		if (data?.length && data.byteLength < MAX_EMBED_IMAGE_SIZE_BYTES) {
-			const blob = await this.agent.call("com.atproto.repo.uploadBlob", {
-				data,
+			const blob = await this.agent.post("com.atproto.repo.uploadBlob", {
+				input: data,
 				headers: { "Content-Type": type },
 			}).catch(() => null);
-			if (blob?.data.blob.size) {
-				thumb = blob.data.blob;
+			if (blob?.blob.size) {
+				thumb = blob.blob;
 			}
 		}
 	}
 
-	return { uri: url, title, description, ...(thumb ? { thumb } : {}) };
+	return { uri: url as `${string}:${string}`, title, description, ...(thumb ? { thumb } : {}) };
 }

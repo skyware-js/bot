@@ -1,5 +1,7 @@
-import type { At } from "@atcute/client/lexicons";
+import type { ResourceUri } from "@atcute/lexicons";
+import type { ToolsOzoneModerationDefs } from "@atcute/ozone";
 import type { Bot, BotPostOptions, StrongRef } from "../../bot/Bot.js";
+import { asUri } from "../../util/lexicon.js";
 import type { Post } from "./Post.js";
 import type { PostPayload, ReplyRef } from "./PostPayload.js";
 
@@ -18,10 +20,10 @@ export interface PostReferenceData {
  */
 export class PostReference implements StrongRef {
 	/** The post's AT URI. */
-	uri: At.Uri;
+	uri: ResourceUri;
 
 	/** The post's CID. */
-	cid: At.CID;
+	cid: string;
 
 	/** A reference to the post's parent and root post. */
 	replyRef?: ReplyRef;
@@ -31,7 +33,7 @@ export class PostReference implements StrongRef {
 	 * @param bot The active Bot instance.
 	 */
 	constructor({ uri, cid, replyRef }: PostReferenceData, protected bot: Bot) {
-		this.uri = uri;
+		this.uri = asUri(uri);
 		this.cid = cid;
 		if (replyRef) {
 			this.replyRef = {
@@ -114,7 +116,10 @@ export class PostReference implements StrongRef {
 	 * @param labels The labels to apply.
 	 * @param comment An optional comment.
 	 */
-	async label(labels: Array<string>, comment?: string) {
+	async label(
+		labels: Array<string>,
+		comment?: string,
+	): Promise<ToolsOzoneModerationDefs.ModEventView> {
 		return this.bot.label({ reference: this, labels, comment });
 	}
 
@@ -123,7 +128,10 @@ export class PostReference implements StrongRef {
 	 * @param labels The labels to negate.
 	 * @param comment An optional comment.
 	 */
-	async negateLabels(labels: Array<string>, comment?: string) {
+	async negateLabels(
+		labels: Array<string>,
+		comment?: string,
+	): Promise<ToolsOzoneModerationDefs.ModEventView> {
 		return this.bot.negateLabels({ reference: this, labels, comment });
 	}
 }

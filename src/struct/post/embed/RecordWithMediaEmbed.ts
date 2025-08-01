@@ -1,4 +1,4 @@
-import type { AppBskyEmbedRecordWithMedia } from "@atcute/client/lexicons";
+import type { AppBskyEmbedRecordWithMedia } from "@atcute/bluesky";
 import type { Bot } from "../../../bot/Bot.js";
 import { is } from "../../../util/lexicon.js";
 import { FeedGenerator } from "../../FeedGenerator.js";
@@ -67,11 +67,11 @@ export class RecordWithMediaEmbed extends PostEmbed {
 			// Record should only be a post
 			if (!is("app.bsky.feed.post", view.record.record.value)) {
 				throw new Error(
-					"Invalid post view record type: " + (view.record.record.value as any).$type,
+					"Invalid post view record type: " + view.record.record.value.$type,
 				);
 			}
 			return new RecordWithMediaEmbed(
-				Post.fromView({ ...view.record.record, record: view.record.record.value }, bot),
+				Post.fromView({ ...view.record.record, record: view.record.record.value, $type: "app.bsky.feed.defs#postView" }, bot),
 				embeddedMedia,
 			);
 		} else if (view.record.record.$type === "app.bsky.feed.defs#generatorView") {

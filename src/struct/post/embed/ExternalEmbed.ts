@@ -1,4 +1,4 @@
-import type { AppBskyEmbedExternal, At } from "@atcute/client/lexicons";
+import type { AppBskyEmbedExternal } from "@atcute/bluesky";
 import { PostEmbed } from "./PostEmbed.js";
 
 /**
@@ -9,7 +9,7 @@ export interface ExternalEmbedData {
 	uri: string;
 	title: string;
 	description: string;
-	thumb?: string;
+	thumb?: string | undefined;
 }
 
 /**
@@ -17,7 +17,7 @@ export interface ExternalEmbedData {
  */
 export class ExternalEmbed extends PostEmbed {
 	/** The URI of the external content. */
-	uri: At.Uri;
+	uri: string;
 
 	/** The title of the embed. */
 	title: string;
@@ -48,6 +48,9 @@ export class ExternalEmbed extends PostEmbed {
 	 * @param externalView The view of the embed.
 	 */
 	static fromView(externalView: AppBskyEmbedExternal.View): ExternalEmbed {
+		if (!externalView.external) {
+			throw new Error("Invalid external embed view");
+		}
 		return new ExternalEmbed(externalView.external);
 	}
 }

@@ -78,7 +78,7 @@ export class BotChatEmitter extends EventEmitter {
 
 		if (!response) return;
 
-		const { cursor, logs } = response.data;
+		const { cursor, logs } = response;
 
 		if (cursor) this.cursor = cursor;
 

@@ -1,4 +1,4 @@
-import type { AppBskyEmbedDefs, At } from "@atcute/client/lexicons";
+import type { AppBskyEmbedDefs } from "@atcute/bluesky";
 
 /**
  * Data used to construct an EmbedImage class.
@@ -8,14 +8,14 @@ export interface ImageData {
 	cid: string;
 	alt?: string;
 	mimeType: string;
-	size: number;
-	aspectRatio?: AppBskyEmbedDefs.AspectRatio;
+	size?: number | undefined;
+	aspectRatio?: AppBskyEmbedDefs.AspectRatio | undefined;
 
 	/** The URL of the image's thumbnail. */
-	thumb?: string;
+	thumb?: string | undefined;
 
 	/** The URL of the full-size image. */
-	fullsize?: string;
+	fullsize?: string | undefined;
 }
 
 /**
@@ -23,7 +23,7 @@ export interface ImageData {
  */
 export class EmbedImage {
 	/** The image's CID. */
-	cid: At.CID;
+	cid: string;
 
 	/** The image's alt text. */
 	alt: string;
@@ -32,7 +32,7 @@ export class EmbedImage {
 	mimeType: string;
 
 	/** Image size in bytes. */
-	size: number;
+	size?: number;
 
 	/** The image's aspect ratio. */
 	aspectRatio?: AppBskyEmbedDefs.AspectRatio;
@@ -50,7 +50,7 @@ export class EmbedImage {
 		this.cid = cid;
 		this.alt = alt;
 		this.mimeType = mimeType;
-		this.size = size;
+		if (size) this.size = size;
 		if (aspectRatio) this.aspectRatio = aspectRatio;
 		if (thumb) this._thumbUrl = thumb;
 		if (fullsize) this._fullsizeUrl = fullsize;

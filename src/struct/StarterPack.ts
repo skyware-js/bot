@@ -1,14 +1,14 @@
-import {
-	type AppBskyGraphDefs,
-	type AppBskyRichtextFacet,
-	type At,
-	type ComAtprotoLabelDefs,
-} from "@atcute/client/lexicons";
+import type { ComAtprotoLabelDefs } from "@atcute/atproto";
+import type {
+ AppBskyGraphDefs,
+	 AppBskyRichtextFacet,
+} from "@atcute/bluesky";
 import type { BaseBotGetMethodOptions, Bot } from "../bot/Bot.js";
-import { is } from "../util/lexicon.js";
+import { asUri, is } from "../util/lexicon.js";
 import { FeedGenerator } from "./FeedGenerator.js";
 import { List } from "./List.js";
 import { Profile } from "./Profile.js";
+import type { ResourceUri } from "@atcute/lexicons";
 
 /**
  * Data used to construct a StarterPack class.
@@ -65,10 +65,10 @@ export class StarterPack {
 	name: string;
 
 	/** The starter pack's AT URI. */
-	uri: At.Uri;
+	uri: ResourceUri;
 
 	/** The starter pack's CID. */
-	cid: At.CID;
+	cid: string;
 
 	/** The starter pack's description. */
 	description?: string;
@@ -83,13 +83,13 @@ export class StarterPack {
 	userList?: List;
 
 	/** The starter pack's user list's AT URI. */
-	private userListUri: At.Uri;
+	private userListUri: ResourceUri;
 
 	/** Feeds associated with the starter pack. */
 	feeds?: Array<FeedGenerator>;
 
 	/** The starter pack's feeds' AT URIs. */
-	private feedUris?: Array<At.Uri>;
+	private feedUris?: Array<ResourceUri>;
 
 	/** The number of users who joined using the starter pack in the past week. */
 	joinedWeekCount?: number;
@@ -127,15 +127,15 @@ export class StarterPack {
 		protected bot: Bot,
 	) {
 		this.name = name;
-		this.uri = uri;
+		this.uri = asUri(uri);
 		this.cid = cid;
 		if (description) this.description = description;
 		if (descriptionFacets) this.descriptionFacets = descriptionFacets;
 		this.creator = creator;
 		if (userList) this.userList = userList;
-		this.userListUri = userListUri;
+		this.userListUri = asUri(userListUri);
 		if (feeds) this.feeds = feeds;
-		if (feedUris) this.feedUris = feedUris;
+		if (feedUris) this.feedUris = feedUris.map(asUri);
 		if (joinedWeekCount) this.joinedWeekCount = joinedWeekCount;
 		if (joinedAllTimeCount) this.joinedAllTimeCount = joinedAllTimeCount;
 		this.indexedAt = indexedAt;
@@ -190,10 +190,10 @@ export class StarterPack {
 			description: view.record.description,
 			descriptionFacets: view.record.descriptionFacets,
 			creator: Profile.fromView(view.creator, bot),
-			userList: "list" in view ? List.fromView(view.list, bot) : undefined,
+			userList: "list" in view && view.list ? List.fromView(view.list, bot) : undefined,
 			userListUri: view.record.list,
 			feeds: "feeds" in view
-				? view.feeds.map((feed) => FeedGenerator.fromView(feed, bot))
+				? view.feeds?.map((feed) => FeedGenerator.fromView(feed, bot))
 				: undefined,
 			feedUris: view.record.feeds?.map((feed) => feed.uri) ?? [],
 			joinedWeekCount: "joinedWeekCount" in view ? view.joinedWeekCount : undefined,

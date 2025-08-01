@@ -1,4 +1,4 @@
-import type { AppBskyEmbedImages } from "@atcute/client/lexicons";
+import type { AppBskyEmbedImages } from "@atcute/bluesky";
 import { EmbedImage } from "./EmbedImage.js";
 import { PostEmbed } from "./PostEmbed.js";
 
@@ -28,15 +28,13 @@ export class ImagesEmbed extends PostEmbed {
 	): ImagesEmbed {
 		const images: Array<EmbedImage> = [];
 		for (let i = 0; i < imagesRecord.images.length; i++) {
+			const image = imagesRecord.images[i].image;
 			images.push(
 				new EmbedImage({
 					...imagesView.images[i],
-					cid: "cid" in imagesRecord.images[i].image
-						// @ts-expect-error — legacy blob format
-						? imagesRecord.images[i].image.cid
-						: imagesRecord.images[i].image.ref,
-					mimeType: imagesRecord.images[i].image.mimeType,
-					size: imagesRecord.images[i].image.size,
+					cid: "cid" in image ? image.cid : image.ref.$link,
+					mimeType: image.mimeType,
+					size: "size" in image ? image.size : undefined,
 				}),
 			);
 		}

@@ -1,13 +1,15 @@
-import type { AppBskyFeedDefs, At, Brand, ComAtprotoLabelDefs } from "@atcute/client/lexicons";
+import type { ComAtprotoLabelDefs } from "@atcute/atproto";
+import type { AppBskyFeedDefs } from "@atcute/bluesky";
+import type { ResourceUri } from "@atcute/lexicons";
 import type { Bot, BotGetPostOptions } from "../../bot/Bot.js";
-import { is } from "../../util/lexicon.js";
+import { asUri, is } from "../../util/lexicon.js";
+import { makeIterableWithCursorParameter } from "../../util/makeIterable.js";
 import { Profile } from "../Profile.js";
 import type { PostEmbed } from "./embed/PostEmbed.js";
 import { isEmbedMainRecord, isEmbedView, postEmbedFromView } from "./embed/util.js";
 import { Facet } from "./Facet.js";
 import { PostReference, type PostReferenceData } from "./PostReference.js";
 import { Threadgate } from "./Threadgate.js";
-import { makeIterableWithCursorParameter } from "../../util/makeIterable.js";
 
 /**
  * Data used to construct a Post class.
@@ -86,10 +88,10 @@ export class Post extends PostReference {
 	indexedAt?: Date;
 
 	/** The post's like URI, if the bot has liked the post. */
-	likeUri?: At.Uri;
+	likeUri?: ResourceUri;
 
 	/** The post's repost URI, if the bot has reposted the post. */
-	repostUri?: At.Uri;
+	repostUri?: ResourceUri;
 
 	/** The post's like count. */
 	likeCount?: number;
@@ -122,8 +124,8 @@ export class Post extends PostReference {
 		if (labels) this.labels = labels;
 		if (tags) this.tags = tags;
 
-		if (likeUri) this.likeUri = likeUri;
-		if (repostUri) this.repostUri = repostUri;
+		if (likeUri) this.likeUri = asUri(likeUri);
+		if (repostUri) this.repostUri = asUri(repostUri);
 
 		if (likeCount) this.likeCount = likeCount;
 		if (replyCount) this.replyCount = replyCount;
@@ -147,15 +149,15 @@ export class Post extends PostReference {
 		}).catch((e) => {
 			throw new Error("Failed to fetch post like count", { cause: e });
 		});
-		if (response.data.thread.$type !== "app.bsky.feed.defs#threadViewPost") {
+		if (response.thread.$type !== "app.bsky.feed.defs#threadViewPost") {
 			throw new Error(
-				`Could not fetch post ${this.uri}. ` + response.data.thread.$type
+				`Could not fetch post ${this.uri}. ` + response.thread.$type
 						=== "app.bsky.feed.defs#blockedPost"
 					? "User is blocked from viewing this post."
 					: "The post could not be found.",
 			);
 		}
-		return response.data.thread;
+		return response.thread;
 	}
 
 	/**
@@ -258,17 +260,15 @@ export class Post extends PostReference {
 	 * This method returns 100 likes at a time, alongside a cursor to fetch the next 100.
 	 * @param cursor The cursor to begin fetching from.
 	 */
-	async getLikes(
-		cursor?: string,
-	): Promise<{ cursor?: string; likes: Array<Profile> }> {
+	async getLikes(cursor?: string): Promise<{ cursor?: string; likes: Array<Profile> }> {
 		const response = await this.bot.agent.get("app.bsky.feed.getLikes", {
 			params: { uri: this.uri, limit: 100, cursor: cursor ?? "" },
 		}).catch((e) => {
 			throw new Error("Failed to fetch likes.", { cause: e });
 		});
 		return {
-			likes: response.data.likes.map((like) => Profile.fromView(like.actor, this.bot)),
-			...(response.data.cursor ? { cursor: response.data.cursor } : {}),
+			likes: response.likes.map((like) => Profile.fromView(like.actor, this.bot)),
+			...(response.cursor ? { cursor: response.cursor } : {}),
 		};
 	}
 
@@ -285,17 +285,15 @@ export class Post extends PostReference {
 	 * This method returns 100 users at a time, alongside a cursor to fetch the next 100.
 	 * @param cursor The cursor to begin fetching from.
 	 */
-	async getReposts(
-		cursor?: string,
-	): Promise<{ cursor?: string; reposts: Array<Profile> }> {
+	async getReposts(cursor?: string): Promise<{ cursor?: string; reposts: Array<Profile> }> {
 		const response = await this.bot.agent.get("app.bsky.feed.getRepostedBy", {
 			params: { uri: this.uri, limit: 100, cursor: cursor ?? "" },
 		}).catch((e: unknown) => {
 			throw new Error("Failed to fetch reposts.", { cause: e });
 		});
 		return {
-			reposts: response.data.repostedBy.map((actor) => Profile.fromView(actor, this.bot)),
-			...(response.data.cursor ? { cursor: response.data.cursor } : {}),
+			reposts: response.repostedBy.map((actor) => Profile.fromView(actor, this.bot)),
+			...(response.cursor ? { cursor: response.cursor } : {}),
 		};
 	}
 
@@ -319,8 +317,8 @@ export class Post extends PostReference {
 			throw new Error("Failed to fetch quotes.", { cause: e });
 		});
 		return {
-			quotes: response.data.posts.map((quote) => Post.fromView(quote, this.bot)),
-			...(response.data.cursor ? { cursor: response.data.cursor } : {}),
+			quotes: response.posts.map((quote) => Post.fromView(quote, this.bot)),
+			...(response.cursor ? { cursor: response.cursor } : {}),
 		};
 	}
 
@@ -335,7 +333,7 @@ export class Post extends PostReference {
 	/**
 	 * Constructs an instance from a PostView.
 	 */
-	static fromView(view: Brand.Omit<AppBskyFeedDefs.PostView>, bot: Bot): Post {
+	static fromView(view: AppBskyFeedDefs.PostView, bot: Bot): Post {
 		if (!is("app.bsky.feed.post", view.record)) throw new Error("Invalid post view record");
 		const text = view.record.text;
 		const post = new Post({

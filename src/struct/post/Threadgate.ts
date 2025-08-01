@@ -1,6 +1,7 @@
-import type { AppBskyFeedDefs, At, Brand } from "@atcute/client/lexicons";
+import type { AppBskyFeedDefs } from "@atcute/bluesky";
+import type { ResourceUri } from "@atcute/lexicons";
 import type { Bot } from "../../bot/Bot.js";
-import { is } from "../../util/lexicon.js";
+import { asUri, is } from "../../util/lexicon.js";
 import { List } from "../List.js";
 import type { Post } from "./Post.js";
 
@@ -23,10 +24,10 @@ export interface ThreadgateData {
  */
 export class Threadgate {
 	/** The threadgate's CID. */
-	cid: At.CID;
+	cid: string;
 
 	/** The threadgate's AT URI. */
-	uri: At.Uri;
+	uri: ResourceUri;
 
 	/** When the threadgate was created. */
 	createdAt: Date;
@@ -58,7 +59,7 @@ export class Threadgate {
 		}: ThreadgateData,
 	) {
 		this.cid = cid;
-		this.uri = uri;
+		this.uri = asUri(uri);
 		this.createdAt = createdAt;
 		this.post = post;
 		this.allowsFollowing = allowsFollowing;
@@ -74,11 +75,7 @@ export class Threadgate {
 	/**
 	 * Constructs an instance from a ThreadgateView.
 	 */
-	static fromView(
-		view: Brand.Omit<AppBskyFeedDefs.ThreadgateView>,
-		post: Post,
-		bot: Bot,
-	): Threadgate {
+	static fromView(view: AppBskyFeedDefs.ThreadgateView, post: Post, bot: Bot): Threadgate {
 		if (!is("app.bsky.feed.threadgate", view.record) || !view.cid || !view.uri) {
 			throw new Error("Invalid threadgate view");
 		}

@@ -1,8 +1,10 @@
-import { type AppBskyGraphDefs, type AppBskyRichtextFacet } from "@atcute/client/lexicons";
+import { type AppBskyGraphDefs, type AppBskyRichtextFacet } from "@atcute/bluesky";
 import type { Bot } from "../bot/Bot.js";
+import { makeIterableWithCursorInOptions } from "../util/makeIterable.js";
 import { Post } from "./post/Post.js";
 import { Profile } from "./Profile.js";
-import { makeIterableWithCursorInOptions } from "../util/makeIterable.js";
+import { asUri } from "../util/lexicon.js";
+import type { ToolsOzoneModerationDefs } from "@atcute/ozone";
 
 /**
  * The purpose of a list.
@@ -153,7 +155,7 @@ export class List {
 	 * Mute all accounts on the list.
 	 */
 	async mute(): Promise<void> {
-		await this.bot.agent.call("app.bsky.graph.muteActorList", { data: { list: this.uri } })
+		await this.bot.agent.post("app.bsky.graph.muteActorList", { input: { list: asUri(this.uri) }, as: "json" })
 			.catch((e) => {
 				throw new Error(`Failed to mute list ${this.uri}`, { cause: e });
 			});
@@ -163,7 +165,7 @@ export class List {
 	 * Unmute all accounts on the list.
 	 */
 	async unmute(): Promise<void> {
-		await this.bot.agent.call("app.bsky.graph.unmuteActorList", { data: { list: this.uri } })
+		await this.bot.agent.post("app.bsky.graph.unmuteActorList", { input: { list: asUri(this.uri) }, as: "json" })
 			.catch((e) => {
 				throw new Error(`Failed to unmute list ${this.uri}`, { cause: e });
 			});
@@ -174,7 +176,7 @@ export class List {
 	 * @returns The AT URI of the list block record.
 	 */
 	async block(): Promise<string> {
-		const block = await this.bot.createRecord("app.bsky.graph.listblock", { subject: this.uri })
+		const block = await this.bot.createRecord("app.bsky.graph.listblock", { subject: asUri(this.uri) })
 			.catch((e) => {
 				throw new Error("Failed to block list " + this.uri, { cause: e });
 			});
@@ -201,13 +203,13 @@ export class List {
 		{ limit = 100, cursor = "" }: ListGetFeedOptions = {},
 	): Promise<{ cursor?: string; posts: Array<Post> }> {
 		const response = await this.bot.agent.get("app.bsky.feed.getListFeed", {
-			params: { list: this.uri, limit, cursor },
+			params: { list: asUri(this.uri), limit, cursor },
 		}).catch((e) => {
 			throw new Error("Failed to get feed for list " + this.uri, { cause: e });
 		});
 		return {
-			posts: response.data.feed.map(({ post }) => Post.fromView(post, this.bot)),
-			...(response.data.cursor ? { cursor: response.data.cursor } : {}),
+			posts: response.feed.map(({ post }) => Post.fromView(post, this.bot)),
+			...(response.cursor ? { cursor: response.cursor } : {}),
 		};
 	}
 
@@ -224,7 +226,7 @@ export class List {
 	 * @param labels The labels to apply.
 	 * @param comment An optional comment.
 	 */
-	async label(labels: Array<string>, comment?: string) {
+	async label(labels: Array<string>, comment?: string): Promise<ToolsOzoneModerationDefs.ModEventView> {
 		return this.bot.label({ reference: this, labels, comment });
 	}
 
@@ -233,7 +235,7 @@ export class List {
 	 * @param labels The labels to negate.
 	 * @param comment An optional comment.
 	 */
-	async negateLabels(labels: Array<string>, comment?: string) {
+	async negateLabels(labels: Array<string>, comment?: string): Promise<ToolsOzoneModerationDefs.ModEventView> {
 		return this.bot.negateLabels({ reference: this, labels, comment });
 	}
 

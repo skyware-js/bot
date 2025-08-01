@@ -17,9 +17,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-import type { AppBskyRichtextFacet } from "@atcute/client/lexicons";
+import type { AppBskyRichtextFacet } from "@atcute/bluesky";
 import type { Bot } from "../bot/Bot.js";
-import { asDid } from "../util/lexicon.js";
+import { asDid, asUri } from "../util/lexicon.js";
 
 const MENTION_REGEX = /(^|\s|\()(@)([a-zA-Z0-9.-]+)(\b)/g;
 const URL_REGEX = /(^|\s|\()((https?:\/\/[\S]+)|((?<domain>[a-z][a-z0-9]*(\.[a-z0-9]+)+)[\S]*))/gim;
@@ -121,7 +121,7 @@ export function detectFacetsWithoutResolution(
 					byteStart: utf16IndexToUtf8Index(text, index.start),
 					byteEnd: utf16IndexToUtf8Index(text, index.end),
 				},
-				features: [{ $type: "app.bsky.richtext.facet#link", uri }],
+				features: [{ $type: "app.bsky.richtext.facet#link", uri: asUri(uri) }],
 			});
 		}
 		re.lastIndex = 0;

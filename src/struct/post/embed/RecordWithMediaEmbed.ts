@@ -21,7 +21,7 @@ export class RecordWithMediaEmbed extends PostEmbed {
 	 * @param media The media within this embed.
 	 */
 	constructor(
-		public record: EmbeddableRecord,
+		public record: EmbeddableRecord | null,
 		public media: ImagesEmbed | VideoEmbed | ExternalEmbed,
 	) {
 		super();
@@ -63,10 +63,13 @@ export class RecordWithMediaEmbed extends PostEmbed {
 			throw new Error("Invalid embed media record type: " + record.media.$type);
 		}
 
-		if (
-			view.record.record.$type === "app.bsky.embed.record#viewRecord"
-			&& is("app.bsky.feed.post", view.record.record.value)
-		) {
+		if (view.record.record.$type === "app.bsky.embed.record#viewRecord") {
+			// Record should only be a post
+			if (!is("app.bsky.feed.post", view.record.record.value)) {
+				throw new Error(
+					"Invalid post view record type: " + (view.record.record.value as any).$type,
+				);
+			}
 			return new RecordWithMediaEmbed(
 				Post.fromView({ ...view.record.record, record: view.record.record.value }, bot),
 				embeddedMedia,
@@ -88,7 +91,14 @@ export class RecordWithMediaEmbed extends PostEmbed {
 				Labeler.fromView(view.record.record, bot),
 				embeddedMedia,
 			);
+		} else if (
+			view.record.record.$type === "app.bsky.embed.record#viewNotFound"
+			|| view.record.record.$type === "app.bsky.embed.record#viewBlocked"
+			|| view.record.record.$type === "app.bsky.embed.record#viewDetached"
+		) {
+			return new RecordWithMediaEmbed(null, embeddedMedia);
 		} else {
+			// @ts-expect-error — exhaustiveness check
 			throw new Error("Invalid post view record type: " + view.record.record.$type);
 		}
 	}

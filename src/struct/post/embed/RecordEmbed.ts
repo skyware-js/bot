@@ -16,7 +16,7 @@ export class RecordEmbed extends PostEmbed {
 	/**
 	 * @param record The embedded record.
 	 */
-	constructor(public record: EmbeddableRecord) {
+	constructor(public record: EmbeddableRecord | null) {
 		super();
 	}
 
@@ -31,7 +31,7 @@ export class RecordEmbed extends PostEmbed {
 	 */
 	static fromView(recordView: AppBskyEmbedRecord.View, bot: Bot): RecordEmbed {
 		if (recordView.record.$type === "app.bsky.embed.record#viewRecord") {
-			// ViewRecord should only be a post
+			// Record should only be a post
 			if (!is("app.bsky.feed.post", recordView.record.value)) {
 				throw new Error(
 					"Invalid post view record type: " + (recordView.record.value as any).$type,
@@ -48,7 +48,14 @@ export class RecordEmbed extends PostEmbed {
 			return new RecordEmbed(StarterPack.fromView(recordView.record, bot));
 		} else if (recordView.record.$type === "app.bsky.labeler.defs#labelerView") {
 			return new RecordEmbed(Labeler.fromView(recordView.record, bot));
+		} else if (
+			recordView.record.$type === "app.bsky.embed.record#viewNotFound"
+			|| recordView.record.$type === "app.bsky.embed.record#viewBlocked"
+			|| recordView.record.$type === "app.bsky.embed.record#viewDetached"
+		) {
+			return new RecordEmbed(null);
 		} else {
+			// @ts-expect-error — exhaustiveness check
 			throw new Error("Invalid embed record type: " + recordView.record.$type);
 		}
 	}

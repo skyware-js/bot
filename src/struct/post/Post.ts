@@ -7,6 +7,7 @@ import { isEmbedMainRecord, isEmbedView, postEmbedFromView } from "./embed/util.
 import { Facet } from "./Facet.js";
 import { PostReference, type PostReferenceData } from "./PostReference.js";
 import { Threadgate } from "./Threadgate.js";
+import { makeIterableWithCursorParameter } from "../../util/makeIterable.js";
 
 /**
  * Data used to construct a Post class.
@@ -259,16 +260,24 @@ export class Post extends PostReference {
 	 */
 	async getLikes(
 		cursor?: string,
-	): Promise<{ cursor: string | undefined; likes: Array<Profile> }> {
+	): Promise<{ cursor?: string; likes: Array<Profile> }> {
 		const response = await this.bot.agent.get("app.bsky.feed.getLikes", {
 			params: { uri: this.uri, limit: 100, cursor: cursor ?? "" },
 		}).catch((e) => {
 			throw new Error("Failed to fetch likes.", { cause: e });
 		});
 		return {
-			cursor: response.data.cursor,
 			likes: response.data.likes.map((like) => Profile.fromView(like.actor, this.bot)),
+			...(response.data.cursor ? { cursor: response.data.cursor } : {}),
 		};
+	}
+
+	/**
+	 * Iterate over the users who liked this post.
+	 * @param cursor The cursor to begin fetching from.
+	 */
+	iterateLikes(cursor?: string): AsyncIterableIterator<Profile> {
+		return makeIterableWithCursorParameter(this.getLikes.bind(this))(cursor);
 	}
 
 	/**
@@ -278,16 +287,24 @@ export class Post extends PostReference {
 	 */
 	async getReposts(
 		cursor?: string,
-	): Promise<{ cursor: string | undefined; reposts: Array<Profile> }> {
+	): Promise<{ cursor?: string; reposts: Array<Profile> }> {
 		const response = await this.bot.agent.get("app.bsky.feed.getRepostedBy", {
 			params: { uri: this.uri, limit: 100, cursor: cursor ?? "" },
 		}).catch((e: unknown) => {
 			throw new Error("Failed to fetch reposts.", { cause: e });
 		});
 		return {
-			cursor: response.data.cursor,
 			reposts: response.data.repostedBy.map((actor) => Profile.fromView(actor, this.bot)),
+			...(response.data.cursor ? { cursor: response.data.cursor } : {}),
 		};
+	}
+
+	/**
+	 * Iterate over the users who reposted this post.
+	 * @param cursor The cursor to begin fetching from.
+	 */
+	iterateReposts(cursor?: string): AsyncIterableIterator<Profile> {
+		return makeIterableWithCursorParameter(this.getReposts.bind(this))(cursor);
 	}
 
 	/**
@@ -295,16 +312,24 @@ export class Post extends PostReference {
 	 * This method returns 100 quotes at a time, alongside a cursor to fetch the next 100.
 	 * @param cursor The cursor to begin fetching from.
 	 */
-	async getQuotes(cursor?: string): Promise<{ cursor: string | undefined; quotes: Array<Post> }> {
+	async getQuotes(cursor?: string): Promise<{ cursor?: string; quotes: Array<Post> }> {
 		const response = await this.bot.agent.get("app.bsky.feed.getQuotes", {
 			params: { uri: this.uri, limit: 100, cursor: cursor ?? "" },
 		}).catch((e: unknown) => {
 			throw new Error("Failed to fetch quotes.", { cause: e });
 		});
 		return {
-			cursor: response.data.cursor,
 			quotes: response.data.posts.map((quote) => Post.fromView(quote, this.bot)),
+			...(response.data.cursor ? { cursor: response.data.cursor } : {}),
 		};
+	}
+
+	/**
+	 * Iterate over the posts that quote this post.
+	 * @param cursor The cursor to begin fetching from.
+	 */
+	iterateQuotes(cursor?: string): AsyncIterableIterator<Post> {
+		return makeIterableWithCursorParameter(this.getQuotes.bind(this))(cursor);
 	}
 
 	/**

@@ -2,6 +2,7 @@ import type { AppBskyFeedDefs, At, Brand } from "@atcute/client/lexicons";
 import type { Bot } from "../bot/Bot.js";
 import { asDid } from "../util/lexicon.js";
 import { Facet } from "./post/Facet.js";
+import { makeIterableWithCursorInOptions } from "../util/makeIterable.js";
 import { Post } from "./post/Post.js";
 import { Profile } from "./Profile.js";
 
@@ -110,16 +111,24 @@ export class FeedGenerator {
 	 */
 	async getPosts(
 		{ limit = 100, cursor = "" }: FeedGeneratorGetPostsOptions = {},
-	): Promise<{ cursor: string | undefined; posts: Array<Post> }> {
+	): Promise<{ cursor?: string; posts: Array<Post> }> {
 		const response = await this.bot.agent.get("app.bsky.feed.getFeed", {
 			params: { feed: this.uri, limit, cursor },
 		}).catch((e) => {
 			throw new Error("Failed to get feed for generator " + this.uri, { cause: e });
 		});
 		return {
-			cursor: response.data.cursor,
 			posts: response.data.feed.map(({ post }) => Post.fromView(post, this.bot)),
+			...(response.data.cursor ? { cursor: response.data.cursor } : {}),
 		};
+	}
+
+	/**
+	 * Iterate over posts from this feed generator.
+	 * @param options Options for fetching the feed.
+	 */
+	iteratePosts(options: FeedGeneratorGetPostsOptions = {}): AsyncIterableIterator<Post> {
+		return makeIterableWithCursorInOptions(this.getPosts.bind(this))(options);
 	}
 
 	/**

@@ -45,6 +45,7 @@ import { BotChatEmitter, type BotChatEmitterOptions } from "./BotChatEmitter.js"
 import { BotEventEmitter, type BotEventEmitterOptions, EventStrategy } from "./BotEventEmitter.js";
 import { type CacheOptions, makeCache } from "./cache.js";
 import { RateLimitedAgent } from "./RateLimitedAgent.js";
+import { makeIterableWithCursorInOptions } from "../util/makeIterable.js";
 
 const NO_SESSION_ERROR = "Active session not found. Make sure to call the login method first.";
 
@@ -311,7 +312,7 @@ export class Bot extends EventEmitter {
 	async getUserPosts(
 		did: string,
 		options: BotGetUserPostsOptions = {},
-	): Promise<{ cursor: string | undefined; posts: Array<Post> }> {
+	): Promise<{ cursor?: string; posts: Array<Post> }> {
 		const response = await this.agent.get("app.bsky.feed.getAuthorFeed", {
 			params: { actor: did, filter: GetUserPostsFilter.PostsWithReplies, ...options },
 		}).catch((e) => {
@@ -325,7 +326,19 @@ export class Bot extends EventEmitter {
 			posts.push(post);
 		}
 
-		return { cursor: response.data.cursor, posts };
+		return { posts, ...(response.data.cursor ? { cursor: response.data.cursor } : {}) };
+	}
+
+	/**
+	 * Iterate over posts from a user.
+	 * @param did The user's DID.
+	 * @param options Optional configuration.
+	 */
+	iterateUserPosts(
+		did: string,
+		options: BotGetUserPostsOptions = {},
+	): AsyncIterableIterator<Post> {
+		return makeIterableWithCursorInOptions(this.getUserPosts.bind(this))(did, options);
 	}
 
 	/**
@@ -336,7 +349,7 @@ export class Bot extends EventEmitter {
 	async getUserLikes(
 		did: string,
 		options: BotGetUserLikesOptions = {},
-	): Promise<{ cursor: string | undefined; posts: Array<Post> }> {
+	): Promise<{ cursor?: string; posts: Array<Post> }> {
 		const response = await this.agent.get("app.bsky.feed.getActorLikes", {
 			params: { actor: did, ...options },
 		}).catch((e) => {
@@ -350,7 +363,19 @@ export class Bot extends EventEmitter {
 			posts.push(post);
 		}
 
-		return { cursor: response.data.cursor, posts };
+		return { posts, ...(response.data.cursor ? { cursor: response.data.cursor } : {}) };
+	}
+
+	/**
+	 * Iterate over the posts liked by a user.
+	 * @param did The user's DID.
+	 * @param options Optional configuration.
+	 */
+	iterateUserLikes(
+		did: string,
+		options: BotGetUserLikesOptions = {},
+	): AsyncIterableIterator<Post> {
+		return makeIterableWithCursorInOptions(this.getUserLikes.bind(this))(did, options);
 	}
 
 	/**
@@ -446,7 +471,7 @@ export class Bot extends EventEmitter {
 	async getUserLists(
 		did: string,
 		options: BotGetUserListsOptions,
-	): Promise<{ cursor: string | undefined; lists: Array<List> }> {
+	): Promise<{ cursor?: string; lists: Array<List> }> {
 		const response = await this.agent.get("app.bsky.graph.getLists", {
 			params: { actor: did, ...options },
 		}).catch((e) => {
@@ -459,7 +484,19 @@ export class Bot extends EventEmitter {
 			return list;
 		});
 
-		return { cursor: response.data.cursor, lists };
+		return { lists, ...(response.data.cursor ? { cursor: response.data.cursor } : {}) };
+	}
+
+	/**
+	 * Iterate over lists created by a user.
+	 * @param did The user's DID.
+	 * @param options Optional configuration.
+	 */
+	iterateUserLists(
+		did: string,
+		options: BotGetUserListsOptions = {},
+	): AsyncIterableIterator<List> {
+		return makeIterableWithCursorInOptions(this.getUserLists.bind(this))(did, options);
 	}
 
 	/**
@@ -706,7 +743,7 @@ export class Bot extends EventEmitter {
 	 */
 	async listConversations(
 		options: BotListConversationsOptions = {},
-	): Promise<{ cursor: string | undefined; conversations: Array<Conversation> }> {
+	): Promise<{ cursor?: string; conversations: Array<Conversation> }> {
 		options.limit ??= 100;
 
 		if (!this.chatProxy) {
@@ -724,7 +761,17 @@ export class Bot extends EventEmitter {
 			return convo;
 		});
 
-		return { cursor: response.data.cursor, conversations };
+		return { conversations, ...(response.data.cursor ? { cursor: response.data.cursor } : {}) };
+	}
+
+	/**
+	 * Iterate over all conversations the bot is a member of.
+	 * @param options Optional configuration.
+	 */
+	iterateConversations(
+		options: BotListConversationsOptions = {},
+	): AsyncIterableIterator<Conversation> {
+		return makeIterableWithCursorInOptions(this.listConversations.bind(this))(options);
 	}
 
 	/**
@@ -736,7 +783,7 @@ export class Bot extends EventEmitter {
 	async getConversationMessages(
 		conversationId: string,
 		options: BotGetConversationMessagesOptions = {},
-	): Promise<{ cursor: string | undefined; messages: Array<ChatMessage | DeletedChatMessage> }> {
+	): Promise<{ cursor?: string; messages: Array<ChatMessage | DeletedChatMessage> }> {
 		options.limit ??= 100;
 
 		if (!this.chatProxy) {
@@ -761,7 +808,19 @@ export class Bot extends EventEmitter {
 			throw new Error(`Invalid message view: ${JSON.stringify(view)}`);
 		});
 
-		return { cursor: response.data.cursor, messages };
+		return { messages, ...(response.data.cursor ? { cursor: response.data.cursor } : {}) };
+	}
+
+	/**
+	 * Iterate over the messages in a conversation.
+	 * @param conversationId The ID of the conversation to fetch messages for.
+	 * @param options Optional configuration.
+	 */
+	iterateConversationMessages(
+		conversationId: string,
+		options: BotGetConversationMessagesOptions = {},
+	): AsyncIterableIterator<ChatMessage | DeletedChatMessage> {
+		return makeIterableWithCursorInOptions(this.getConversationMessages.bind(this))(conversationId, options);
 	}
 
 	/**

@@ -15,6 +15,7 @@ import { asDid } from "../util/lexicon.js";
 import type { ChatMessagePayload } from "./chat/ChatMessage.js";
 import type { Conversation } from "./chat/Conversation.js";
 import type { List } from "./List.js";
+import { makeIterableWithCursorInOptions } from "../util/makeIterable.js";
 import type { Post } from "./post/Post.js";
 
 /**
@@ -246,8 +247,15 @@ export class Profile {
 	 */
 	async getPosts(
 		options: BotGetUserPostsOptions = {},
-	): Promise<{ cursor: string | undefined; posts: Array<Post> }> {
+	): Promise<{ cursor?: string; posts: Array<Post> }> {
 		return this.bot.getUserPosts(this.did, { limit: 100, ...options });
+	}
+
+	/**
+	 * Iterate over the user's posts.
+	 */
+	iteratePosts(options: BotGetUserPostsOptions = {}): AsyncIterableIterator<Post> {
+		return makeIterableWithCursorInOptions(this.getPosts.bind(this))(options);
 	}
 
 	/**
@@ -257,8 +265,15 @@ export class Profile {
 	 */
 	async getLikedPosts(
 		options: BotGetUserLikesOptions = {},
-	): Promise<{ cursor: string | undefined; posts: Array<Post> }> {
+	): Promise<{ cursor?: string; posts: Array<Post> }> {
 		return this.bot.getUserLikes(this.did, { limit: 100, ...options });
+	}
+
+	/**
+	 * Iterate over the user's liked posts.
+	 */
+	iterateLikedPosts(options: BotGetUserLikesOptions = {}): AsyncIterableIterator<Post> {
+		return makeIterableWithCursorInOptions(this.getLikedPosts.bind(this))(options);
 	}
 
 	/**
@@ -268,8 +283,15 @@ export class Profile {
 	 */
 	async getLists(
 		options: BotGetUserListsOptions = {},
-	): Promise<{ cursor: string | undefined; lists: Array<List> }> {
+	): Promise<{ cursor?: string; lists: Array<List> }> {
 		return this.bot.getUserLists(this.did, { limit: 100, ...options });
+	}
+
+	/**
+	 * Iterate over the user's lists.
+	 */
+	iterateLists(options: BotGetUserListsOptions = {}): AsyncIterableIterator<List> {
+		return makeIterableWithCursorInOptions(this.getLists.bind(this))(options);
 	}
 
 	/**

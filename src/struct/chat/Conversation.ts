@@ -3,6 +3,7 @@ import type { Bot, BotSendMessageOptions } from "../../bot/Bot.js";
 import { Profile } from "../Profile.js";
 import { type ChatMessage, type ChatMessagePayload } from "./ChatMessage.js";
 import { type DeletedChatMessage } from "./DeletedChatMessage.js";
+import { makeIterableWithCursorParameter } from "../../util/makeIterable.js";
 
 /**
  * Data used to construct a Conversation class.
@@ -50,8 +51,16 @@ export class Conversation {
 	 */
 	async getMessages(
 		cursor?: string,
-	): Promise<{ cursor: string | undefined; messages: Array<ChatMessage | DeletedChatMessage> }> {
+	): Promise<{ cursor?: string; messages: Array<ChatMessage | DeletedChatMessage> }> {
 		return this.bot.getConversationMessages(this.id, { cursor: cursor ?? "", limit: 100 });
+	}
+
+	/**
+	 * Iterate over the messages in this conversation.
+	 * @param cursor The cursor to begin fetching from.
+	 */
+	iterateMessages(cursor?: string): AsyncIterableIterator<ChatMessage | DeletedChatMessage> {
+		return makeIterableWithCursorParameter(this.getMessages.bind(this))(cursor);
 	}
 
 	/**

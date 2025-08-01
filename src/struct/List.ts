@@ -2,6 +2,7 @@ import { type AppBskyGraphDefs, type AppBskyRichtextFacet } from "@atcute/client
 import type { Bot } from "../bot/Bot.js";
 import { Post } from "./post/Post.js";
 import { Profile } from "./Profile.js";
+import { makeIterableWithCursorInOptions } from "../util/makeIterable.js";
 
 /**
  * The purpose of a list.
@@ -198,16 +199,24 @@ export class List {
 	 */
 	async getFeed(
 		{ limit = 100, cursor = "" }: ListGetFeedOptions = {},
-	): Promise<{ cursor: string | undefined; posts: Array<Post> }> {
+	): Promise<{ cursor?: string; posts: Array<Post> }> {
 		const response = await this.bot.agent.get("app.bsky.feed.getListFeed", {
 			params: { list: this.uri, limit, cursor },
 		}).catch((e) => {
 			throw new Error("Failed to get feed for list " + this.uri, { cause: e });
 		});
 		return {
-			cursor: response.data.cursor,
 			posts: response.data.feed.map(({ post }) => Post.fromView(post, this.bot)),
+			...(response.data.cursor ? { cursor: response.data.cursor } : {}),
 		};
+	}
+
+	/**
+	 * Iterate over recent posts from accounts on the list.
+	 * @param options Options for fetching the feed.
+	 */
+	iterateFeed(options: ListGetFeedOptions = {}): AsyncIterableIterator<Post> {
+		return makeIterableWithCursorInOptions(this.getFeed.bind(this))(options);
 	}
 
 	/**

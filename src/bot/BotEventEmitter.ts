@@ -26,7 +26,7 @@ export const EventStrategy = {
 	 * The bot will open a websocket connection to the relay and receive events in real-time.
 	 * This will consume more bandwidth and CPU than the polling strategy, but the bot will receive
 	 * events as soon as they are emitted.
-	 * @deprecated Use `EventStrategy.Jetstream` instead. This strategy will be removed in a future version.
+	 * Prefer to use the {@link EventStrategy.Jetstream} strategy instead.
 	 */
 	Firehose: "firehose",
 	/**
@@ -58,8 +58,8 @@ export interface BotEventEmitterOptions {
 	processFrom?: Date;
 
 	/**
-	 * Options to pass to the Firehose constructor.
-	 * @deprecated Use `jetstreamOptions` instead. This property, along with the {@link EventStrategy.Firehose} strategy, will be removed in a future version.
+	 * Options to pass to the Firehose constructor. Only used if `strategy` is {@link EventStrategy.Firehose}.
+	 * Prefer to use the {@link EventStrategy.Jetstream} strategy instead.
 	 * @see EventStrategy.Jetstream
 	 */
 	firehoseOptions?: FirehoseOptions;
@@ -95,8 +95,7 @@ export class BotEventEmitter extends EventEmitter {
 	private pollingController?: AbortController;
 
 	/**
-	 * The firehose event stream.
-	 * @deprecated Use `jetstream` instead. This property, along with the {@link EventStrategy.Firehose} strategy, will be removed in a future version.
+	 * The firehose event stream, if using {@link EventStrategy.Firehose}.
 	 */
 	public firehose?: Firehose;
 

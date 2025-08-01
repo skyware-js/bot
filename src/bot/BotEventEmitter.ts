@@ -189,11 +189,11 @@ export class BotEventEmitter extends EventEmitter {
 						}
 
 						// Quote post
-						const isQuote = op.record.embed &&  is("app.bsky.embed.record", op.record.embed)
+						const isQuote = op.record.embed
+							&& is("app.bsky.embed.record", op.record.embed)
 							&& op.record.embed.record.uri.includes(this.bot.profile.did);
-						const isQuoteWithMedia =
-							op.record.embed &&
-							is("app.bsky.embed.recordWithMedia", op.record.embed)
+						const isQuoteWithMedia = op.record.embed
+							&& is("app.bsky.embed.recordWithMedia", op.record.embed)
 							&& op.record.embed.record.record.uri.includes(this.bot.profile.did);
 
 						if ((isQuote || isQuoteWithMedia) && this.listenerCount("quote") >= 1) {
@@ -266,14 +266,14 @@ export class BotEventEmitter extends EventEmitter {
 				if (record.reply?.parent?.uri?.includes(`at://${this.bot.profile.did}`)) {
 					this.emit("reply", await this.bot.getPost(uri));
 				} else if (
-					record.embed &&
-					is("app.bsky.embed.record", record.embed)
+					record.embed
+					&& is("app.bsky.embed.record", record.embed)
 					&& record.embed.record.uri.includes(`at://${this.bot.profile.did}`)
 				) {
 					this.emit("quote", await this.bot.getPost(uri));
 				} else if (
-					record.embed &&
-					is("app.bsky.embed.recordWithMedia", record.embed)
+					record.embed
+					&& is("app.bsky.embed.recordWithMedia", record.embed)
 					&& record.embed.record.record.uri.includes(`at://${this.bot.profile.did}`)
 				) {
 					this.emit("quote", await this.bot.getPost(uri));

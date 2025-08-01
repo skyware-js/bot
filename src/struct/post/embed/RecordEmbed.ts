@@ -36,7 +36,11 @@ export class RecordEmbed extends PostEmbed {
 				throw new Error("Invalid post view record type: " + recordView.record.value.$type);
 			}
 			return new RecordEmbed(
-				Post.fromView({ ...recordView.record, record: recordView.record.value, $type: "app.bsky.feed.defs#postView" }, bot),
+				Post.fromView({
+					...recordView.record,
+					record: recordView.record.value,
+					$type: "app.bsky.feed.defs#postView",
+				}, bot),
 			);
 		} else if (recordView.record.$type === "app.bsky.feed.defs#generatorView") {
 			return new RecordEmbed(FeedGenerator.fromView(recordView.record, bot));

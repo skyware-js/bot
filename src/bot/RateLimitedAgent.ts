@@ -22,6 +22,7 @@ import { RateLimitThreshold } from "rate-limit-threshold";
 
 const BSKY_LABELER = "did:plc:ar7c4by46qjdydhdevvrndac;redact";
 
+/** Taken from @atcute/client */
 type RequiredKeysOf<TType extends object> = TType extends any
 	? Exclude<
 		{ [Key in keyof TType]: TType extends Record<Key, TType[Key]> ? Key : never }[keyof TType],
@@ -29,11 +30,14 @@ type RequiredKeysOf<TType extends object> = TType extends any
 	>
 	: never;
 
+/** Taken from @atcute/client */
 type HasRequiredKeys<TType extends object> = RequiredKeysOf<TType> extends never ? false : true;
 
-type ResponseFormat = "json" | "blob" | "bytes" | "stream";
+/** Taken from @atcute/client */
+export type ResponseFormat = "json" | "blob" | "bytes" | "stream";
 
-type FormattedResponse<TDef> = {
+/** Taken from @atcute/client */
+export type FormattedResponse<TDef> = {
 	json: TDef extends XRPCQueryMetadata<any, infer Body extends XRPCLexBodyParam, any>
 		? InferOutput<Body["schema"]>
 		: TDef extends XRPCProcedureMetadata<any, any, infer Body extends XRPCLexBodyParam, any>
@@ -145,8 +149,8 @@ export class RateLimitedAgent<
 
 	/**
 	 * Create a new agent with the atproto_proxy header set.
-	 * @param type The proxy type.
-	 * @param service The proxy service.
+	 * @param did The proxy service DID.
+	 * @param service The proxy service identifier.
 	 */
 	withProxy(did: `did:${string}:${string}`, service: `#${string}`): RateLimitedAgent {
 		return new RateLimitedAgent({

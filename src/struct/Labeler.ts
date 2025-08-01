@@ -1,9 +1,9 @@
 import type { ComAtprotoLabelDefs } from "@atcute/atproto";
 import type { AppBskyLabelerDefs } from "@atcute/bluesky";
-import type { Bot } from "../bot/Bot.js";
-import { Profile } from "./Profile.js";
 import type { ResourceUri } from "@atcute/lexicons";
+import type { Bot } from "../bot/Bot.js";
 import { asUri } from "../util/lexicon.js";
+import { Profile } from "./Profile.js";
 
 /**
  * Data used to construct a Labeler class.

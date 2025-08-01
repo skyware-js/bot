@@ -66,12 +66,14 @@ export class RecordWithMediaEmbed extends PostEmbed {
 		if (view.record.record.$type === "app.bsky.embed.record#viewRecord") {
 			// Record should only be a post
 			if (!is("app.bsky.feed.post", view.record.record.value)) {
-				throw new Error(
-					"Invalid post view record type: " + view.record.record.value.$type,
-				);
+				throw new Error("Invalid post view record type: " + view.record.record.value.$type);
 			}
 			return new RecordWithMediaEmbed(
-				Post.fromView({ ...view.record.record, record: view.record.record.value, $type: "app.bsky.feed.defs#postView" }, bot),
+				Post.fromView({
+					...view.record.record,
+					record: view.record.record.value,
+					$type: "app.bsky.feed.defs#postView",
+				}, bot),
 				embeddedMedia,
 			);
 		} else if (view.record.record.$type === "app.bsky.feed.defs#generatorView") {

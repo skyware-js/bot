@@ -1,8 +1,7 @@
 import type { ComAtprotoLabelDefs } from "@atcute/atproto";
-import type {
-	AppBskyActorDefs,
-	ChatBskyActorDefs,
-} from "@atcute/bluesky";
+import type { AppBskyActorDefs, ChatBskyActorDefs } from "@atcute/bluesky";
+import type { Did, ResourceUri } from "@atcute/lexicons";
+import type { ToolsOzoneModerationDefs } from "@atcute/ozone";
 import type {
 	Bot,
 	BotGetUserLikesOptions,
@@ -16,8 +15,6 @@ import type { ChatMessagePayload } from "./chat/ChatMessage.js";
 import type { Conversation } from "./chat/Conversation.js";
 import type { List } from "./List.js";
 import type { Post } from "./post/Post.js";
-import type { Did, ResourceUri } from "@atcute/lexicons";
-import type { ToolsOzoneModerationDefs } from "@atcute/ozone";
 
 /**
  * Data used to construct a Profile class.
@@ -188,10 +185,10 @@ export class Profile {
 		if (postsCount != undefined) this.postsCount = postsCount;
 		this.labels = labels ?? [];
 		if (indexedAt) this.indexedAt = indexedAt;
-		if (followUri != undefined) this.followUri = asUri(followUri)
-		if (followedByUri != undefined) this.followedByUri = asUri(followedByUri)
+		if (followUri != undefined) this.followUri = asUri(followUri);
+		if (followedByUri != undefined) this.followedByUri = asUri(followedByUri);
 		if (isMuted != undefined) this.isMuted = isMuted;
-		if (blockUri != undefined) this.blockUri = asUri(blockUri)
+		if (blockUri != undefined) this.blockUri = asUri(blockUri);
 		if (isBlockedBy != undefined) this.blockedBy = isBlockedBy;
 		if (isLabeler != undefined) this.isLabeler = isLabeler;
 		if (incomingChatPreference) this.incomingChatPreference = incomingChatPreference;
@@ -202,7 +199,7 @@ export class Profile {
 	 * @returns The AT URI of the follow relationship.
 	 */
 	async follow(): Promise<string> {
-		return this.followUri = asUri((await this.bot.follow(this.did)).uri)
+		return this.followUri = asUri((await this.bot.follow(this.did)).uri);
 	}
 
 	/**
@@ -231,7 +228,7 @@ export class Profile {
 	 * @returns The AT URI of the block relationship.
 	 */
 	async block(): Promise<string> {
-		return this.blockUri = asUri((await this.bot.block(this.did)).uri)
+		return this.blockUri = asUri((await this.bot.block(this.did)).uri);
 	}
 
 	/**
@@ -345,7 +342,10 @@ export class Profile {
 	 * @param labels The labels to apply.
 	 * @param comment An optional comment to attach to the label.
 	 */
-	async labelAccount(labels: Array<string>, comment?: string): Promise<ToolsOzoneModerationDefs.ModEventView> {
+	async labelAccount(
+		labels: Array<string>,
+		comment?: string,
+	): Promise<ToolsOzoneModerationDefs.ModEventView> {
 		return this.bot.label({ reference: { did: this.did }, labels, comment });
 	}
 

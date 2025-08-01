@@ -1,10 +1,10 @@
 import { type AppBskyGraphDefs, type AppBskyRichtextFacet } from "@atcute/bluesky";
+import type { ToolsOzoneModerationDefs } from "@atcute/ozone";
 import type { Bot } from "../bot/Bot.js";
+import { asUri } from "../util/lexicon.js";
 import { makeIterableWithCursorInOptions } from "../util/makeIterable.js";
 import { Post } from "./post/Post.js";
 import { Profile } from "./Profile.js";
-import { asUri } from "../util/lexicon.js";
-import type { ToolsOzoneModerationDefs } from "@atcute/ozone";
 
 /**
  * The purpose of a list.
@@ -155,20 +155,24 @@ export class List {
 	 * Mute all accounts on the list.
 	 */
 	async mute(): Promise<void> {
-		await this.bot.agent.post("app.bsky.graph.muteActorList", { input: { list: asUri(this.uri) }, as: "json" })
-			.catch((e) => {
-				throw new Error(`Failed to mute list ${this.uri}`, { cause: e });
-			});
+		await this.bot.agent.post("app.bsky.graph.muteActorList", {
+			input: { list: asUri(this.uri) },
+			as: "json",
+		}).catch((e) => {
+			throw new Error(`Failed to mute list ${this.uri}`, { cause: e });
+		});
 	}
 
 	/**
 	 * Unmute all accounts on the list.
 	 */
 	async unmute(): Promise<void> {
-		await this.bot.agent.post("app.bsky.graph.unmuteActorList", { input: { list: asUri(this.uri) }, as: "json" })
-			.catch((e) => {
-				throw new Error(`Failed to unmute list ${this.uri}`, { cause: e });
-			});
+		await this.bot.agent.post("app.bsky.graph.unmuteActorList", {
+			input: { list: asUri(this.uri) },
+			as: "json",
+		}).catch((e) => {
+			throw new Error(`Failed to unmute list ${this.uri}`, { cause: e });
+		});
 	}
 
 	/**
@@ -176,10 +180,11 @@ export class List {
 	 * @returns The AT URI of the list block record.
 	 */
 	async block(): Promise<string> {
-		const block = await this.bot.createRecord("app.bsky.graph.listblock", { subject: asUri(this.uri) })
-			.catch((e) => {
-				throw new Error("Failed to block list " + this.uri, { cause: e });
-			});
+		const block = await this.bot.createRecord("app.bsky.graph.listblock", {
+			subject: asUri(this.uri),
+		}).catch((e) => {
+			throw new Error("Failed to block list " + this.uri, { cause: e });
+		});
 		this.blockUri = block.uri;
 		return this.blockUri;
 	}
@@ -226,7 +231,10 @@ export class List {
 	 * @param labels The labels to apply.
 	 * @param comment An optional comment.
 	 */
-	async label(labels: Array<string>, comment?: string): Promise<ToolsOzoneModerationDefs.ModEventView> {
+	async label(
+		labels: Array<string>,
+		comment?: string,
+	): Promise<ToolsOzoneModerationDefs.ModEventView> {
 		return this.bot.label({ reference: this, labels, comment });
 	}
 
@@ -235,7 +243,10 @@ export class List {
 	 * @param labels The labels to negate.
 	 * @param comment An optional comment.
 	 */
-	async negateLabels(labels: Array<string>, comment?: string): Promise<ToolsOzoneModerationDefs.ModEventView> {
+	async negateLabels(
+		labels: Array<string>,
+		comment?: string,
+	): Promise<ToolsOzoneModerationDefs.ModEventView> {
 		return this.bot.negateLabels({ reference: this, labels, comment });
 	}
 

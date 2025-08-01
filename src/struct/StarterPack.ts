@@ -1,14 +1,11 @@
 import type { ComAtprotoLabelDefs } from "@atcute/atproto";
-import type {
- AppBskyGraphDefs,
-	 AppBskyRichtextFacet,
-} from "@atcute/bluesky";
+import type { AppBskyGraphDefs, AppBskyRichtextFacet } from "@atcute/bluesky";
+import type { ResourceUri } from "@atcute/lexicons";
 import type { BaseBotGetMethodOptions, Bot } from "../bot/Bot.js";
 import { asUri, is } from "../util/lexicon.js";
 import { FeedGenerator } from "./FeedGenerator.js";
 import { List } from "./List.js";
 import { Profile } from "./Profile.js";
-import type { ResourceUri } from "@atcute/lexicons";
 
 /**
  * Data used to construct a StarterPack class.

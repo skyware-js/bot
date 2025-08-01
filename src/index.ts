@@ -26,7 +26,11 @@ export {
 	type BotEventEmitterOptions,
 	EventStrategy,
 } from "./bot/BotEventEmitter.js";
-export { RateLimitedAgent } from "./bot/RateLimitedAgent.js";
+export {
+	type FormattedResponse,
+	RateLimitedAgent,
+	type ResponseFormat,
+} from "./bot/RateLimitedAgent.js";
 
 export { type CacheOptions } from "./bot/cache.js";
 
